@@ -70,6 +70,13 @@ aladin/build
 # utils and paper
 !utils/
 !paper/
-paper/images/
+!paper/*.py
+!paper/images
+!paper/images/fig3-boxplot-stanford.png
+!paper/images/fig3-ranking-stanford.png
+!paper/images/fig4-boxplot-cinc.png
+!paper/images/fig4-ranking_plot.png
+
+
 
 !.gitignore
