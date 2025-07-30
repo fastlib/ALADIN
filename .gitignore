@@ -17,6 +17,7 @@
 
 # benchmark folder
 !benchmark/
+!benchmark/* 
 !benchmark/weights/
 benchmark/weights/*.pth
 !benchmark/diagnosis/
