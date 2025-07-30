@@ -49,20 +49,20 @@ else
     echo "google-cloud-cli-linux-x86_64.tar.gz already exists, skipping download."
 fi
 
-export GOOGLE_APPLICATION_CREDENTIALS=./data/aladin-466917-e056430d6165.json
-gcloud auth activate-service-account --key-file ./data/aladin-466917-e056430d6165.json
-
-mkdir -p ./data/models
-gsutil -m cp -rn gs://arts-aladin/Dataset200_all_101 ./data/models
-gsutil -m cp -rn gs://arts-aladin/Dataset301_all_0 ./data/models
-
-# mkdir -p ./data/CINC/training
-# aws s3 sync --no-sign-request s3://physionet-open/challenge-2017/1.0.0/training ./data/CINC/training
-
 #Set environment variables
 export aladin_models=./data/models
 export benchmark_results=./results
 export benchmark_data=./data
+
+export GOOGLE_APPLICATION_CREDENTIALS=./data/aladin-466917-e056430d6165.json
+gcloud auth activate-service-account --key-file ./data/aladin-466917-e056430d6165.json
+
+mkdir -p ${aladin_models}
+gsutil -m cp -rn gs://arts-aladin/Dataset200_all_101 ${aladin_models}
+gsutil -m cp -rn gs://arts-aladin/Dataset301_all_0 ${aladin_models}
+
+# mkdir -p ./data/CINC/training
+# aws s3 sync --no-sign-request s3://physionet-open/challenge-2017/1.0.0/training ./data/CINC/training
 
 #Run demo
 # python3.10 demo.py --case STANFORD1
