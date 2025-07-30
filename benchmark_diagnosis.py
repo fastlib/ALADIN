@@ -397,7 +397,7 @@ class ALADINModel(Model):
         self.output_binary = True
         self.name = "ALADIN"
         self.save_output = True
-        self.modelpaths = modelpaths if len(modelpaths) > 0 else ["Dataset200_all_101/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"]
+        self.modelpaths = modelpaths if len(modelpaths) > 0 else ["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"]
 
         self.aladin = ALADIN(modelpaths=self.modelpaths)
 

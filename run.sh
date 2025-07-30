@@ -54,6 +54,7 @@ gcloud auth activate-service-account --key-file ./data/aladin-466917-e056430d616
 
 mkdir -p ./data/models
 gsutil -m cp -rn gs://arts-aladin/Dataset200_all_101 ./data/models
+gsutil -m cp -rn gs://arts-aladin/Dataset301_all_0 ./data/models
 
 # mkdir -p ./data/CINC/training
 # aws s3 sync --no-sign-request s3://physionet-open/challenge-2017/1.0.0/training ./data/CINC/training
