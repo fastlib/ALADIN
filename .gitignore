@@ -1,0 +1,74 @@
+# Ignore everything
+*
+
+# Un-ignore specific files in root
+!README.md
+!README.pdf
+!README.html
+!requirements.txt
+!train_aladin.sh
+!benchmark_delineation.py
+!benchmark_diagnosis.py
+!demo.py
+!run.sh
+!benchmark_delineation.sh
+!benchmark_diagnosis_CINC.sh
+!benchmark_diagnosis_STANFORD.sh
+
+# benchmark folder
+!benchmark/
+!benchmark/weights/
+benchmark/weights/*.pth
+!benchmark/diagnosis/
+
+# data folder and selected files
+!data/
+!data/arrhythmia_classes.csv
+!data/results_all_F1_scores_for_each_classification_type.csv
+!data/aladin-466917-e056430d6165.json
+!data/demo/
+!data/demo/**
+
+!data/MongoDB/
+!data/MongoDB/docker-compose.yml
+
+!data/nnUNet_plans/
+!data/nnUNet_plans/**
+
+!data/STANFORD/
+!data/STANFORD/RECORDS
+
+!data/CINC/
+!data/CINC/download.sh
+!data/CINC/RECORDS
+!data/CINC/REFERENCE-v3.csv
+
+!data/ICENTIA-test/
+!data/ICENTIA-test/random_patients.txt
+
+# nnUNet
+!nnUNet/
+nnUNet/build/
+nnUNet/.egg-info
+nnUNet/.github
+nnUNet/.gitignore
+!nnUNet/pyproject.toml
+!nnUNet/LICENSE
+!nnUNet/README.md
+!nnUNet/nnunetv2/
+!nnUNet/nnunetv2/**
+
+# aladin
+!aladin/
+!aladin/**
+*.pyc
+aladin/.egg-info
+aladin/build
+!aladin/src/utils/add_gender_to_mongo.py
+
+# utils and paper
+!utils/
+!paper/
+paper/images/
+
+!.gitignore
