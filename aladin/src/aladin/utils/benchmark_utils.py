@@ -457,31 +457,9 @@ class ICENTIAData(BaseDataLoader):
 
 
     def init_objects(self):
-        paths = np.loadtxt(self.basefolder+'/'+self.folder+'/random_patients.txt', dtype=str)
         recordname = "p0_p00000_p00000_s00"
         self.objs[recordname] = {"record": recordname, "path": "p00/p00000/p00000_s00", "initialized": False}
 
-        # for path in tqdm(paths, desc="Initializing ICENTIA records"):
-        #     recordsfile = self.basefolder+'/'+self.folder+'/'+path+'/RECORDS'
-        #     if not os.path.exists(recordsfile):
-        #         self.download_record_index(path)
-
-        #     recpaths = np.loadtxt(self.basefolder+'/'+self.folder+'/'+path+'/RECORDS', dtype=str)
-
-        #     numrecords = len(recpaths)
-        #     targetnumber = 21
-        #     st = max(0,(numrecords - targetnumber) // 2)
-        #     en = min(numrecords, st + targetnumber)
-        #     recpaths = recpaths[st:en]
-
-        #     for recpath in recpaths:
-        #         recordname = path + recpath
-        #         recordname.replace("/", "_")
-        #         obj = {"record": recordname, "path": path + recpath, "initialized": False}
-        #         self.objs[recordname] = obj
-
-        #         if not self.asynchronous:
-        #             self.get_data(recordname)
 
         print("Number of records:", len(self.objs))
         
