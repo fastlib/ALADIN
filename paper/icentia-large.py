@@ -104,22 +104,43 @@ def get_results_from_folder(folder_path):
     ds = []
     for file_name in os.listdir(folder_path):
         if file_name.endswith('.pkl.gz'):
+
+            relative_path = os.path.relpath(folder_path, os.environ.get('benchmark_data')+'/ICENTIA-results/ICENTIA')
+            recordname = file_name[:-7]
+            anns = wfdb.rdann(os.path.join("/home/lukas/UU/ASRA/ALADINv2/data/ICENTIA", relative_path, recordname), 'atr')
+            t = get_diagnosis_from_ann(anns)
+            ts = [i[0] for i in t]
+            bad_quality = [(i[1],i[2]) for i in t if i[0] == "LOW_SIGNAL_QUALITY"]
+
             with gzip.open(os.path.join(folder_path, file_name), 'rb') as f:
                 data = pickle.load(f)
                 diagnoses = data.get("diagnosis", [])
                 d = []
                 for diagnosis in diagnoses:
-                    if diagnosis["type"] == "AFIB" and (diagnosis["offset"] - diagnosis["onset"]) > 30 * 250:
+                    onset = diagnosis.get("onset", 0)
+                    offset = diagnosis.get("offset", 0)
+                    duration = (offset - onset) / 250  # Convert to seconds
+
+                    use = True
+                    for start, end in bad_quality:
+                        if onset >= start and offset <= end:
+                            use = False
+                            break
+
+                    if not use:
+                        continue
+
+                    if diagnosis["type"] == "AFIB" and duration > 30:
                         d.append("AFIB/AFL")
-                    elif diagnosis["type"] == "VT" and (diagnosis["offset"] - diagnosis["onset"]) > 10 * 250:
+                    elif diagnosis["type"] == "VT" and duration > 10:
                         d.append("VT")
-                    elif diagnosis["type"] == "SVT" and (diagnosis["offset"] - diagnosis["onset"]) > 10 * 250:
+                    elif diagnosis["type"] == "SVT" and duration > 10:
                         d.append("SVT")
-                    elif diagnosis["type"] == "TRIGEMINY" and (diagnosis["offset"] - diagnosis["onset"]) > 10 * 250:
+                    elif diagnosis["type"] == "TRIGEMINY" and duration > 10:
                         d.append("TRIGEMINY")
-                    elif diagnosis["type"] == "BIGEMINY" and (diagnosis["offset"] - diagnosis["onset"]) > 10 * 250:
+                    elif diagnosis["type"] == "BIGEMINY" and duration > 10:
                         d.append("BIGEMINY")
-                    elif diagnosis["type"] == "IVR" and (diagnosis["offset"] - diagnosis["onset"]) > 10 * 250:
+                    elif diagnosis["type"] == "IVR" and duration > 10:
                         d.append("IVR")
                     elif diagnosis["type"] == "WENCKEBACH" or \
                             diagnosis["type"] == "AVB" or \
@@ -131,12 +152,6 @@ def get_results_from_folder(folder_path):
                             diagnosis["type"] == "TACHYCARDIA":
                         d.append(diagnosis["type"])
             
-            relative_path = os.path.relpath(folder_path, os.environ.get('benchmark_data')+'/ICENTIA-results/ICENTIA')
-            recordname = file_name[:-7]
-            #patient_id = 
-            anns = wfdb.rdann(os.path.join("/home/lukas/UU/ASRA/ALADINv2/data/ICENTIA", relative_path, recordname), 'atr')
-            t = get_diagnosis_from_ann(anns)
-            ts = [i[0] for i in t]
 
             ds.append({"record": recordname, "true":ts, "predicted": d})#, "raw": diagnoses})
             

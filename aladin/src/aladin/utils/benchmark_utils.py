@@ -610,11 +610,14 @@ class ICENTIAData(BaseDataLoader):
             self.boto_client.download_file(bucket_name, prefix + path +"RECORDS", local_file_path)
 
     def get_data_batch(self, paths):
+        
+        #delete self.objs
+        self.objs = {}
 
         for path in paths:
             recordname = path
             recordname = recordname.split("/")[-1]
-            obj = {"record": recordname, "path": path, "initialized": False}
+            obj = {"record": recordname, "path": path, "initialized": False, "done": False}
             self.objs[recordname] = obj
 
         #first check if the files are already downloaded
@@ -740,7 +743,8 @@ class ICENTIAData(BaseDataLoader):
                 "qrs_binary": None,
                 "qrsabnorm_binary": None,
                 "t_binary": None,
-                "labelregions": labelregions
+                "labelregions": labelregions, 
+                "done": False
             }
             res.append(self.objs[recordname])
 
@@ -781,6 +785,7 @@ class ICENTIAData(BaseDataLoader):
         }
         with gzip.open(f'{record.recordname}.pkl.gz', 'wb') as f:
             pickle.dump(data, f)
+
         blob = self.bucket.blob(f"ICENTIA-Dataset301/{self.objs[key]['path']}.pkl.gz")
         blob.upload_from_filename(f'{record.recordname}.pkl.gz')
         print(f"Uploaded {key} to {blob.public_url}")
@@ -825,6 +830,19 @@ class ICENTIAData(BaseDataLoader):
         #update the status of the records to 'processing'
         if len(paths) > 0:
             self.run_bigquery(f"""UPDATE `{self.credentials.project_id}.{self.table_id}` SET status='done' WHERE record_id IN UNNEST({paths})""")
+
+        for key in keys:
+            if key in self.objs:
+                self.objs[key]["done"] = True
+
+    def cleanup(self):
+
+        #update the status of all records to 'done'
+        paths = [self.objs[key]["path"] for key in self.objs if not self.objs[key]["done"]]
+        if len(paths) > 0:
+            self.run_bigquery(f"""UPDATE `{self.credentials.project_id}.{self.table_id}` SET status='unprocessed' WHERE record_id IN UNNEST({paths})""")
+
+        print("All records set to unprocessed again.")
 
     def batch(self, batch_size=32):
 

@@ -8,6 +8,8 @@ import time
 import asyncio
 from tqdm.asyncio import tqdm
 
+import atexit
+
 import scipy.signal as sps
 from scipy.signal import butter, filtfilt
 
@@ -37,28 +39,6 @@ def get_memory_usage_bytes() -> int:
     """Returns the RSS (resident set size) in bytes."""
     process = psutil.Process(os.getpid())
     return process.memory_info().rss
-
-class FirestoreDatabase():
-    def __init__(self, project_id):
-        self.db = firestore.Client(project="aladin")
-        self.collection = self.db.collection("ICENTIA")
-
-    def add_record(self, record_id):
-        # Add a new document with a generated ID
-        doc_ref = self.collection.add({
-            "record_id": record_id,
-            "status": "unprocessed"
-        })
-        print(f"Added document with ID: {doc_ref.id}")
-        return doc_ref.id
-
-    def get_random_batch(self, batch_size):
-        #get random documents which have the field "status" to be "unprocessed"
-        docs = self.collection.where("status", "==", "unprocessed").limit(batch_size).get()
-
-        print(docs)
-        
-        return docs
 
 
 class ECGFounderBenchmark(ECGFounderPredictor):
@@ -957,6 +937,8 @@ if __name__ == "__main__":
 
     elif dataset == "ICENTIA":
         data = ICENTIAData("ICENTIA", asynchronous=True)
+
+        atexit.register(data.cleanup)
 
         if method == "ALADIN":
             model = ALADINModelForICENTIA(modelpaths=modelpaths)
