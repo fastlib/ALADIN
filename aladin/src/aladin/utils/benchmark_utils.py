@@ -803,7 +803,7 @@ class ICENTIAData(BaseDataLoader):
         }
         with gzip.open(f'{record.recordname}.pkl.gz', 'wb') as f:
             pickle.dump(data, f)
-        blob = self.bucket.blob(f"ICENTIA/{self.objs[key]['path']}.pkl.gz")
+        blob = self.bucket.blob(f"ICENTIA-Dataset301/{self.objs[key]['path']}.pkl.gz")
         blob.upload_from_filename(f'{record.recordname}.pkl.gz')
         print(f"Uploaded {key} to {blob.public_url}")
 
