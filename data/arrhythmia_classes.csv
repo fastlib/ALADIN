@@ -1,0 +1,123 @@
+Diagnostic,Conduction,Sinus Arrest,SA,Sinus Arrest,,
+Diagnostic,Conduction,Nonspecific Intraventricular Conduction Disorder,NSIVCD,Nonspecific Intraventricular Conduction Disorder,IVCD,diffuse intraventricular block
+Diagnostic,Conduction,1st Degree AV Block,AVBI,1st degree av block,1st Deg AVB,av block,1AVB,AVB I
+Diagnostic,Conduction,Bundle Branch Block,BBB,Bundle Branch Block,,
+Diagnostic,Conduction,Left Bundle Branch Block,LBBB,LBBB,left bundle branch block,left bbb
+Diagnostic,Conduction,Right Bundle Branch Block,RBBB,RBBB,right bundle branch block,right bbb
+Diagnostic,Conduction,Left Anterior Fascicular Block,LAFB,Left Anterior Fascicular Block,,
+Diagnostic,Conduction,Left Posterior Fascicular Block,LPFB,Left Posterior Fascicular Block,,
+Diagnostic,Conduction,Incomplete LBBB,ILBBB,Incomplete LBBB,incomplete left bundle branch block,incomplete left bbb
+Diagnostic,Conduction,Incomplete RBBB,IRBBB,Incomplete RBBB,incomplete right bundle branch block,incomplete right bbb
+Diagnostic,Conduction,2nd Degree AV Block,AVB II,2nd degree av block,2nd Deg AVB,2AVB,
+Diagnostic,Conduction,Complete LBBB,CLBBB,Complete LBBB,complete left bundle branch block,complete left bbb
+Diagnostic,Conduction,Complete RBBB,CRBBB,Complete RBBB,complete right bundle branch block,complete right bbb
+Diagnostic,Conduction,Aberrant conduction,ABRC,Aberrant conduction,,
+Diagnostic,Conduction,Mobitz I Wenckebach,WENCK,Mobitz I,Mobitz I AVB,Mobitz Type I wenckebach AVB,Mobitz Type I Hay
+Diagnostic,Conduction,Mobitz II Hay,HAY,Mobitz Type II AVB,Mobitz II,
+Diagnostic,Conduction,Sinoatrial block,SAB,Sinoatrial block,,
+Diagnostic,Conduction,Complete heart block,CHB,Complete heart block,CHB,3AVB,
+Diagnostic,Conduction,Atrioventricular Dissociation,AVD,Atrioventricular Dissociation,,
+Diagnostic,Conduction,Wolff-Parkinson White Type A,WPW-A,WPW-A,Wolff parkinson white pattern,WPW
+Diagnostic,Conduction,Wolff-Parkinson White Type B,WPW-B,WPW-B,,
+Diagnositc,Conduction,Brugada,BRU,Brugada,,
+Diagnostic,Premature & Escape,Premature Ventricular Contraction,PVC,Premature Ventricular Contractions,Ventricular Premature Beats,Ventricular pre excitation,Ventricular ectopics
+Diagnostic,Premature & Escape,Premature Atrial Contraction,PAC,Atrial Premature Contraction
+Diagnostic,Premature & Escape,Blocked Premature Atrial Contraction,BPAC,Blocked PAC,,
+Diagnostic,Premature & Escape,Abberant PAC,APAC,Abberant Premature Atrial Contraction,,,
+Diagnostic,Premature & Escape,Premature Junctional Contraction,PJC,junctional premature complex
+Diagnostic,Premature & Escape,Supraventricular Premature Contraction,SVPC,Supraventricular Premature Beats,
+Diagnostic,Premature & Escape,Junctional escape,JE,Junctional escape,,
+Diagnostic,Premature & Escape,Ventricular escape beat,VEB,Ventricular escape beat,,
+Diagnostic,Premature & Escape,Atrial escape beat,AEB,Atrial escape beat,,
+Diagnostic,Premature & Escape,Fusion beat,FB,fusion beats,fused beat,fused beats,
+Diagnostic,Infarction & Ischemia,Anterior myocardial infarction,AMI,Anterior myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Inferior myocardial infarction,IMI,Inferior myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Lateral myocardial infarction,LMI,Lateral myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Posterior myocardial infarction,PMI,Posterior myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Inferolateral myocardial infarction,ILMI,Inferolateral myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Inferoposterior myocardial infarction,IPMI,Inferoposterior myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Inferoposterolateral myocardial infarction,IPLMI,Inferoposterolateral myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Inferoseptal myocardial infarction,ISMI,Inferoseptal myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Anteroseptal myocardial infarction,ASMI,Anteroseptal myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Anterolateral myocardial infarction,ALMI,Anterolateral myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Myocardial infarction,MI,Myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Old myocardial infraction,OldMI,old myocardial infarction,,
+Diagnostic,Infarction & Ischemia,Myocardial Ischemia,MIS,Ischemia,Myocardial Ischemia,Chronic Myocardial Ischemia,ISCIN,
+Diagnostic,Infarction & Ischemia,Acute Myocardial Infarction,AcuteMI,Acute Myocardial Infarction,Acute Myocardial Ischemia,
+Diagnostic,Infarction & Ischemia,Lateral myocardial ischemia,LMIs,Lateral Ischemia
+Diagnostic,Infarction & Ischemia,Inferior myocardial ischemia,IMIs,Inferior Ischemia
+Diagnostic,Infarction & Ischemia,Posterior myocardial ischemia,PMIs,Posterior Ischemia
+Diagnostic,Infarction & Ischemia,Anterior myocardial ischemia,AMIs,Anterior Ischemia
+Diagnostic,Infarction & Ischemia,Septal myocardial ischemia,SMIs,Septal Ischemia
+Diagnostic,Infarction & Ischemia,Apical myocardial ischemia,ApMIs,Apical Ischemia
+Diagnostic,Infarction & Ischemia,STEMI,STEMI,ST Elevation Myocardial Ischemia
+Diagnostic,Infarction & Ischemia,NSTEMI,NSTEMI,Non ST Elevation Myocardial Ischemia
+Form,STTC,Abnormal ST-interval,STA,St interval abnormal,nonspecific st t abnormality,s t changes,NST_,
+Form,STTC,ST depression,STD,ST-Depression,st depression,STD_,inferior st segment depression
+Form,STTC,Abnormal T wave,TAb,T wave abnormal,NDT,NT_,TAB_
+Form,STTC,Low T voltage,LowT,Low T-voltage,LOWT,
+Form,STTC,T wave inversion,TInv,T wave inversion,INVT,
+Form,STTC,High T voltage,HighT,High T-voltage,,
+Form,STTC,Early Repolarization,ER,Early Repolarization,,
+Form,STTC,ST elevation,STE,ST Elevation,STE_,
+Form,STTC,Prolonged QT interval,LongQT,Long QT,Prolonged qt interval,LNGQT,
+Form,STTC,Shortened QT interval,ShortQT,Short QT,Shortened qt interval,decreased qt interval,
+Form,STTC,Abnormal Q,QAb,qwave abnormal,,
+Form,STTC,U wave abnormal,UAb,U wave abnormal,,
+Form,P,Prolonged P wave,LongP,Prolonged P wave,LPR,Prolonged P,
+Form,P,Tall P wave,TallP,Tall P wave,,
+Form,P,Prolonged PR,LongPR,Prolonged PR interval,Long PR,
+Form,P,Shortened PR,ShortPR,Shortened PR interval,shortened pr interval,Short PR,
+Form,P,P wave change,PChange,P wave change,,
+Form,QRS,Low QRS voltages,LowQRS,Low qrs voltages,LVOLT,Low QRS,
+Form,QRS,High QRS voltages,HighQRS,High qrs voltages,HVOLT,High QRS,
+Form,QRS,Abnormal QRS,QRSAb,Abnormal QRS,ABQRS
+Form,QRS,Left Ventricular High Voltage,LVHV,Left Ventricular High Voltage,,
+Form,QRS,Poor R wave Progression,PRWP,Poor R wave Progression,,
+Form,QRS,Abnormal R,RAb,r wave abnormal
+Form,Axis,Left Axis Deviation,LAD,Left Axis Deviation,,
+Form,Axis,Right Axis Deviation,RAD,Right Axis Deviation,,
+Form,Axis,Indeterminate Cardiac Axis,ICA,Indeterminate Cardiac Axis,,
+Form,Axis,Vertical Axis Deviation,VAD,Vertical Axis Deviation
+Form,Axis,Extreme Axis Deviation,EAD,Extreme Axis Deviation,,
+Form,Axis,CW or CCW Vectorcardiographic Loop,CCW,CounterClockwise Vectorcardiographic Loop,,
+Form,Axis,CR,Clockwise rotation,,
+Form,Axis,CCR,CounterClockwise rotation,
+Rhythm,Normal,Sinus Rhythm,SR,Healthy,Normal.,Normal,sinus rhythm,SR,NORM,norm.
+Rhythm,Normal,Sinus Arrhythmia,SA,Sinus Arrhythmia,SA,SARRH,Irregular sinus rhythm,
+Rhythm,Normal,Sinus Bradycardia,SB,Sinus Bradycardia,SB,bradycardia,SBRAD
+Rhythm,Normal,Sinus Tachycardia,ST,Sinus Tachycardia,ST,STACH
+Rhythm,Premature & Escape,Atrial tachycardia,AT,Atrial Tachycardia,AT,
+Rhythm,Premature & Escape,Atrial rhythm,AR,atrial rhythm,,
+Rhythm,Premature & Escape,Atrial escape rhythm,AER,accelerated atrial escape rhythm,,
+Rhythm,Premature & Escape,Atrial fibrillation,AFIB,Atrial Fibrillation,AFib,chronic atrial fibrillation
+Rhythm,Premature & Escape,Atrial flutter,AFL,AFLT,AFLUT,Aflutter,Atrial Flutter,Aflutter,
+Rhythm,Premature & Escape,Atrial fibrillation/flutter,AFIBAFL,Atrial Fibrillation and Flutter,Atrial Fibrillation or Flutter or Nodal
+Rhythm,Premature & Escape,Junctional rhythm,JR,Junctional Rhythm,junctional tachycardia
+Rhythm,Premature & Escape,Accelerated Junctional rhythm,AJR,accelerated junctional rhythm,,
+Rhythm,Premature & Escape,Idioventricular rhythm,IVR,Idioventricular Rhythm,IVR,ventricular escape rhythm
+Rhythm,Premature & Escape,Accelerated Idioventricular rhythm,AIVR,accelerated idioventricular rhythm,,
+Rhythm,Premature & Escape,Ventricular Tachycardia,VT,Ventricular Tachycardia,VT,
+Rhythm,Premature & Escape,Supraventricular Tachycardia,SVT,Supraventricular Tachycardia,SVT,PSVT,SVTAC
+Rhythm,Premature & Escape,Supraventricular Arrhythmia,SVA,Supraventricular Arrhythmia,SVARR
+Rhythm,Premature & Escape,Atrioventricular Reentrant Tachycardia,AVRT,Atrioventricular Reentrant Tachycardia,,
+Rhythm,Premature & Escape,Atrioventricular Nodal Reentrant Tachycardia,AVNRT,Atrioventricular Nodal Reentrant Tachycardia,Atrioventricular Node Reentrant Tachycardia,
+Rhythm,Premature & Escape,Wandering atrial pacemaker,WAP,Wandering atrial pacemaker,,
+Rhythm,Premature & Escape,Wandering atrial rhythm,WAR,Wandering atrial rhythm,Atrial wandering rhythm,
+Rhythm,Premature & Escape,Atrioventricular junctional rhythm,AVJR,Atrioventricular junctional rhythm,,
+Rhythm,Premature & Escape,Ventricular Trigeminy,TRI,Ventricular Trigeminy,BIGU,
+Rhythm,Premature & Escape,Ventricular bigeminy,BIG,Ventricular Bigeminy,TRIGU,
+Rhythm,Premature & Escape,Ventricular couplets,VCoup,Ventricular Couplets,,
+Rhythm,Premature & Escape,Ventricular triplets,VTTrip,Ventricular Triplets,,
+Rhythm,Premature & Escape,Ventricular fibrillation,VFIB,Ventricular Fibrillation,Vfib,
+Rhythm,Premature & Escape,Ventricular flutter,VFLUT,Ventricular Flutter,Vfl,
+Rhythm,Premature & Escape,Sick Sinus Syndrome,SSS,Tachy-Brady Syndrome,brady tachy syndrome
+Rhythm,Pacing,Pacing Rhythm,PR,Pacing Rhythm,PACE,Pacemaker presence
+Rhythm,Pacing,Artificial Atrial Pacing Rhythm,AAPR,Artificial Atrial Pacing Rhythm,Atrial Pacing Rhythm,Atrial Pacing,Unipolar atrial pacing,Bipolar atrial pacing
+Rhythm,Pacing,Artificial Ventricular Pacing Rhythm,AVPR,Artificial Ventricular Pacing Rhythm,Ventricular Pacing Rhythm,Ventricular Pacing,Unipolar ventricular pacing,Bipolar ventricular pacing
+Hypertrophy,Hypertrophy,Left ventricular hypertrophy,LVH,Left ventricular hypertrophy,,
+Hypertrophy,Hypertrophy,Right ventricular hypertrophy,RVH,Right ventricular hypertrophy,,
+Hypertrophy,Hypertrophy,Ventricular hypertrophy,VH,Ventricular hypertrophy,,
+Hypertrophy,Hypertrophy,Left atrial hypertrophy,LAH,Left atrial hypertrophy,Left atrial enlargement,LAE,LAO/LAE,Left atrial abnormality
+Hypertrophy,Hypertrophy,Right atrial hypertrophy,RAH,Right atrial hypertrophy,RAO/RAE,right atrial abnormality
+Hypertrophy,Hypertrophy,Atrial enlargement,AH,Atrial hypertrophy,,

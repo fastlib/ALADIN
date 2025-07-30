@@ -1,0 +1,2060 @@
+{
+    "dataset_name": "Dataset117_nnunet_17",
+    "plans_name": "nnUNetWithClassificationPlans",
+    "original_median_spacing_after_transp": [
+        999.0,
+        999.0,
+        1.0
+    ],
+    "original_median_shape_after_transp": [
+        1,
+        1,
+        2048
+    ],
+    "image_reader_writer": "NumpyIO",
+    "transpose_forward": [
+        0,
+        1,
+        2
+    ],
+    "transpose_backward": [
+        0,
+        1,
+        2
+    ],
+    "configurations": {
+        "1d_encoding": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 6,
+                    "features_per_stage": [
+                        64,
+                        128,
+                        256,
+                        512,
+                        1024,
+                        2048
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            5
+                        ],
+                        [
+                            5
+                        ],
+                        [
+                            5
+                        ],
+                        [
+                            5
+                        ],
+                        [
+                            5
+                        ],
+                        [
+                            5
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512
+                        ],
+                        [
+                            512
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17
+                        ],
+                        [
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_decoding": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 6,
+                    "features_per_stage": [
+                        64,
+                        128,
+                        256,
+                        512,
+                        1024,
+                        2048
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            5
+                        ],
+                        [
+                            5
+                        ],
+                        [
+                            5
+                        ],
+                        [
+                            5
+                        ],
+                        [
+                            5
+                        ],
+                        [
+                            5
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "use_encoding_layers_classification_branch": false,
+                    "use_decoding_layers_classification_branch": true,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512
+                        ],
+                        [
+                            512
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17
+                        ],
+                        [
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_2": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 1024,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 6,
+                    "features_per_stage": [
+                        64,
+                        128,
+                        256,
+                        512,
+                        1024,
+                        2048
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512,
+                            256,
+                            128
+                        ],
+                        [
+                            512,
+                            256,
+                            128
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            7,
+                            7,
+                            7
+                        ],
+                        [
+                            7,
+                            7,
+                            7
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2,
+                            2,
+                            2
+                        ],
+                        [
+                            2,
+                            2,
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_small_encoding": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 5,
+                    "features_per_stage": [
+                        64,
+                        128,
+                        256,
+                        512,
+                        1024
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "use_encoding_layers_classification_branch": true,
+                    "use_decoding_layers_classification_branch": false,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512
+                        ],
+                        [
+                            512
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17
+                        ],
+                        [
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_small_encoding_decoding": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 5,
+                    "features_per_stage": [
+                        64,
+                        128,
+                        256,
+                        512,
+                        1024
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "use_encoding_layers_classification_branch": true,
+                    "use_decoding_layers_classification_branch": true,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512
+                        ],
+                        [
+                            512
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17
+                        ],
+                        [
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_small_decoding": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 5,
+                    "features_per_stage": [
+                        64,
+                        128,
+                        256,
+                        512,
+                        1024
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ],
+                        [
+                            7
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "use_encoding_layers_classification_branch": false,
+                    "use_decoding_layers_classification_branch": true,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512
+                        ],
+                        [
+                            512
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17
+                        ],
+                        [
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_tiny_encoding": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 5,
+                    "features_per_stage": [
+                        32,
+                        64,
+                        128,
+                        256,
+                        512
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512
+                        ],
+                        [
+                            512
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17
+                        ],
+                        [
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_tiny_encoding_2": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 5,
+                    "features_per_stage": [
+                        32,
+                        64,
+                        128,
+                        256,
+                        512
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            11
+                        ],
+                        [
+                            11
+                        ],
+                        [
+                            11
+                        ],
+                        [
+                            11
+                        ],
+                        [
+                            11
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "use_encoding_layers_classification_branch": true,
+                    "use_decoding_layers_classification_branch": false,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512,
+                            256,
+                            128
+                        ],
+                        [
+                            512,
+                            256,
+                            128
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17,
+                            17,
+                            17
+                        ],
+                        [
+                            17,
+                            17,
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2,
+                            2,
+                            2
+                        ],
+                        [
+                            2,
+                            2,
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_tiny_decoding_2": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 5,
+                    "features_per_stage": [
+                        32,
+                        64,
+                        128,
+                        256,
+                        512
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            11
+                        ],
+                        [
+                            11
+                        ],
+                        [
+                            11
+                        ],
+                        [
+                            11
+                        ],
+                        [
+                            11
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "use_encoding_layers_classification_branch": false,
+                    "use_decoding_layers_classification_branch": true,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512,
+                            256,
+                            128
+                        ],
+                        [
+                            512,
+                            256,
+                            128
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17,
+                            17,
+                            17
+                        ],
+                        [
+                            17,
+                            17,
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2,
+                            2,
+                            2
+                        ],
+                        [
+                            2,
+                            2,
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_tiny_3p_encoding": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNet3pWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 5,
+                    "features_per_stage": [
+                        32,
+                        64,
+                        128,
+                        256,
+                        512
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "use_encoding_layers_classification_branch": true,
+                    "use_decoding_layers_classification_branch": false,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512
+                        ],
+                        [
+                            512
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17
+                        ],
+                        [
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_tiny_3p_decoding": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNet3pWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 5,
+                    "features_per_stage": [
+                        32,
+                        64,
+                        128,
+                        256,
+                        512
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "use_encoding_layers_classification_branch": false,
+                    "use_decoding_layers_classification_branch": true,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512
+                        ],
+                        [
+                            512
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17
+                        ],
+                        [
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_tiny_decoding": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 5,
+                    "features_per_stage": [
+                        32,
+                        64,
+                        128,
+                        256,
+                        512
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "use_encoding_layers_classification_branch": false,
+                    "use_decoding_layers_classification_branch": true,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512
+                        ],
+                        [
+                            512
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17
+                        ],
+                        [
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        },
+        "1d_tiny_encoding_decoding": {
+            "data_identifier": "nnUNetWithClassificationPlans_1d",
+            "preprocessor_name": "WithClassificationPreprocessor",
+            "batch_size": 141,
+            "patch_size": [
+                2048
+            ],
+            "median_image_size_in_voxels": [
+                2048.0
+            ],
+            "spacing": [
+                1.0
+            ],
+            "normalization_schemes": [
+                "ZScoreNormalization"
+            ],
+            "use_mask_for_norm": [
+                false
+            ],
+            "resampling_fn_data": "resample_data_or_seg_to_shape",
+            "resampling_fn_seg": "resample_data_or_seg_to_shape",
+            "resampling_fn_data_kwargs": {
+                "is_seg": false,
+                "order": 3,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_seg_kwargs": {
+                "is_seg": true,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "resampling_fn_probabilities": "resample_data_or_seg_to_shape",
+            "resampling_fn_probabilities_kwargs": {
+                "is_seg": false,
+                "order": 1,
+                "order_z": 0,
+                "force_separate_z": null
+            },
+            "architecture": {
+                "network_class_name": "nnunetv2.models.custom_architectures.UNetWithClassificationBranches",
+                "arch_kwargs": {
+                    "n_stages": 5,
+                    "features_per_stage": [
+                        32,
+                        64,
+                        128,
+                        256,
+                        512
+                    ],
+                    "conv_op": "torch.nn.modules.conv.Conv1d",
+                    "kernel_sizes": [
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ],
+                        [
+                            9
+                        ]
+                    ],
+                    "strides": [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "n_conv_per_stage": [
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "n_conv_per_stage_decoder": [
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "conv_bias": true,
+                    "use_encoding_layers_classification_branch": true,
+                    "use_decoding_layers_classification_branch": true,
+                    "num_classes_classification_branch": [
+                        2,
+                        2
+                    ],
+                    "features_per_stage_classification_branch": [
+                        [
+                            512
+                        ],
+                        [
+                            512
+                        ]
+                    ],
+                    "kernel_sizes_classification_branch": [
+                        [
+                            17
+                        ],
+                        [
+                            17
+                        ]
+                    ],
+                    "strides_classification_branch": [
+                        [
+                            2
+                        ],
+                        [
+                            2
+                        ]
+                    ],
+                    "norm_op": "torch.nn.modules.instancenorm.InstanceNorm1d",
+                    "norm_op_kwargs": {
+                        "eps": 1e-05,
+                        "affine": true
+                    },
+                    "dropout_op": null,
+                    "dropout_op_kwargs": null,
+                    "nonlin": "torch.nn.LeakyReLU",
+                    "nonlin_kwargs": {
+                        "inplace": true
+                    }
+                },
+                "_kw_requires_import": [
+                    "conv_op",
+                    "norm_op",
+                    "dropout_op",
+                    "nonlin"
+                ]
+            },
+            "batch_dice": true
+        }
+    },
+    "experiment_planner_used": "UNetWithClassificationPlanner",
+    "label_manager": "LabelManager",
+    "foreground_intensity_properties_per_channel": {
+        "0": {
+            "max": 10.486477851867676,
+            "mean": -0.19572360422609777,
+            "median": -0.20229651033878326,
+            "min": -14.818507194519043,
+            "percentile_00_5": -2.0146844387054443,
+            "percentile_99_5": 1.8262673616409302,
+            "std": 0.5616268453683911
+        }
+    }
+}

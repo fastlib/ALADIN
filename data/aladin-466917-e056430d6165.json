@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "aladin-466917",
+  "private_key_id": "e056430d61651340c60b0e5cee9b73fe95eac5a0",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCaVv8Zdvi1fJpL\n3NAQhtHqbbaKB4Mucj2UAmcbqlmPeRRtJgicI1uIlyPoYM0D7b81rWMml1IRWSb4\nNq2Top4Ta8jGLjgoT1Q2KKcG/uReOQ5MrnF+kt0QyNT6RTlalNhO2QyGEgAwK6RM\nMLjpe4p9e03oYVtWBaIafMu5OZQSR1bRBhWwCzIs4wSY1KYG/LrJluBtvOXmZTiA\nQMmcLljSmGPFqFhTyIWiDEdyyNHAM+XYm+KXnDtYckZz4kn8e7vMC6nE3zb0o8ub\ngZUPwqZhspR5pOFqDXwp8WmHac/LNPk+gXXLJmtfNP0qFcOJeK8OIFxZQAYTquyP\nAzvFKqVLAgMBAAECggEAO7z5j0sv19tLQ5rLw+HTJUhi84kV2ufn8r59V0V31eMZ\nJ2glw/2hg7xwbxTstZ0TufyLGJhQcRuPTFqpk6/JPJ4m/6JLJTsTTsUsZTZKgTfX\nU5HfpwzEWSdK3DXoDan4EYjMYqZcAUkbFkxzfhfN0mTkElKAjkqu5E6ycdaZ+/qb\n/TJXd8jF+Oh4BSaPn+fXh206s2JzdBUJHFSJkkuqqZg+S+QQRDVCzd2ZiauAgl7h\nocCXuWcmuHZpY2TDUNbCVyPspp8ORj9wEbGENDpgoMFJ74zG4HNpMD7FyZxeUxop\nZoP19XS6E/lgAY43Uu8H0DojKz0CEASov0p3j76ICQKBgQDG9v1W2t8so/EKqaLe\nAzTb+Ay+/ceKFXMb0ziVyCg/Plnfbs9HRDTDVJmbx74a2LOrgdhfZJfC8ObyDHzY\nwwQrmcUSnU924c3xEHVE5L9TDyPS3bSfR9DtJ8bl05PneBwND+WHxcbnZl0O/Oyt\nUS1s3Dl3yOUYw1lqK+1YEJ/pEwKBgQDGlTVFGJgyGsqEYYV8rtisn3xF36Ac3JT9\nn7/ZNqA0uVvSAFM7//G/AuD1HYfdOur3aDc1P5K/LxU76ZZUw4z/OaAIicujN6OR\nHLDPP+xC9Pb9d3qUqgrZTK0TMo4JojqwyJRyX8Amz2+vSyWTc109eCDBs8BS57T+\nfAVTKi3R6QKBgQCXAaZNYVi4vMSY3x7peW2I9b5Wxq3HM3hlye3MYFmLhnsXhTZ0\nVGPnTDI5dWPnZEkZBjd+Tw6Pud7OHoQyz/A+VzqnYhWJmN+A8ojOfP5ov7jktbf8\nm7kKBYKDtA0xRIulrkb6wTSxM5O1aGkJMe9UC+Dh9OtL3Bfk6On+SL/VWQKBgAj/\n1gwtkygiIq9hJAWEfvlDuQQJoF3ueSoNRUp4uUXqaIjZzuvXK4N2g+9XyUJzWxaf\nOHFHUkUrwxCWA2QQAKHIYMJCTGI3MUhwPmsGAJUAOPk/ouR92EQEv4sxLVKucW51\niJSuVizsFamiBC/seHtCqGle1gZrzb4CrNMaBD2RAoGBAJ1g8DxuITuJlNp2z9sI\n2ZX1hzanSgmAaS4hZG9avuCX4EPZEMcam7oOXJwXJbcsc7IcwBE7ansieEoFzacZ\n0Qqj+wIb6Du0MpWeMEMG3ZnldVHj02dgHxKMIgO8em7KIW7zigLqLZA9U3TwC1Kb\niAv8F0hQwe3a01IhgdZue0ra\n-----END PRIVATE KEY-----\n",
+  "client_email": "vast-ai@aladin-466917.iam.gserviceaccount.com",
+  "client_id": "105969117098288623974",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/vast-ai%40aladin-466917.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

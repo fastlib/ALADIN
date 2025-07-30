@@ -1,0 +1,50 @@
+[project]
+name = "aladin"
+version = "1.0.0"
+requires-python = ">=3.9"
+description = "Aladin is a framework for ambulatory ECG delineation and diagnosis"
+authors = [
+    { name = "anonymous"},
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+keywords = [
+    'ecg',
+    'delineation',
+    'ambulatory',
+    'active learning',
+    'deep learning'
+]
+dependencies = [
+    "torch",
+    "google-cloud-storage",
+    "google-cloud-firestore",
+    "google-cloud-bigquery",
+    "neurokit2==0.2.10",
+    "wfdb==4.1.2",
+    "tqdm==4.67.0",
+    "scipy==1.14.1",
+    "numpy==1.26.4",
+    "rich==13.9.4",
+    "baal==2.0.0",
+    "dtw-python==1.5.3",
+    "pandas==2.2.3",
+    "matplotlib==3.9.2",
+    "pymongo==4.10.1"
+]
+
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11"]
+build-backend = "scikit_build_core.build"
+
+[tool.codespell]
+skip = '.git,*.pdf,*.svg'
+#
+# ignore-words-list = ''

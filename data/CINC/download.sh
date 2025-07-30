@@ -1,0 +1,1 @@
+wget -r -N -c -np -nH --cut-dirs=3 -P ./ https://physionet.org/files/challenge-2017/1.0.0/training/
