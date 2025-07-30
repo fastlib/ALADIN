@@ -453,6 +453,7 @@ class ICENTIAData(BaseDataLoader):
         self.bigquery_client = bigquery.Client(credentials=self.credentials, project=self.credentials.project_id)
         self.bucket = storage.Client(credentials=self.credentials).get_bucket("arts-aladin")
         self.init_objects()
+        self.table_id = "benchmarks.ICENTIA-Dataset301"
 
 
     def init_objects(self):
@@ -845,12 +846,12 @@ class ICENTIAData(BaseDataLoader):
 
         #update the status of the records to 'processing'
         if len(paths) > 0:
-            self.run_bigquery(f"""UPDATE `{self.credentials.project_id}.benchmarks.ICENTIA` SET status='done' WHERE record_id IN UNNEST({paths})""")
+            self.run_bigquery(f"""UPDATE `{self.credentials.project_id}.{self.table_id}` SET status='done' WHERE record_id IN UNNEST({paths})""")
 
     def batch(self, batch_size=32):
 
         while True:
-            query = f"""SELECT record_id, status FROM `{self.credentials.project_id}.benchmarks.ICENTIA` WHERE status='unprocessed' ORDER BY RAND() LIMIT {batch_size} """
+            query = f"""SELECT record_id, status FROM `{self.credentials.project_id}.{self.table_id}` WHERE status='unprocessed' ORDER BY RAND() LIMIT {batch_size} """
             rows = self.run_bigquery(query)
             if not rows:
                 break
@@ -860,7 +861,7 @@ class ICENTIAData(BaseDataLoader):
 
             #update the status of the records to 'processing'
             if len(paths) > 0:
-                update_query = f"""UPDATE `{self.credentials.project_id}.benchmarks.ICENTIA` SET status='processing' WHERE record_id IN UNNEST({paths})"""
+                update_query = f"""UPDATE `{self.credentials.project_id}.{self.table_id}` SET status='processing' WHERE record_id IN UNNEST({paths})"""
                 self.run_bigquery(update_query)
 
             if len(paths) == 0:
