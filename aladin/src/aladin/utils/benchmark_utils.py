@@ -847,7 +847,16 @@ class ICENTIAData(BaseDataLoader):
     def batch(self, batch_size=32):
 
         while True:
-            query = f"""SELECT record_id, status FROM `{self.credentials.project_id}.{self.table_id}` WHERE status='unprocessed' ORDER BY RAND() LIMIT {batch_size} """
+            #query = f"""SELECT record_id, status FROM `{self.credentials.project_id}.{self.table_id}` WHERE status='unprocessed' ORDER BY RAND() LIMIT {batch_size} """
+            query = f"""
+                    SELECT record_id, status FROM `{self.credentials.project_id}.{self.table_id}` AS t
+                    WHERE EXISTS (
+                        SELECT 1
+                        FROM UNNEST(JSON_EXTRACT_ARRAY(t.diagnosis)) AS tag
+                        WHERE JSON_EXTRACT_SCALAR(tag, '$') IN ('AVB_TYPE2', 'VT', 'IVR', 'WENCKEBACH', 'SUDDEN_BRADY', 'BIGEMINY', 'TRIGEMINY')
+                    )
+                    ORDER BY RAND() LIMIT {batch_size} """
+            
             rows = self.run_bigquery(query)
             if not rows:
                 break

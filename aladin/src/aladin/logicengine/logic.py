@@ -614,8 +614,8 @@ class LogicEngine():
         noise_mask = record.delineations.noise.binary
         afib = record.delineations.afib.binary
         noise_mask[afib == 1] = 0
-        noise_mask = closingcentered(noise_mask, np.ones(int(record.fs*0.5)))
-        noise_mask = openingcentered(noise_mask, np.ones(int(record.fs*0.5)))
+        #noise_mask = closingcentered(noise_mask, np.ones(int(record.fs*0.5)))
+        #noise_mask = openingcentered(noise_mask, np.ones(int(record.fs*0.5)))
         regions = get_regions(noise_mask)
 
         for region in regions:
