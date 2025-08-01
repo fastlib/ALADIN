@@ -34,7 +34,7 @@ void Reflection::reflect_on_noise() {
         } 
     }
     tools.closingcentered(record->delineations->noise->binary, record->delineations->noise->size, 0.5*record->fs, record->delineations->noise->binary);
-    tools.openingcentered(record->delineations->noise->binary, record->delineations->noise->size, 0.5*record->fs, record->delineations->noise->binary);
+    //tools.openingcentered(record->delineations->noise->binary, record->delineations->noise->size, 2*record->fs, record->delineations->noise->binary);
 
     //std::cout << "Noise:";
     for(int i=0; i<record->delineations->noise->size; i++) {
@@ -48,6 +48,12 @@ void Reflection::reflect_on_noise() {
     }
     //std::cout << std::endl;
 }
+
+// void Reflection::merge_noise_regions() {
+
+//     tools.closingcentered(record->delineations->noise->binary, record->delineations->noise->size, 2*record->fs, record->delineations->noise->binary);
+//     tools.openingcentered(record->delineations->noise->binary, record->delineations->noise->size,2*record->fs, record->delineations->noise->binary);
+// }
 
 void Reflection::extend_afib_if_possible() {
     // Placeholder for extending AFIB logic
@@ -1137,9 +1143,13 @@ void Reflection::match_p_waves_to_qrs() {
 
             //Check if the P wave is too far away from the QRS wave
             
-            if (abs(lastcandidate->start - beats[i]->start) > 0.5 * record->fs) {
+            if (beats[i]->pr > 0.5) {
                 //P wave is too far, so we note that this beat is unmatched
                 lastcandidate->unmatched = true;
+            }
+
+            if (beats[i]->pr > 0.075 && beats[i]->pr < 0.2 && beats[i]->abnormal_uncertainty > -1) {
+                beats[i]->abnormal = false;
             }
 
             if (candidates.size() > 1) {
@@ -1204,7 +1214,7 @@ void Reflection::reflect_on_qrs() {
     //Identify beat abnormality within clusters
     for (int i = 0; i < clusterer_qrs->get_number_of_clusters(); ++i) {
         std::shared_ptr<Cluster> cluster = clusterer_qrs->get_cluster(i);
-        //identify_abnormality(cluster, clusterer_qrs->get_number_of_clusters());
+        identify_abnormality(cluster, clusterer_qrs->get_number_of_clusters());
     }
     
     //determine r peak
@@ -1450,40 +1460,46 @@ void Reflection::identify_abnormality(std::shared_ptr<Cluster> cluster, int numb
             } else if (beat->p_wave != nullptr && ((beat->get_global_start()) - (beat->p_wave->get_global_start())) < 0.075*record->fs) {
                 beat->no_atrial_activity = true;
                 number_of_no_atrial_activity++;
+            } else if (beat->p_wave != nullptr && ((beat->get_global_start()) - (beat->p_wave->get_global_start())) > 0.3*record->fs) {
+                beat->no_atrial_activity = true;
+                number_of_no_atrial_activity++;
             } else {
                 beat->no_atrial_activity = false;
             }
             
-            mean_abnormal_uncertainty += beat->abnormal_uncertainty;
-            if (beat->abnormal_logit > 0.25) {
-                beat->abnormal = true;
-                number_of_abnormal_beats++;
-            } else if (beat->abnormal_logit > 0.1 && beat->no_atrial_activity) {
-                beat->abnormal = true;
-                number_of_abnormal_beats++;
-            } else if (beat->abnormal_uncertainty > -2.5 && beat->no_atrial_activity) {
-                beat->abnormal = true;
-                number_of_abnormal_beats++;
-            } else {
+            //mean_abnormal_uncertainty += beat->abnormal_uncertainty;
+            if (beat->abnormal && !beat->no_atrial_activity) {
                 beat->abnormal = false;
             }
+            // if (beat->abnormal_logit > 0.25) {
+            //     beat->abnormal = true;
+            //     number_of_abnormal_beats++;
+            // } else if (beat->abnormal_logit > 0.1 && beat->no_atrial_activity) {
+            //     beat->abnormal = true;
+            //     number_of_abnormal_beats++;
+            // } else if (beat->abnormal_uncertainty > -2.5 && beat->no_atrial_activity) {
+            //     beat->abnormal = true;
+            //     number_of_abnormal_beats++;
+            // } else {
+            //     beat->abnormal = false;
+            // }
         }
     }
 
 
-    mean_abnormal_uncertainty /= cluster->get_number_of_beats();
+    //mean_abnormal_uncertainty /= cluster->get_number_of_beats();
 
     //Identify cluster abnormality
-    if (number_of_abnormal_beats > 1) {
-        for (int i = 0; i < cluster->get_number_of_beats(); ++i) {
-            if(auto beat = std::dynamic_pointer_cast<QRS>(cluster->get_beat(i))) {
-                //std::cout << "Beat " << beat->id << ": " << beat->abnormal_logit << ", " << beat->abnormal_uncertainty << std::endl;
-                if (beat->abnormal_uncertainty > -2.5) {
-                    beat->abnormal = true;
-                }
-            }
-        }
-    }
+    // if (number_of_abnormal_beats > 1) {
+    //     for (int i = 0; i < cluster->get_number_of_beats(); ++i) {
+    //         if(auto beat = std::dynamic_pointer_cast<QRS>(cluster->get_beat(i))) {
+    //             //std::cout << "Beat " << beat->id << ": " << beat->abnormal_logit << ", " << beat->abnormal_uncertainty << std::endl;
+    //             if (beat->abnormal_uncertainty > -2.5) {
+    //                 beat->abnormal = true;
+    //             }
+    //         }
+    //     }
+    // }
 
     //std::cout << "Number of abnormal beats: " << number_of_abnormal_beats << std::endl;
     //std::cout << "Ratio of abnormal beats: " << ((float)number_of_abnormal_beats/(float)cluster->get_number_of_beats()) << std::endl;
@@ -1502,17 +1518,18 @@ void Reflection::identify_abnormality(std::shared_ptr<Cluster> cluster, int numb
     // std::cout << "Ratio of beats with no atrial activity: " << ((float)number_of_no_atrial_activity/(float)cluster->get_number_of_beats()) << std::endl;
 
     //Check mean uncertainty when there are more than one cluster
-    if (number_of_clusters > 1) {
-        if (mean_abnormal_uncertainty > -5) {
-            for (int i = 0; i < cluster->get_number_of_beats(); ++i) {
-                if(auto beat = std::dynamic_pointer_cast<QRS>(cluster->get_beat(i))) {
-                    if (beat->abnormal_uncertainty > -5 && beat->width >= 0.12*record->fs && beat->no_atrial_activity) {
-                        //beat->abnormal = true;
-                    }
-                }
-            }
-        }
-    } else {
+    // if (number_of_clusters > 1) {
+    //     if (mean_abnormal_uncertainty > -5) {
+    //         for (int i = 0; i < cluster->get_number_of_beats(); ++i) {
+    //             if(auto beat = std::dynamic_pointer_cast<QRS>(cluster->get_beat(i))) {
+    //                 if (beat->abnormal_uncertainty > -5 && beat->width >= 0.12*record->fs && beat->no_atrial_activity) {
+    //                     beat->abnormal = true;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // } else {
+    if (number_of_clusters == 0) {
         // Last defence for LBBB and RBBB
         if (((float)number_of_no_atrial_activity/(float)cluster->get_number_of_beats()) < 0.25) {
             for (int i = 0; i < cluster->get_number_of_beats(); ++i) {

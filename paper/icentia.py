@@ -77,10 +77,11 @@ for i, arrhythmia in enumerate(arrhythmias):
                 tp[i] += 1
             else:
                 fn[i] += 1
-                #print(f"False Positive for {arrhythmia} in record {patients[j]}: {preds[j]}")
+                print(f"False Negative for {arrhythmia} in record {recs[j]}: {preds[j]}")
         elif arrhythmia in preds[j]:
             fp[i] += 1
-            #print(f"False Positive for {arrhythmia} in record {patients[j]}: {preds[j]}")
+            if arrhythmia != "AFIB/AFL":
+                print(f"False Positive for {arrhythmia} in record {recs[j]}: {preds[j]}")
         else:
             tn[i] += 1
             

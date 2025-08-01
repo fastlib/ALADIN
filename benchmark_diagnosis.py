@@ -24,7 +24,6 @@ from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor, nnUNetWith
 from nnunetv2.paths import nnUNet_results, nnUNet_raw
 from batchgenerators.utilities.file_and_folder_operations import join
 import psutil
-from google.cloud import firestore
 import pickle
 
 import concurrent.futures

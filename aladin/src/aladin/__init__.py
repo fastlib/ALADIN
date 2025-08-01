@@ -47,7 +47,7 @@ class ALADIN():
             if key in self.debug:
                 self.debug[key] = debug[key]
 
-    def plot(self, record: Record, xlim=None):
+    def plot(self, record: Record, xlim=None, annotations=None):
 
         if xlim is None:
             xlim = [0, len(record.ecg) / record.fs]
@@ -58,7 +58,7 @@ class ALADIN():
         interquartile_range = np.percentile(dsig, 95) - np.percentile(dsig, 5)
         lower_bound = np.percentile(dsig, 5) - 1.5 * interquartile_range
         upper_bound = np.percentile(dsig, 95) + 1.5 * interquartile_range
-        sig = record.filtered_ecg[int(xlim[0]*record.fs):int(xlim[1]*record.fs)]
+        sig = record.ecg[int(xlim[0]*record.fs):int(xlim[1]*record.fs)]
         dsig = np.diff(sig)
         #median filter of 3 samples
         dsig = np.where(np.abs(dsig) > upper_bound, 0, dsig)
@@ -142,6 +142,10 @@ class ALADIN():
         for region in noise_regions:
             ax.axvspan(region[0], region[1], color='#908894', alpha=0.4)
 
+        if annotations is not None:
+            for annotation in annotations:
+                ax.text(annotation[1], ymax, annotation[0], fontsize=8, color="black", ha='center', va='center')
+
         ax.set_xlim(xlim[0]*record.fs, xlim[1]*record.fs)
 
         ax.set_ylabel("Amplitude (mV)")
@@ -188,6 +192,8 @@ class ALADIN():
         st = time.time()
         self.logic.diagnose(record)
         print("Logic", time.time()-st)
+
+        self.logic.print_diagnoses(record)
 
         self.reflection.reset()
         

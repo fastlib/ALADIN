@@ -2,6 +2,7 @@ import numpy as np
 from aladin.utils.helpers import Record
 import re
 import time
+import ruptures as rpt
 
 import aladin._main as cpp_backend
 from aladin.utils.helpers import Cluster, Beat, Record, resize_signal, get_regions, closingcentered, openingcentered
@@ -59,7 +60,11 @@ class LogicEngine():
 
         #get the RR intervals
         rrs = [60/beats[i].rr_smooth if beats[i].diagnosis != "AFIB" and beats[i].rr_smooth > 0 else np.nan for i in range(1,len(beats))]
-        #print(rrs)
+        # print(rrs)
+
+        # algo = rpt.Pelt(model="rbf").fit(np.array(rrs))
+        # change_points = algo.predict(pen=10)  # Adjust penalty to be more or less sensitive
+        #print("Change points detected at indices:", change_points)
 
         #get regions of tachycardia
         tachycardia = np.array(rrs) > 100
@@ -609,6 +614,8 @@ class LogicEngine():
         noise_mask = record.delineations.noise.binary
         afib = record.delineations.afib.binary
         noise_mask[afib == 1] = 0
+        noise_mask = closingcentered(noise_mask, np.ones(int(record.fs*0.5)))
+        noise_mask = openingcentered(noise_mask, np.ones(int(record.fs*0.5)))
         regions = get_regions(noise_mask)
 
         for region in regions:

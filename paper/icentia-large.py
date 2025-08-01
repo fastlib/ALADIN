@@ -105,7 +105,7 @@ def get_results_from_folder(folder_path):
     for file_name in os.listdir(folder_path):
         if file_name.endswith('.pkl.gz'):
 
-            relative_path = os.path.relpath(folder_path, os.environ.get('benchmark_data')+'/ICENTIA-results/ICENTIA')
+            relative_path = os.path.relpath(folder_path, os.environ.get('benchmark_data')+'/ICENTIA-results/ICENTIA-Dataset301')
             recordname = file_name[:-7]
             anns = wfdb.rdann(os.path.join("/home/lukas/UU/ASRA/ALADINv2/data/ICENTIA", relative_path, recordname), 'atr')
             t = get_diagnosis_from_ann(anns)
@@ -117,8 +117,8 @@ def get_results_from_folder(folder_path):
                 diagnoses = data.get("diagnosis", [])
                 d = []
                 for diagnosis in diagnoses:
-                    onset = diagnosis.get("onset", 0)
-                    offset = diagnosis.get("offset", 0)
+                    onset = diagnosis.get("onset")
+                    offset = diagnosis.get("offset")
                     duration = (offset - onset) / 250  # Convert to seconds
 
                     use = True
@@ -183,7 +183,7 @@ def create_results_json(patients):
 
 if __name__ == "__main__":
     basefolder = os.environ.get('benchmark_data')
-    patients = find_patients(basefolder+'/ICENTIA-results/ICENTIA')
+    patients = find_patients(basefolder+'/ICENTIA-results/ICENTIA-Dataset301')
     print(f"Found {len(patients)} patient folders.")
 
     create_results_json(patients)

@@ -213,6 +213,7 @@ class Delineation {
             uncertainty = _uncertainty.mutable_data();
             binary_python = _binary; // Keep ownership alive
             binary = _binary.mutable_data();
+
         }
 
         py::array_t<float> get_logits() const { return logits_python; }
