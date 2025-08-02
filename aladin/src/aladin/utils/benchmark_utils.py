@@ -843,15 +843,15 @@ class ICENTIAData(BaseDataLoader):
             if key in self.objs:
                 self.objs[key]["done"] = True
                 #remove file from disk
-                local_file_path = self.objs[key]["local_file_path"]+".dat"
-                if os.path.exists(local_file_path):
-                    os.remove(local_file_path)
-                local_file_path = self.objs[key]["local_file_path"]+".hea"
-                if os.path.exists(local_file_path):
-                    os.remove(local_file_path)
-                local_file_path = self.objs[key]["local_file_path"]+".atr"
-                if os.path.exists(local_file_path):
-                    os.remove(local_file_path)
+                # local_file_path = self.objs[key]["local_file_path"]+".dat"
+                # if os.path.exists(local_file_path):
+                #     os.remove(local_file_path)
+                # local_file_path = self.objs[key]["local_file_path"]+".hea"
+                # if os.path.exists(local_file_path):
+                #     os.remove(local_file_path)
+                # local_file_path = self.objs[key]["local_file_path"]+".atr"
+                # if os.path.exists(local_file_path):
+                #     os.remove(local_file_path)
 
     def cleanup(self):
 
