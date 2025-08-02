@@ -347,9 +347,9 @@ def test_rdb():
 def test_icentia():
     t0 = time.time()
     basefolder = os.environ.get('benchmark_data')
-    rec = load_case(basefolder+"/ICENTIA", "p07/p07840/p07840_s28")
+    #rec = load_case_trimmed(basefolder+"/ICENTIA", "p07/p07840/p07840_s28", 2000, 2200)
     #rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p07/p07840/p07840_s28", 3800, 3950)
-    #rec = load_case("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p05/p05205/p05205_s25")
+    rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p02/p02050/p02050_s48", 2800, 3000)
     #rec = load_case("/home/lukas/UU/ASRA/Datasets/MIT-NORMAL", "16265")
 
     t1 = time.time()
@@ -357,7 +357,7 @@ def test_icentia():
     aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
                     debug={"segmenter": False, "afibdetector": False, "reflection": False, "total": False})
     aladin.analyse(rec)
-    aladin.plot(rec, xlim=(3800,3950))
+    aladin.plot(rec)#, xlim=(3800,3950))
     t2 = time.time()
     print(f"ALADIN took {t2-t1:.2f} seconds")
 

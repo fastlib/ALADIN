@@ -364,15 +364,15 @@ bool compareMasks(tuple<int,int> fm1, tuple<int,int> fm2)
 
 void ECGdetector::mergemasks() {
     
-    cout << "Masks size: " << masks.size() << endl;
+    //cout << "Masks size: " << masks.size() << endl;
     
     bool done = false;
     
     sort(masks.begin(),masks.end(),compareMasks);
     
-    for(int i=0; i<masks.size(); i++) {
-        cout << "mask " << i << "[" << get<0>(masks[i]) << "," << get<1>(masks[i]) << "]" << endl;
-    }
+    // for(int i=0; i<masks.size(); i++) {
+    //     cout << "mask " << i << "[" << get<0>(masks[i]) << "," << get<1>(masks[i]) << "]" << endl;
+    // }
     
     while(!done && masks.size()>1) {
         done = true;
@@ -442,7 +442,7 @@ void ECGdetector::detectPeaksInWindow(int start) {
     int ibisstd = fs;
     int nwindow = 0;
     
-    cout << "masks size: " << masks.size() << endl;
+    //cout << "masks size: " << masks.size() << endl;
     
     while(lastpeak+lookahead < size) {
         
@@ -496,7 +496,7 @@ void ECGdetector::detectPeaksInWindow(int start) {
             int end = get<1>(masks[i]);
             
             if((wstart > begin && wstart < end) && (wend > begin && wend < end)) {
-                cout << "Restart at " << end << endl;
+                // << "Restart at " << end << endl;
                 if(end != size) {
                     detectPeaksInWindow(end);
                 }
@@ -594,9 +594,9 @@ void ECGdetector::detectPeaksInWindow(int start) {
                     if(abs(ecg[peakpos]) > THRS_SIG1) {
                         rpeaks.push_back(peakpos);
                         qrssaved = true;
-                        cout << "✅ added normal:" << rpeaks.size() << ", " << lastibi << endl;
-                        cout << "[" << rpeaks.size() << "] Found filt at " << (float)curpeak/(float)fs << "s" << endl;
-                        cout << "Found raw at " << (float)peakpos/(float)fs << "s" << endl;
+                        // cout << "✅ added normal:" << rpeaks.size() << ", " << lastibi << endl;
+                        // cout << "[" << rpeaks.size() << "] Found filt at " << (float)curpeak/(float)fs << "s" << endl;
+                        // cout << "Found raw at " << (float)peakpos/(float)fs << "s" << endl;
                         SIG_LVL1 = 0.125*ecg[peakpos] + 0.875*SIG_LVL1;
                     }
                     
@@ -630,8 +630,8 @@ void ECGdetector::detectPeaksInWindow(int start) {
                         if(abs(ecg[peakpos]) > THRS_NOISE1) {
                             rpeaks.push_back(peakpos);
                             qrssaved = true;
-                            cout << "⚠️ added lookback:" << rpeaks.size() << ", " << lastibi << endl;
-                            cout << "Found raw during lookback at " << (float)peakpos/(float)fs << "s" << endl;
+                            // cout << "⚠️ added lookback:" << rpeaks.size() << ", " << lastibi << endl;
+                            // cout << "Found raw during lookback at " << (float)peakpos/(float)fs << "s" << endl;
                             SIG_LVL1 = 0.25*ecg[peakpos] + 0.75*SIG_LVL1;
                         }
                         
@@ -661,15 +661,15 @@ void ECGdetector::detectPeaksInWindow(int start) {
                     rpeaks.push_back(curpeak);
                     qrssaved = true;
                     lastibi = curpeak - rpeaks[rpeaks.size()-2];
-                    cout << "‼️ added last resort:" << curpeak-lastpeak << ", ibi:" << lastibi << endl;
-                    //cout << "maxfiltpos: " << maxfiltpos << " size:" << size << endl;
-                    cout << "window: [" << wstart-lastpeak << " - " << wend-lastpeak << "] l:" << wlen << endl;
-                    cout << "Found raw during lookback at " << (float)curpeak/(float)fs << "s" << endl;
+                    // cout << "‼️ added last resort:" << curpeak-lastpeak << ", ibi:" << lastibi << endl;
+                    // //cout << "maxfiltpos: " << maxfiltpos << " size:" << size << endl;
+                    // cout << "window: [" << wstart-lastpeak << " - " << wend-lastpeak << "] l:" << wlen << endl;
+                    // cout << "Found raw during lookback at " << (float)curpeak/(float)fs << "s" << endl;
                     SIG_LVL1 = 0.125*ecg[curpeak] + 0.875*SIG_LVL1;
                 }
                 
                 //filtonlypeaks.push_back(curpeak);
-                cout << "found nothing at " << (float)estimation/(float)fs << "s" << endl;
+                // cout << "found nothing at " << (float)estimation/(float)fs << "s" << endl;
             }
             
             if(NOISE_LVL!=0 && SIG_LVL!=0) {
