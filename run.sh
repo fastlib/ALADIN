@@ -58,7 +58,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=./data/aladin-466917-e056430d6165.json
 gcloud auth activate-service-account --key-file ./data/aladin-466917-e056430d6165.json
 
 mkdir -p ${aladin_models}
-gsutil -m cp -rn gs://arts-aladin/Dataset200_all_101 ${aladin_models}
+#gsutil -m cp -rn gs://arts-aladin/Dataset200_all_101 ${aladin_models}
 gsutil -m cp -rn gs://arts-aladin/Dataset301_all_0 ${aladin_models}
 
 # mkdir -p ./data/CINC/training

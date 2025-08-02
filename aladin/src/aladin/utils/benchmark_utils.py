@@ -453,7 +453,7 @@ class ICENTIAData(BaseDataLoader):
         self.bigquery_client = bigquery.Client(credentials=self.credentials, project=self.credentials.project_id)
         self.bucket = storage.Client(credentials=self.credentials).get_bucket("arts-aladin")
         self.init_objects()
-        self.table_id = "benchmarks.ICENTIA-Dataset301"
+        self.table_id = "benchmarks.ICENTIA-Cleaned"
 
 
     def init_objects(self):
@@ -790,7 +790,7 @@ class ICENTIAData(BaseDataLoader):
         with gzip.open(f'{record.recordname}.pkl.gz', 'wb') as f:
             pickle.dump(data, f)
 
-        blob = self.bucket.blob(f"ICENTIA-Dataset301/{self.objs[key]['path']}.pkl.gz")
+        blob = self.bucket.blob(f"ICENTIA-Cleaned/{self.objs[key]['path']}.pkl.gz")
         blob.upload_from_filename(f'{record.recordname}.pkl.gz')
         print(f"Uploaded {key} to {blob.public_url}")
 
