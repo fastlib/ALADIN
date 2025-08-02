@@ -687,17 +687,6 @@ class ALADINModelForCinc(ALADINModel):
 
         return [{"type":diagnose, "onset":0, "offset":1}], diagnoses + subdiagnoses
 
-    def process_reflection_and_diagnosis_on_cpu(self, recs, batch_index):
-        print("Processing reflection and diagnosis on CPU start: ", batch_index, flush=True)
-        self.aladin.reflection.batch(recs)
-        
-        for record in recs:
-            logic = LogicEngine(debug=False)
-            logic.diagnose(record)
-
-        print("Processing reflection and diagnosis on CPU done: ", batch_index, flush=True)
-        return recs
-
 class ALADINModelForICENTIA(ALADINModel):
     def __init__(self, modelpaths=[]):
         super().__init__(modelpaths=modelpaths)

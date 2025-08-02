@@ -103,7 +103,7 @@ plt.savefig("paper/decision_tree_structure.png", bbox_inches='tight')
 predictions = clf.predict(X)
 
 
-#predictions = [rule_based_classes(x) for x in X]
+predictions = [rule_based_classes(x) for x in X]
 
 # for i, pred in enumerate(predictions):
 #     data["results"][0]["results"][i]["predicted"] = [pred]
@@ -111,7 +111,7 @@ predictions = clf.predict(X)
 # with open(aladin_file, 'w') as f:
 #     json.dump(data, f, indent=4)
 
-#predictions = np.array([mapper[p] for p in predictions])
+predictions = np.array([mapper[p] for p in predictions])
 
 confusion = confusion_matrix(Y, np.round(predictions).astype(int), labels=list(mapper.values()))
 print(confusion)

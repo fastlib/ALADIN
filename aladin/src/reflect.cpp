@@ -24,13 +24,15 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
     // Match ASRA peaks with Aladin peaks
 
     int n = record->size;
-    int nbatches = n / (10 * record->fs); // 10 seconds at fs Hz
-    for (int st=0; st<record->size; st += (10*record->fs)) {
-        int end = min(st + (10 * (int)(record->fs)), n);
+    int nbatches = n / (30 * record->fs); // 30 seconds at fs Hz
+    for (int st=0; st<record->size; st += (30*record->fs)) {
+        int end = min(st + (30 * (int)(record->fs)), n);
 
         int tp = 0;
         int fp = 0;
         int fn = 0;
+        std::vector<int> mismatch_asra;
+        std::vector<int> mismatch_aladin;
 
         for (int i = 0; i < aladin_peaks.size(); ++i) {
             if (aladin_peaks[i] >= st && aladin_peaks[i] < end) {
@@ -45,6 +47,7 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
                     tp++;
                 } else {
                     fp++;
+                    mismatch_aladin.push_back(aladin_peaks[i]);
                 }
             }
         }
@@ -59,6 +62,7 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
                 }
                 if (!found) {
                     fn++;
+                    mismatch_asra.push_back(asra_peaks[j]);
                 }
             }
         }
@@ -67,14 +71,35 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
         float precision = (float)tp / (tp + fp);
         float f1_score = 2 * (precision * sensitivity) / (precision + sensitivity);
 
-        // std::cout << "Batch " << st / (10 * record->fs) << ": TP: " << tp << ", FP: " << fp << ", FN: " << fn 
-        //           << ", Sensitivity: " << sensitivity << ", Precision: " << precision 
-        //           << ", F1 Score: " << f1_score << std::endl;
+        std::cout << "Batch " << st / (10 * record->fs) << ": TP: " << tp << ", FP: " << fp << ", FN: " << fn 
+                  << ", Sensitivity: " << sensitivity << ", Precision: " << precision 
+                  << ", F1 Score: " << f1_score << std::endl;
 
-        if (sensitivity < 0.5 || precision < 0.5) {
-            for (int i = st; i < end; ++i) {
-                record->delineations->noise->binary[i] = true;
+        if (f1_score < 0.5) {
+            std::cout << "Low F1 score detected, marking noise region from " << st << " to " << end << std::endl;
+            std::cout << mismatch_aladin.size() << " aladin mismatches: ";
+            for (int i = 0; i < mismatch_aladin.size(); ++i) {
+                std::cout << mismatch_aladin[i]/record->fs << " ";
             }
+            std::cout << std::endl;
+            std::cout << mismatch_asra.size() << " asra mismatches: ";
+            for (int i = 0; i < mismatch_asra.size(); ++i) {
+                std::cout << mismatch_asra[i]/record->fs << " ";
+            }
+            std::cout << std::endl;
+            
+            int first_asra_mismatch = mismatch_asra.empty() ? end : mismatch_asra[0];
+            int first_aladin_mismatch = mismatch_aladin.empty() ? end : mismatch_aladin[0];
+            int last_asra_mismatch = mismatch_asra.empty() ? st : mismatch_asra.back();
+            int last_aladin_mismatch = mismatch_aladin.empty() ? st : mismatch_aladin.back();
+            int st = min(first_asra_mismatch, first_aladin_mismatch);
+            int end = max(last_asra_mismatch, last_aladin_mismatch);
+            std::cout << "Marking noise region from " << st << " to " << end << std::endl;
+
+            for (int i = st; i < end; ++i) {
+                record->delineations->noise->binary[i] = 1.0f;
+            }
+            
             //remove peaks from aladin_peaks that are in the noise region
             for (int i = 0; i < beats.size(); ++i) {
                 if (beats[i]->get_r_wave() >= st && beats[i]->get_r_wave() < end) {
@@ -539,11 +564,11 @@ void Reflection::reflect_on_afib() {
     //print_regions(regions);
 
     //Noisy regions can also introduce false positives
-    // for(int i = 0; i < record->delineations->afib->size; i++) {
-    //     if (record->delineations->noise->binary[i] == 1) {
-    //         record->delineations->afib->binary[i] = false;
-    //     }
-    // }
+    for(int i = 0; i < record->delineations->afib->size; i++) {
+        if (record->delineations->noise->binary[i] == 1) {
+            record->delineations->afib->binary[i] = false;
+        }
+    }
 
     //Smooth out the binary signal
     tools.closingcentered(record->delineations->afib->binary, record->delineations->afib->size, record->fs, record->delineations->afib->binary);
@@ -1322,17 +1347,20 @@ void Reflection::reflect_on_qrs() {
         //std::cout << "QRS " << i << ": " << beat->start << ", " << beat->end << ", " << beat->abnormal << std::endl;
     }
 
-    // ECGdetector peakdetector(record->filtered_ecg, record->size, record->fs);
-    // std::vector<int> rpeaks = peakdetector.getRPeaks();
+    float *asra_ecg = new float[record->size];
+    memcpy(asra_ecg, record->filtered_ecg, record->size * sizeof(float));
+    ECGdetector peakdetector(asra_ecg, record->size, record->fs);
+    std::vector<int> rpeaks = peakdetector.getRPeaks();
+    delete asra_ecg;
 
-    // for (int i=0; i<rpeaks.size(); i++) {
-    //     std::cout << "R-peak detected at: " << rpeaks[i] << std::endl;
-    // }
-    // std::vector<int> aladin_peaks;
-    // for (int i=0; i<beats.size(); i++) {
-    //     aladin_peaks.push_back((int)beats[i]->get_r_wave());
-    // }
-    // match_peaks(rpeaks, aladin_peaks);
+    for (int i=0; i<rpeaks.size(); i++) {
+        std::cout << "R-peak detected at: " << rpeaks[i] << std::endl;
+    }
+    std::vector<int> aladin_peaks;
+    for (int i=0; i<beats.size(); i++) {
+        aladin_peaks.push_back((int)beats[i]->get_r_wave());
+    }
+    match_peaks(rpeaks, aladin_peaks);
 
     calculate_rr_intervals();
 

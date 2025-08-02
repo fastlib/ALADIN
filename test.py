@@ -12,6 +12,11 @@ import ast
 import argparse
 import matplotlib.pyplot as plt
 
+import boto3
+from botocore import UNSIGNED
+from botocore.client import Config
+from botocore.exceptions import NoCredentialsError
+
 #os.environ["aladin_models"] = "/home/lukas/UU/ASRA/ALADINv2/models"
 from aladin import ALADIN
 from aladin.core import Record, RecordCollection
@@ -52,9 +57,27 @@ def cusum(signal, k=0.5, h=5):
 
     return change_points
 
-def load_case(dir, case):
+def load_case(dir, case, database="STANFORD"):
 
     file = os.path.join(dir,case)
+
+    if database=="ICENTIA" and not os.path.exists(file + ".dat"):
+        bucket_name = 'physionet-open'
+        prefix = 'icentia11k-continuous-ecg/1.0/'
+        boto_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+
+        if not os.path.exists(file + ".dat"):
+            print("Downloading", file + ".dat")
+            print(prefix + file + ".dat")
+            os.makedirs(os.path.dirname(file), exist_ok=True)
+            boto_client.download_file(bucket_name, prefix + case + ".dat", file + ".dat")
+        if not os.path.exists(file + ".hea"):
+            os.makedirs(os.path.dirname(file), exist_ok=True)
+            boto_client.download_file(bucket_name, prefix + case + ".hea", file + ".hea")
+        if not os.path.exists(file + ".atr"):
+            os.makedirs(os.path.dirname(file), exist_ok=True)
+            boto_client.download_file(bucket_name, prefix + case + ".atr", file + ".atr")
+
     print(file)
     rec = wfdb.rdrecord(file)
     ecg = rec.p_signal[:,0]
@@ -264,7 +287,7 @@ def test_reflection():
 
     #48d4e8ce9bb72876e9f5cc98cd52aae3_0003
 
-    rec = load_case("./data/STANFORD", "46a3faec022c202b59c045c94060cab3_0001")
+    rec = load_case("./data/STANFORD", "1ab23e8d8299643d0262ecd7cf51af4e_0001")
     aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
                     debug={"segmenter": True, "afibdetector": False, "reflection": True, "total": True})
     aladin.analyse(rec)
@@ -347,9 +370,11 @@ def test_rdb():
 def test_icentia():
     t0 = time.time()
     basefolder = os.environ.get('benchmark_data')
+    #rec = load_case("./data/ICENTIA", "p00/p00153/p00153_s20", "ICENTIA")
+    rec = load_case("./data/ICENTIA", "p06/p06226/p06226_s32", "ICENTIA")
     #rec = load_case_trimmed(basefolder+"/ICENTIA", "p07/p07840/p07840_s28", 2000, 2200)
     #rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p07/p07840/p07840_s28", 3800, 3950)
-    rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p02/p02050/p02050_s48", 2800, 3000)
+    #rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p02/p02050/p02050_s48", 2800, 3000)
     #rec = load_case("/home/lukas/UU/ASRA/Datasets/MIT-NORMAL", "16265")
 
     t1 = time.time()
@@ -357,7 +382,7 @@ def test_icentia():
     aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
                     debug={"segmenter": False, "afibdetector": False, "reflection": False, "total": False})
     aladin.analyse(rec)
-    aladin.plot(rec)#, xlim=(3800,3950))
+    aladin.plot(rec, xlim=(380,600))
     t2 = time.time()
     print(f"ALADIN took {t2-t1:.2f} seconds")
 
