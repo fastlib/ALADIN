@@ -346,8 +346,8 @@ def test_rdb():
 
 def test_icentia():
     t0 = time.time()
-
-    rec = load_case("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p07/p07840/p07840_s28")
+    basefolder = os.environ.get('benchmark_data')
+    rec = load_case(basefolder+"/ICENTIA", "p07/p07840/p07840_s28")
     #rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p07/p07840/p07840_s28", 3800, 3950)
     #rec = load_case("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p05/p05205/p05205_s25")
     #rec = load_case("/home/lukas/UU/ASRA/Datasets/MIT-NORMAL", "16265")
