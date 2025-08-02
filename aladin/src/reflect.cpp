@@ -1353,9 +1353,9 @@ void Reflection::reflect_on_qrs() {
     std::vector<int> rpeaks = peakdetector.getRPeaks();
     delete asra_ecg;
 
-    for (int i=0; i<rpeaks.size(); i++) {
-        std::cout << "R-peak detected at: " << rpeaks[i] << std::endl;
-    }
+    // for (int i=0; i<rpeaks.size(); i++) {
+    //     std::cout << "R-peak detected at: " << rpeaks[i] << std::endl;
+    // }
     std::vector<int> aladin_peaks;
     for (int i=0; i<beats.size(); i++) {
         aladin_peaks.push_back((int)beats[i]->get_r_wave());
