@@ -71,22 +71,22 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
         float precision = (float)tp / (tp + fp);
         float f1_score = 2 * (precision * sensitivity) / (precision + sensitivity);
 
-        std::cout << "Batch " << st / (10 * record->fs) << ": TP: " << tp << ", FP: " << fp << ", FN: " << fn 
-                  << ", Sensitivity: " << sensitivity << ", Precision: " << precision 
-                  << ", F1 Score: " << f1_score << std::endl;
+        // std::cout << "Batch " << st / (10 * record->fs) << ": TP: " << tp << ", FP: " << fp << ", FN: " << fn 
+        //           << ", Sensitivity: " << sensitivity << ", Precision: " << precision 
+        //           << ", F1 Score: " << f1_score << std::endl;
 
         if (f1_score < 0.5) {
-            std::cout << "Low F1 score detected, marking noise region from " << st << " to " << end << std::endl;
-            std::cout << mismatch_aladin.size() << " aladin mismatches: ";
-            for (int i = 0; i < mismatch_aladin.size(); ++i) {
-                std::cout << mismatch_aladin[i]/record->fs << " ";
-            }
-            std::cout << std::endl;
-            std::cout << mismatch_asra.size() << " asra mismatches: ";
-            for (int i = 0; i < mismatch_asra.size(); ++i) {
-                std::cout << mismatch_asra[i]/record->fs << " ";
-            }
-            std::cout << std::endl;
+            // std::cout << "Low F1 score detected, marking noise region from " << st << " to " << end << std::endl;
+            // std::cout << mismatch_aladin.size() << " aladin mismatches: ";
+            // for (int i = 0; i < mismatch_aladin.size(); ++i) {
+            //     std::cout << mismatch_aladin[i]/record->fs << " ";
+            // }
+            // std::cout << std::endl;
+            // std::cout << mismatch_asra.size() << " asra mismatches: ";
+            // for (int i = 0; i < mismatch_asra.size(); ++i) {
+            //     std::cout << mismatch_asra[i]/record->fs << " ";
+            // }
+            // std::cout << std::endl;
             
             int first_asra_mismatch = mismatch_asra.empty() ? end : mismatch_asra[0];
             int first_aladin_mismatch = mismatch_aladin.empty() ? end : mismatch_aladin[0];
@@ -94,7 +94,7 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
             int last_aladin_mismatch = mismatch_aladin.empty() ? st : mismatch_aladin.back();
             int st = min(first_asra_mismatch, first_aladin_mismatch);
             int end = max(last_asra_mismatch, last_aladin_mismatch);
-            std::cout << "Marking noise region from " << st << " to " << end << std::endl;
+            // std::cout << "Marking noise region from " << st << " to " << end << std::endl;
 
             for (int i = st; i < end; ++i) {
                 record->delineations->noise->binary[i] = 1.0f;
@@ -104,7 +104,7 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
             for (int i = 0; i < beats.size(); ++i) {
                 if (beats[i]->get_r_wave() >= st && beats[i]->get_r_wave() < end) {
                     //remove beat from beats
-                    std::cout << "Removed beat at " << beats[i]->get_r_wave() << " due to low F1 score." << std::endl;
+                    // std::cout << "Removed beat at " << beats[i]->get_r_wave() << " due to low F1 score." << std::endl;
                     beats.erase(beats.begin() + i);
                     i--; // Adjust index after removal
                 }
@@ -123,7 +123,7 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
         }
     }
 
-    std::cout << "beats size: " << beats.size() << std::endl;
+    // std::cout << "beats size: " << beats.size() << std::endl;
 
     // tools.closingcentered(is_matched, 3);
 
