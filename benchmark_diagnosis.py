@@ -474,6 +474,7 @@ class ALADINModel(Model):
     def predict_batch(self, data):
         
         self.calculate_batchsizes(data)
+        #self.cpu_batchsize = 2
         num_batches = len(data) // self.cpu_batchsize + (1 if len(data) % self.cpu_batchsize > 0 else 0)
         out = []
 

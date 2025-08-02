@@ -85,7 +85,7 @@ for x in X:
     pacpvcrhythm = haspac or haspvc or hasivb or hastachycardia or hasbradycardia
 
     feats.append([mostnoise, mostafib, pacpvcrhythm, onlynsr])
-    #feats.append([mostnoise, mostafib, onlynsr, haspac, haspvc, hasivb, hastachycardia, hasbradycardia])
+    #feats.append([mostnoise, mostafib, onlynsr, haspac, haspvc or hasivb, hastachycardia, hasbradycardia])
 
 X = np.array(feats)
 Y = np.array([mapper[y] for y in Y])
@@ -96,14 +96,14 @@ clf.fit(X, Y)
 # Print the tree structure
 print("Decision Tree Structure:")
 fig, ax = plt.subplots(figsize=(50, 50))
-plot_tree(clf, filled=True, feature_names=[
-    "Most Noise > 50%", "Most AFIB", "Has PAC or PVC or IVB", "Only NSR or Noise"
-], class_names=list(mapper.keys()), ax=ax)
+plot_tree(clf, filled=True, #feature_names=[
+    #"Most Noise > 50%", "Most AFIB", "Has PAC or PVC or IVB", "Only NSR or Noise"
+class_names=list(mapper.keys()), ax=ax)
 plt.savefig("paper/decision_tree_structure.png", bbox_inches='tight')
 predictions = clf.predict(X)
 
 
-predictions = [rule_based_classes(x) for x in X]
+#predictions = [rule_based_classes(x) for x in X]
 
 # for i, pred in enumerate(predictions):
 #     data["results"][0]["results"][i]["predicted"] = [pred]
@@ -111,7 +111,7 @@ predictions = [rule_based_classes(x) for x in X]
 # with open(aladin_file, 'w') as f:
 #     json.dump(data, f, indent=4)
 
-predictions = np.array([mapper[p] for p in predictions])
+#predictions = np.array([mapper[p] for p in predictions])
 
 confusion = confusion_matrix(Y, np.round(predictions).astype(int), labels=list(mapper.values()))
 print(confusion)

@@ -26,6 +26,7 @@ dependencies = [
     "torch",
     "google-cloud-storage",
     "google-cloud-bigquery",
+    "neurokit2",
     "ruptures",
     "neurokit2==0.2.10",
     "wfdb==4.1.2",

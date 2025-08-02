@@ -772,12 +772,16 @@ class ICENTIAData(BaseDataLoader):
 
         noiseregions = get_regions(record.delineations.noise.binary)
         afibregions = get_regions(record.delineations.afib.binary)
+        afibuncertainregions = get_regions(record.delineations.afib.logits<0.25)
 
         for noise in noiseregions:
             delineations["noise"].append((noise[0], noise[1]))
 
         for afib in afibregions:
             delineations["afib"].append((afib[0], afib[1]))
+
+        for afib_uncertain in afibuncertainregions:
+            delineations["afib_uncertain"].append((afib_uncertain[0], afib_uncertain[1]))
 
         data = {
             "diagnosis": diagnoses,
@@ -789,6 +793,10 @@ class ICENTIAData(BaseDataLoader):
         blob = self.bucket.blob(f"ICENTIA-Dataset301/{self.objs[key]['path']}.pkl.gz")
         blob.upload_from_filename(f'{record.recordname}.pkl.gz')
         print(f"Uploaded {key} to {blob.public_url}")
+
+        #remove the local file
+        if os.path.exists(f'{record.recordname}.pkl.gz'):
+            os.remove(f'{record.recordname}.pkl.gz')
 
     def run_bigquery(self, query):
 
@@ -834,6 +842,16 @@ class ICENTIAData(BaseDataLoader):
         for key in keys:
             if key in self.objs:
                 self.objs[key]["done"] = True
+                #remove file from disk
+                # local_file_path = self.objs[key]["local_file_path"]+".dat"
+                # if os.path.exists(local_file_path):
+                #     os.remove(local_file_path)
+                # local_file_path = self.objs[key]["local_file_path"]+".hea"
+                # if os.path.exists(local_file_path):
+                #     os.remove(local_file_path)
+                # local_file_path = self.objs[key]["local_file_path"]+".atr"
+                # if os.path.exists(local_file_path):
+                #     os.remove(local_file_path)
 
     def cleanup(self):
 
@@ -847,15 +865,15 @@ class ICENTIAData(BaseDataLoader):
     def batch(self, batch_size=32):
 
         while True:
-            #query = f"""SELECT record_id, status FROM `{self.credentials.project_id}.{self.table_id}` WHERE status='unprocessed' ORDER BY RAND() LIMIT {batch_size} """
-            query = f"""
-                    SELECT record_id, status FROM `{self.credentials.project_id}.{self.table_id}` AS t
-                    WHERE EXISTS (
-                        SELECT 1
-                        FROM UNNEST(JSON_EXTRACT_ARRAY(t.diagnosis)) AS tag
-                        WHERE JSON_EXTRACT_SCALAR(tag, '$') IN ('AVB_TYPE2', 'VT', 'IVR', 'WENCKEBACH', 'SUDDEN_BRADY', 'BIGEMINY', 'TRIGEMINY')
-                    )
-                    ORDER BY RAND() LIMIT {batch_size} """
+            query = f"""SELECT record_id, status FROM `{self.credentials.project_id}.{self.table_id}` WHERE status='unprocessed' ORDER BY RAND() LIMIT {batch_size} """
+            # query = f"""
+            #         SELECT record_id, status FROM `{self.credentials.project_id}.{self.table_id}` AS t
+            #         WHERE EXISTS (
+            #             SELECT 1
+            #             FROM UNNEST(JSON_EXTRACT_ARRAY(t.diagnosis)) AS tag
+            #             WHERE JSON_EXTRACT_SCALAR(tag, '$') IN ('AVB_TYPE2', 'VT', 'IVR', 'WENCKEBACH', 'SUDDEN_BRADY', 'BIGEMINY', 'TRIGEMINY')
+            #         )
+            #         ORDER BY RAND() LIMIT {batch_size} """
             
             rows = self.run_bigquery(query)
             if not rows:

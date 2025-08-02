@@ -3,6 +3,7 @@ from aladin.utils.helpers import Record
 import re
 import time
 import ruptures as rpt
+import neurokit2 as nk
 
 import aladin._main as cpp_backend
 from aladin.utils.helpers import Cluster, Beat, Record, resize_signal, get_regions, closingcentered, openingcentered
@@ -52,7 +53,6 @@ class LogicEngine():
         
         beats = record.qrs
         afib = record.delineations.afib.logits
-        afib_uncertainty = record.delineations.afib.uncertainty
 
         #if total number of beats is less than 5, skip
         if len(beats) < 5:
@@ -544,7 +544,6 @@ class LogicEngine():
 
         beats = record.qrs
         afib = record.delineations.afib.binary
-        afib_uncertainty = record.delineations.afib.uncertainty
 
         #if total number of beats is less than 5, skip
         if len(beats) < 5:
@@ -608,14 +607,60 @@ class LogicEngine():
                     beats[region[1]-1].r
                 )
 
+    def check_peak_match(self, record: Record, peaks1, peaks2):
+
+        peak_noise_mask = np.zeros(len(record.ecg), dtype=bool)
+        for start in range(0, len(record.ecg), int(record.fs*10)):
+            end = min(start + int(record.fs*10), len(record.ecg))
+
+            peaks1_in_range = [peak for peak in peaks1 if peak >= start and peak <= end]
+            peaks2_in_range = [peak for peak in peaks2 if peak >= start and peak <= end]
+
+            tp = 0
+            fp = 0
+            fn = 0
+
+            for i in range(len(peaks1_in_range)):
+                for j in range(len(peaks2_in_range)):
+                    if np.abs(peaks1_in_range[i] - peaks2_in_range[j]) < record.fs*0.15:
+                        tp += 1
+                        break
+                else:
+                    fp += 1
+
+            for j in range(len(peaks2_in_range)):
+                for i in range(len(peaks1_in_range)):
+                    if np.abs(peaks2_in_range[j] - peaks1_in_range[i]) < record.fs*0.15:
+                        break
+                else:
+                    fn += 1
+
+            sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+            f1_score = 2 * (precision * sensitivity) / (precision + sensitivity) if (precision + sensitivity) > 0 else 0
+
+            if f1_score < 0.8:
+                peak_noise_mask[start:end] = True
+            else:
+                peak_noise_mask[start:end] = False
+
+        return peak_noise_mask
+
 
     def check_noise(self, record: Record):
+
+        _, rpeaks = nk.ecg_peaks(record.filtered_ecg, sampling_rate=record.fs)
+        aladin_peaks = [record.qrs[i].r for i in range(len(record.qrs))]
+        peak_noise_mask = self.check_peak_match(record, rpeaks['ECG_R_Peaks'], aladin_peaks)
 
         noise_mask = record.delineations.noise.binary
         afib = record.delineations.afib.binary
         noise_mask[afib == 1] = 0
-        #noise_mask = closingcentered(noise_mask, np.ones(int(record.fs*0.5)))
-        #noise_mask = openingcentered(noise_mask, np.ones(int(record.fs*0.5)))
+        noise_mask = closingcentered(noise_mask, np.ones(int(record.fs*0.5)))
+        noise_mask = openingcentered(noise_mask, np.ones(int(record.fs*0.5)))
+
+        noise_mask = np.logical_or(noise_mask, peak_noise_mask)
+
         regions = get_regions(noise_mask)
 
         for region in regions:
@@ -1100,6 +1145,12 @@ class LogicEngine():
 
                 #get median width
                 medianwidth = np.mean([(beats[i].width) for i in range(match.start(), match.end())])
+
+                max_ibi = np.max([(beats[i].r - beats[i].r) for i in range(match.start(), match.end()-1) if not np.isnan(beats[i].r)])
+
+                if max_ibi > 3*record.fs:
+                    #print("Max IBI is too large, skipping")
+                    continue
 
                 #print("Median width: ", medianwidth/record.fs)
 
