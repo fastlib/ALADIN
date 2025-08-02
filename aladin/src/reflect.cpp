@@ -20,6 +20,35 @@ void Reflection::initialize(std::shared_ptr<Record> record) {
     verbose = false;
 }
 
+void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &aladin_peaks) {
+    // Match ASRA peaks with Aladin peaks
+    std::vector<bool> is_matched(aladin_peaks.size(), false);
+    for (int i = 0; i < aladin_peaks.size(); ++i) {
+        int aladin_peak = aladin_peaks[i];
+        for (int j = 0; j < asra_peaks.size(); ++j) {
+            int asra_peak = asra_peaks[j];
+            if (abs(asra_peak - aladin_peak) <= record->fs*0.15) { // Allow a tolerance of 50 samples
+                is_matched[i] = true;
+                break; // Stop searching once a match is found
+            }
+        }
+    }
+
+    tools.closingcentered(is_matched, 3);
+
+    std::cout << "match: ";
+    for(int i=0; i<is_matched.size(); i++) {
+        if (is_matched[i]) {
+            std::cout << ".";
+        } else {
+            std::cout << "#";
+        }
+    }
+    std::cout << std::endl;
+
+    std::cout << "Matched " << std::count(is_matched.begin(), is_matched.end(), true) << " peaks out of " << aladin_peaks.size() << std::endl;
+}
+
 void Reflection::reflect_on_noise() {
     // Placeholder for noise correction logic
     //std::cout << "Correcting noise..." << std::endl;
@@ -35,6 +64,8 @@ void Reflection::reflect_on_noise() {
     }
     tools.closingcentered(record->delineations->noise->binary, record->delineations->noise->size, 0.5*record->fs, record->delineations->noise->binary);
     //tools.openingcentered(record->delineations->noise->binary, record->delineations->noise->size, 2*record->fs, record->delineations->noise->binary);
+
+
 
     //std::cout << "Noise:";
     for(int i=0; i<record->delineations->noise->size; i++) {
@@ -1245,6 +1276,18 @@ void Reflection::reflect_on_qrs() {
     // for(int i=0; i<clusterer_qrs->get_number_of_clusters(); i++) {
     //     record->qrs_clusters.push_back(clusterer_qrs->get_cluster(i));
     // }
+
+    ECGdetector peakdetector(record->filtered_ecg, record->size, record->fs);
+    std::vector<int> rpeaks = peakdetector.getRPeaks();
+
+    for (int i=0; i<rpeaks.size(); i++) {
+        std::cout << "R-peak detected at: " << rpeaks[i] << std::endl;
+    }
+    std::vector<int> aladin_peaks;
+    for (int i=0; i<beats.size(); i++) {
+        aladin_peaks.push_back((int)beats[i]->get_r_wave());
+    }
+    match_peaks(rpeaks, aladin_peaks);
 }
 
 float Reflection::qrs_median_range() {

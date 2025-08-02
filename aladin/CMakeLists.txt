@@ -54,12 +54,16 @@ set_target_properties(iir PROPERTIES
 )
 
 set(headers
+    src/asra/asra.h
+    src/asra/filter.h
     src/reflect.h
     src/cluster.h
     src/common.h
     src/helpers.h
 )
 set(sources
+    src/asra/asra.cpp
+    src/asra/filter.cpp
     src/bindings.cpp
     src/reflect.cpp
     src/common.cpp

@@ -4,6 +4,7 @@
 #include "common.h"
 #include "helpers.h"
 #include "cluster.h"
+#include "asra/asra.h"
 
 using namespace std;
 
@@ -13,6 +14,8 @@ class Reflection {
         Reflection();
         Reflection(std::shared_ptr<Record> record);
         void initialize(std::shared_ptr<Record> record);
+
+        void match_peaks(std::vector<int> &asra_peaks, std::vector<int> &aladin_peaks);
         void reflect_on_noise();
 
         void reflect_on_qrs();
