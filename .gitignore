@@ -10,6 +10,7 @@
 !benchmark_delineation.py
 !benchmark_diagnosis.py
 !demo.py
+!test.py
 !run.sh
 !benchmark_delineation.sh
 !benchmark_diagnosis_CINC.sh
