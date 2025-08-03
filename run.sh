@@ -76,8 +76,8 @@ gsutil -m cp -rn gs://arts-aladin/Dataset301_all_0 ${aladin_models}
 #loop 50 times
 for i in {1..10}
 do
-    time python benchmark_diagnosis.py --method ALADIN --dataset STANFORD --overwrite
-    rm -R ./data/STANFORD
+    time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+    rm -R ./data/ICENTIA
 done
 
 # #Run CINC benchmark
