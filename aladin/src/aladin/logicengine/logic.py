@@ -344,9 +344,9 @@ class LogicEngine():
             noiselevel = np.sum(np.square(record.ecg_noise[wave.offset:beats[next_beat].onset])) / (beats[next_beat].onset - wave.offset)
             signallevel = np.sum(np.square(record.filtered_ecg[wave.onset:wave.offset])) / (wave.offset - wave.onset)
             snr = 10 * np.log10(signallevel/noiselevel)
-            print("SNR between beats", snr)
+            #print("SNR between beats", snr)
             
-            if hasnoise or snr < 10:
+            if hasnoise or snr < 6:
                 #print("Noise in between beats, skip")
                 continue
 
