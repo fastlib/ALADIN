@@ -382,7 +382,7 @@ def test_icentia():
     t0 = time.time()
     basefolder = os.environ.get('benchmark_data')
     #rec = load_case("./data/ICENTIA", "p00/p00153/p00153_s20", "ICENTIA")
-    rec = load_case_trimmed("./data/ICENTIA", "p04/p04233/p04233_s26", 700, 850)
+    rec = load_case_trimmed("./data/ICENTIA", "p01/p01229/p01229_s40", 1900, 2100)
     #rec = load_case_trimmed(basefolder+"/ICENTIA", "p07/p07840/p07840_s28", 2000, 2200)
     #rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p07/p07840/p07840_s28", 3800, 3950)
     #rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p02/p02050/p02050_s48", 2800, 3000)
@@ -418,8 +418,8 @@ def test_batch():
     
 
 if __name__ == "__main__":
-    #test_icentia()
-    test_reflection()
+    test_icentia()
+    #test_reflection()
     #test_batch()
     #test_rdb()
     #compare_outputs("A")

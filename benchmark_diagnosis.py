@@ -498,6 +498,10 @@ class ALADINModel(Model):
             data.set_as_finished([record.recordname for record in processed_batch])
             print("Batch ", idx, " processed in ", time.time() - st, " seconds", flush=True)
 
+            if idx>10:
+                print("Stopping after 10 batches for testing purposes")
+                break
+
         # with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         #     future_to_batch = {}
         #     prev_processed_batch = None

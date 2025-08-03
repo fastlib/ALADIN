@@ -75,6 +75,25 @@ gsutil -m cp -rn gs://arts-aladin/Dataset301_all_0 ${aladin_models}
 
 #Run ICENTIA benchmark
 time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
 
 # #Run CINC benchmark
 # time python3.10 benchmark_diagnosis.py --method ALADIN --dataset CINC --overwrite
