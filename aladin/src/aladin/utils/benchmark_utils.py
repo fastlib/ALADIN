@@ -857,6 +857,10 @@ class ICENTIAData(BaseDataLoader):
     def cleanup(self):
 
         #update the status of all records to 'done'
+        if len(self.objs) == 0:
+            print("No records to cleanup.")
+            return
+            
         paths = [self.objs[key]["path"] for key in self.objs if not self.objs[key]["done"]]
         if len(paths) > 0:
             self.run_bigquery(f"""UPDATE `{self.credentials.project_id}.{self.table_id}` SET status='unprocessed' WHERE record_id IN UNNEST({paths})""")
