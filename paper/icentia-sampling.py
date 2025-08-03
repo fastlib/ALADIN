@@ -269,7 +269,7 @@ def make_trace(ecg, delineation, events, filename):
 
     for event in events:
         fs = 250
-        window = 60
+        window = 34
         onset = event["onset"]
         offset = event["offset"]
         middle = (onset + offset) // 2
@@ -279,11 +279,26 @@ def make_trace(ecg, delineation, events, filename):
         arrhythmia_type = event["type"]
         ts = np.linspace(0, len(ecg)/fs, len(ecg))
 
-        plt.figure(figsize=(window, 4))
-        plt.plot(ts[start:end], ecg[start:end], label='ECG Signal', color='blue')
-        plt.axvline(x=onset/fs, color='red', linestyle='--', label='Onset')
-        plt.axvline(x=offset/fs, color='green', linestyle='--', label='Offset')
+        cm_to_inch = 1/2.54
+        plt.figure(figsize=((window+2) * cm_to_inch, 6* cm_to_inch), dpi=300)  # Set figure size in inches
+        plt.plot(ts[start:end], ecg[start:end], label='ECG Signal', color='black', linewidth=0.5)
+        # plt.axvline(x=onset/fs, color='red', linestyle='--', label='Onset')
+        # plt.axvline(x=offset/fs, color='green', linestyle='--', label='Offset')
+        plt.box(False)
         plt.xlim(ts[start], ts[end-1])
+        plt.ylim(-2, 2)
+        #plt.yticks(np.arange(-2, 3, 0.02))
+        for yline in np.arange(-2, 3, 0.1):
+            yline = round(yline, 1)
+            print(yline)
+            if (yline % 0.5 == 0):
+                plt.axhline(y=yline, color='lightcoral', linewidth=0.5, alpha=0.5)
+            else:
+                plt.axhline(y=yline, color='lightcoral', linewidth=0.5, alpha=0.25)
+
+        for xline in np.arange(ts[start], ts[end-1], 1/5):
+            plt.axvline(x=xline, color='lightcoral', linewidth=0.5, alpha=0.5)
+
         plt.title(f'ECG Signal with {arrhythmia_type}. Detected by Aladin: {event["aladin"]}, Human: {event["human"]}')
         plt.xlabel('Samples')
         plt.ylabel('Amplitude')
@@ -293,22 +308,22 @@ def make_trace(ecg, delineation, events, filename):
         qrsabnormcolor = '#f1c40f'
         qrscolor = '#2ecc71'
 
-        for p in delineation["p"]:
-            if p[0] >= start and p[0] <= end:
-                plt.axvspan((p[0])/fs, (p[1])/fs, color=pcolor, alpha=0.5)
+        # for p in delineation["p"]:
+        #     if p[0] >= start and p[0] <= end:
+        #         plt.axvspan((p[0])/fs, (p[1])/fs, color=pcolor, alpha=0.5)
 
-        for qrs in delineation["qrs"]:
-            col = qrscolor if not qrs[2] else qrsabnormcolor
-            if qrs[0] >= start and qrs[0] <= end:
-                plt.axvspan((qrs[0])/fs, (qrs[1])/fs, color=col, alpha=0.5)
+        # for qrs in delineation["qrs"]:
+        #     col = qrscolor if not qrs[2] else qrsabnormcolor
+        #     if qrs[0] >= start and qrs[0] <= end:
+        #         plt.axvspan((qrs[0])/fs, (qrs[1])/fs, color=col, alpha=0.5)
 
-        for t in delineation["t"]:
-            if t[0] >= start and t[0] <= end:
-                plt.axvspan((t[0])/fs, (t[1])/fs, color=tcolor, alpha=0.5)
+        # for t in delineation["t"]:
+        #     if t[0] >= start and t[0] <= end:
+        #         plt.axvspan((t[0])/fs, (t[1])/fs, color=tcolor, alpha=0.5)
 
-        for noise in delineation["noise"]:
-            if noise[0] >= start and noise[0] <= end:
-                plt.axvspan((noise[0])/fs, (noise[1])/fs, color='gray', alpha=0.5)
+        # for noise in delineation["noise"]:
+        #     if noise[0] >= start and noise[0] <= end:
+        #         plt.axvspan((noise[0])/fs, (noise[1])/fs, color='gray', alpha=0.5)
 
         filename = filename.replace("/", "_").replace("\\", "_")
         print(f"Saving trace for {arrhythmia_type} in file: ./{filename}_{arrhythmia_type}.png")
@@ -329,14 +344,14 @@ if __name__ == "__main__":
 
     boto_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
 
-    root_directory = '/home/lukas/UU/ASRA/ALADINv2/data/ICENTIA-results/ICENTIA-Dataset301'
+    root_directory = '/home/lukas/UU/ASRA/ALADINv2/data/ICENTIA-Cleaned'
     file_paths = find_all_file_paths(root_directory)
     print(f"Found {len(file_paths)} files in {root_directory}")
     np.random.shuffle(file_paths)
 
     all_arrhythmias = []
     tally = {}
-    for file in tqdm(file_paths[:100]):
+    for file in tqdm(file_paths[:500]):
         #print(f"Processing file: {file}")
         arrhythmias = find_arrhythmia_in_record(root_directory, file, tally, boto_client)
         all_arrhythmias.extend(arrhythmias)

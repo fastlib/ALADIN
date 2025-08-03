@@ -287,7 +287,7 @@ def test_reflection():
 
     #48d4e8ce9bb72876e9f5cc98cd52aae3_0003
 
-    rec = load_case("./data/STANFORD", "1ab23e8d8299643d0262ecd7cf51af4e_0001")
+    rec = load_case("./data/STANFORD", "cb8ef7a29c392d17159bbc6a33b5be9c_0001")
     aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
                     debug={"segmenter": True, "afibdetector": False, "reflection": True, "total": True})
     aladin.analyse(rec)
@@ -371,7 +371,7 @@ def test_icentia():
     t0 = time.time()
     basefolder = os.environ.get('benchmark_data')
     #rec = load_case("./data/ICENTIA", "p00/p00153/p00153_s20", "ICENTIA")
-    rec = load_case("./data/ICENTIA", "p06/p06226/p06226_s32", "ICENTIA")
+    rec = load_case_trimmed("./data/ICENTIA", "p04/p04233/p04233_s26", 700, 850)
     #rec = load_case_trimmed(basefolder+"/ICENTIA", "p07/p07840/p07840_s28", 2000, 2200)
     #rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p07/p07840/p07840_s28", 3800, 3950)
     #rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p02/p02050/p02050_s48", 2800, 3000)
@@ -382,7 +382,7 @@ def test_icentia():
     aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
                     debug={"segmenter": False, "afibdetector": False, "reflection": False, "total": False})
     aladin.analyse(rec)
-    aladin.plot(rec, xlim=(380,600))
+    aladin.plot(rec)#, xlim=(380,600))
     t2 = time.time()
     print(f"ALADIN took {t2-t1:.2f} seconds")
 
@@ -407,8 +407,8 @@ def test_batch():
     
 
 if __name__ == "__main__":
-    test_icentia()
-    #test_reflection()
+    #test_icentia()
+    test_reflection()
     #test_batch()
     #test_rdb()
     #compare_outputs("A")

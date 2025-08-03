@@ -1347,13 +1347,31 @@ void Reflection::reflect_on_qrs() {
         //std::cout << "QRS " << i << ": " << beat->start << ", " << beat->end << ", " << beat->abnormal << std::endl;
     }
 
-    float *asra_ecg = new float[record->size];
-    memcpy(asra_ecg, record->filtered_ecg, record->size * sizeof(float));
-    ECGdetector peakdetector(asra_ecg, record->size, record->fs);
+
+    //search for first decent part of 5s without noise
+    bool *clean = new bool[record->size];
+    for (int i=0; i<record->size; ++i) {
+        clean[i] = !record->delineations->noise->binary[i];
+    }
+    tools.openingcentered(clean, record->size, record->fs*5, clean);
+
+    int start = 0;
+    for (int i=0; i<record->size; i++) {
+        if (clean[i]) {
+            start = i;
+            break;
+        }
+    }
+    delete[] clean;
+
+    float *asra_ecg = new float[record->size - start];
+    memcpy(asra_ecg, record->filtered_ecg, (record->size - start) * sizeof(float));
+    ECGdetector peakdetector(asra_ecg, (record->size - start), record->fs);
     std::vector<int> rpeaks = peakdetector.getRPeaks();
-    delete asra_ecg;
+    delete[] asra_ecg;
 
     for (int i=0; i<rpeaks.size(); i++) {
+        rpeaks[i] += start; // Adjust the R-peaks to the original signal
         std::cout << "R-peak detected at: " << rpeaks[i] << std::endl;
     }
     std::vector<int> aladin_peaks;
