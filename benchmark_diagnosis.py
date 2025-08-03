@@ -456,7 +456,7 @@ class ALADINModel(Model):
         
         print("Reflection on CPU done: ", batch_index, flush=True)
         print("Diagnosing records on CPU: ", batch_index, flush=True)
-        for record in recs:
+        for record in tqdm(recs):
             logic = LogicEngine(debug=False)
             logic.diagnose(record)
 
@@ -744,8 +744,8 @@ class ALADINModelForICENTIA(ALADINModel):
         
         print("Reflection on CPU done: ", batch_index, flush=True)
         print("Diagnosing records on CPU: ", batch_index, flush=True)
-        for record in recs:
-            logic = LogicEngine(debug=False, customarrhythmia={"NSR": False, "PAC_PVC": False})
+        for record in tqdm(recs):
+            logic = LogicEngine(debug=False, customarrhythmia={"PAC_PVC": False})
             logic.diagnose(record)
 
         print("Processing reflection and diagnosis on CPU done: ", batch_index, flush=True)

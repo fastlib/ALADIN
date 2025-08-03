@@ -753,7 +753,7 @@ class ICENTIAData(BaseDataLoader):
     def upload_record(self, record):
         key = record.recordname
         diagnoses = []
-        delineations = {"p": [], "qrs": [], "t": [], "noise": [], "afib": []}
+        delineations = {"p": [], "qrs": [], "t": [], "noise": [], "afib": [], "afib_uncertain": []}
 
         for j in range(len(record.diagnosis)):
             diagnoses.append({"type":record.diagnosis[j].name, "onset": record.diagnosis[j].onset, "offset": record.diagnosis[j].offset})
