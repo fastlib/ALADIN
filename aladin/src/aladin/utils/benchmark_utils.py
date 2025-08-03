@@ -837,7 +837,8 @@ class ICENTIAData(BaseDataLoader):
 
         #update the status of the records to 'processing'
         if len(paths) > 0:
-            self.run_bigquery(f"""UPDATE `{self.credentials.project_id}.{self.table_id}` SET status='done' WHERE record_id IN UNNEST({paths})""")
+            
+            self.run_bigquery(f"""UPDATE `{self.credentials.project_id}.{self.table_id}` SET status='done', last_updated='{datetime.utcnow().isoformat()}' WHERE record_id IN UNNEST({paths})""")
 
         for key in keys:
             if key in self.objs:

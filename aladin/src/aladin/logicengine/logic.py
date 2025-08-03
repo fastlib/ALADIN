@@ -340,10 +340,17 @@ class LogicEngine():
             if len(pwaves_between) != 2:
                 #print("No two P-waves between beats, skip")
                 continue
+
+            noiselevel = np.sum(np.square(record.ecg_noise[wave.offset:beats[next_beat].onset])) / (beats[next_beat].onset - wave.offset)
+            signallevel = np.sum(np.square(record.filtered_ecg[wave.onset:wave.offset])) / (wave.offset - wave.onset)
+            snr = 10 * np.log10(signallevel/noiselevel)
+            print("SNR between beats", snr)
             
-            if hasnoise:
+            if hasnoise or snr < 10:
                 #print("Noise in between beats, skip")
                 continue
+
+            
 
             last_pr = beats[last_beat].pr
             next_pr = beats[next_beat].pr

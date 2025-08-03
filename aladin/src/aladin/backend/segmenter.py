@@ -94,8 +94,8 @@ class UNetSegmenter(SegmenterBase):
         self.cache = cache
         self.num_workers = multiprocessing.cpu_count()
 
-        #self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        self.device = torch.device('cpu')
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        #self.device = torch.device('cpu')
 
         self.sliding_models = []
         self.fullcontext_models = []

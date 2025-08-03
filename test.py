@@ -285,7 +285,18 @@ def test_reflection():
     # aaf16bad905b218608ae343969c75beb_0001
     # 0e9148f405e39b98568ad169c1cb1e21_0002
 
-    #48d4e8ce9bb72876e9f5cc98cd52aae3_0003
+    #691e03fc2eea41dab3f7873eda02c240_0003
+    #a2747f2e806de7564d5471082909e7c8_0001
+    #1d5edbc1a69620a894680b3d3d87ad98_0003
+    #ca45063e2aa2ec7c6a8226519dae759f_0001
+    #4f0b3dd872f00d452f5aa6c786855c1c_0003
+
+    #1d5edbc1a69620a894680b3d3d87ad98_0003
+    #59a3ca38d1ef35a7085320636c44a525_0002
+    #d3b26022dc2cc70a01641f346951f7e2_0001
+    #cd0710712f77f7bdbf864e573ef0bae6_0004
+    #b240d601680212834dac1291ae25fc06_0001
+    #cb8ef7a29c392d17159bbc6a33b5be9c_0001
 
     rec = load_case("./data/STANFORD", "cb8ef7a29c392d17159bbc6a33b5be9c_0001")
     aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],

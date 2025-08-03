@@ -75,6 +75,9 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
         //           << ", Sensitivity: " << sensitivity << ", Precision: " << precision 
         //           << ", F1 Score: " << f1_score << std::endl;
 
+        // std::cout << "Batch " << st / (10 * record->fs) << ": TP: " << tp << ", FP: " << fp << ", FN: " << fn 
+        //             << ", Sensitivity: " << sensitivity << ", Precision: " << precision 
+        //             << ", F1 Score: " << f1_score << std::endl;
         if (f1_score < 0.5) {
             // std::cout << "Low F1 score detected, marking noise region from " << st << " to " << end << std::endl;
             // std::cout << mismatch_aladin.size() << " aladin mismatches: ";
@@ -110,7 +113,6 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
                 }
             }
         }
-
     }
 
     for(int i=0; i<record->delineations->noise->size; i++) {
@@ -1372,7 +1374,7 @@ void Reflection::reflect_on_qrs() {
 
     for (int i=0; i<rpeaks.size(); i++) {
         rpeaks[i] += start; // Adjust the R-peaks to the original signal
-        std::cout << "R-peak detected at: " << rpeaks[i] << std::endl;
+        //std::cout << "R-peak detected at: " << rpeaks[i] << std::endl;
     }
     std::vector<int> aladin_peaks;
     for (int i=0; i<beats.size(); i++) {

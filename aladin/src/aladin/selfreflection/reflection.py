@@ -177,6 +177,7 @@ class Reflection():
     def reflect(self, record):
         if self.debug: print("Self-reflect on record", record.recordname)
 
+        print(record.recordname)
         t0 = time.time()
         self.initialize(record)
         st = time.time()
