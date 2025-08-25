@@ -362,7 +362,7 @@ class HannunModel(Predictor):
         diagnoses = []
         cur_episode = -1
         cur_episode_start = 0
-        print("predictions: ", predictions)
+        #print("predictions: ", predictions)
         for i in range(len(predictions)):
             if predictions[i] != cur_episode:
                 if cur_episode != -1:
@@ -895,7 +895,7 @@ class HannunWrapperForCinc(Model):
 
     def predict(self, sig, fs, meta=None, preprocess=False):
 
-        recorddiagnoses = self.model.predict_on_array(sig, fs)
+        recorddiagnoses, _ = self.model.predict_on_array(sig, fs)
         diagnoses = []
         totallength = len(sig)/fs
 
@@ -924,7 +924,7 @@ class HannunWrapperForCinc(Model):
         diagnose = ""
 
         mostnoise = diagnoses[0]["type"] == "NOISE" and diagnoses[0]["duration"] > 0.5 if len(diagnoses) > 0 else False
-        mostafib = diagnoses[0]["type"] == "AFIB" if len(diagnoses) > 0 else False
+        mostafib = diagnoses[0]["type"] == "AFIB/AFL" if len(diagnoses) > 0 else False
         onlynsr = np.all([d["type"] == "NSR" or d["type"] == "NOISE" for d in diagnoses])
         #return diagnoses + subdiagnoses
         
@@ -986,7 +986,7 @@ if __name__ == "__main__":
             model = ALADINModel(modelpaths=modelpaths)
 
     elif dataset == "CINC":
-        data = CINCData("CINC", asynchronous=True)
+        data = CINCData("CINC", asynchronous=True, fraction=0.1)
 
         if method == 'ALADIN':
             model = ALADINModelForCinc(modelpaths=modelpaths)

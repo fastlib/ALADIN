@@ -1,8 +1,8 @@
 # ALADIN documentation
  
-This CodeOcean capsule contains all the source code and data necessary to reproduce the manuscript's results and figures. Due to CodeOcean's limited computing resources and its runtime constraints, this capsule is limited to i) a demonstration, ii) the complete delineation benchmark and iii) the diagnostic benchmark on the Stanford dataset. With both the ii) and iii) benchmarks a re-evaluation of competing methods is also performed. These results contain the visual and textual outputs for 4 example recordings: 2 from the Stanford dataset and 2 from the Computers-in-Cardiology dataset  (i.e., the demonstration) as well as a text-file containing the raw LaTeX code to reproduce Table 1 (i.e., the delineation benchmark) and 3 figures to reproduce Figure 3 (i..e, the diagnostic benchmark) from the manuscript.
+This CodeOcean capsule contains all the source code and data necessary to reproduce the manuscript's results and figures. Due to CodeOcean's limited computing resources and its runtime constraints, this capsule is limited to i) a demonstration, ii) the complete delineation benchmark and iii) the diagnostic benchmarks on the iRhythm and AliveCor data sets. With both the ii) and iii) benchmarks a re-evaluation of competing methods is also performed. These results contain the visual and textual outputs for 4 example recordings: 2 from the iRhythm dataset and 2 from the AliveCor dataset as well as a text-file containing the raw LaTeX code to reproduce Supplementary table 1 (i.e., the delineation benchmark) and all figures to reproduce Figures 2 and 3 from the manuscript.
  
-Reproducing the benchmark on the Computers-in-Cardiology dataset (Figure 4) exceeded the capabilities of the CodeOcean environment. To aid also a complete reproduction of these results, the '/data/ALADIN-source-code.zip' can be downloaded, which includes detailed instructions in the README.pdf/.html or as seen below, that allow local replication at any system with a Linux, MacOS, or Windows operating system.
+Reproducing the benchmark on the CardioSTAT dataset (Figure 4) exceeded the capabilities of the CodeOcean environment.
  
  
 ## System requirements:
@@ -60,8 +60,6 @@ Where `[recording]` can be one of `(STANFORD1, STANFORD2, A01986, A08391)`.
 ### Expected output
 - 'aladin_result.png', a figure showing the delineation and diagnosis with on- and offsets
 - 'aladin_explanation.txt', a textfile containing a detailed explanation behind the diagnosis
- 
-Note: It is possible to analyse your own files. ALADIN expects Lead II electrocardiograms formatted as WFDB files with a header file (.hea) and a data file (.dat). It only selects the first signal from the data file.
  
 \newpage
 ## Reproduce benchmark using model checkpoints
@@ -144,162 +142,8 @@ python paper/boxplot-cinc.py
 ```
  
 ### Expected results
-- A delineation performance table in raw latex code corresponding to Table 1 of the manuscript.
-- Two boxplot figures showing the benchmark performance of ALADIN, ECGFounder, ResNet, and all human cardiologists on the Stanford test set and the CinC competition set. The figures are located inside `/paper/images`
- 
-\newpage
-## Retrain ALADIN from scratch
- 
-The following steps require a GPU with CUDA enabled. 
- 
-### Initialize MongoDB
-NOTE: You may need to run docker with `sudo`.
- 
-1. Install [Docker](https://www.docker.com/) and [Docker-compose](https://docs.docker.com/compose/)
-2. Run the MongoDB container 
-```{.bash}
-cd data/MongoDB
-docker-compose up -d
-```
-3. Download the zipped MongoDB dump from [FigShare](https://figshare.com/s/241b86301e9a4cffcf64) (5.3Gb) and extract to `/data/MongoDB` such that you have `/data/MongoDB/mongodb-dump/...`
-4. Copy the dump into the running container 
-```{.bash}
-docker cp ./mongodb-dump mongodbtest:/dump
-```
-5. Restore the MongoDB from a dump 
-```{.bash}
-docker exec mongodbtest mongorestore --username=root \
---password=ALADIN2025 \
---authenticationDatabase=admin /dump
-```
-6. Go back to root folder 
-```{.bash}
-cd ../..
-```
- 
-### Prepare training data
-7. Create the folders required by nnUNet 
-```{.bash}
-mkdir data/nnUNet_raw
-mkdir data/nnUNet_preprocessed
-mkdir data/nnUNet_results
-```
-8. Add nnUNet environment variables 
-```{.bash}
-export nnUNet_raw=[absolute path to /data]/nnUNet_raw
-export nnUNet_preprocessed=[absolute path to /data]/nnUNet_preprocessed
-export nnUNet_results=[absolute path to /data]/nnUNet_results #Linux and MacOSX
-$Env:nnUNet_raw = "[absolute path to /data]/nnUNet_raw"
-$Env:nnUNet_preprocessed = "[absolute path to /data]/nnUNet_preprocessed"
-$Env:nnUNet_results = "[absolute path to /data]/nnUNet_results"
-```
-9. Generate training data in nnUNet format 
-```{.bash}
-python utils/generate_nnUNet_training_set.py --datatype nnunet_train
-```
-10. Preprocess raw data 
-```{.bash}
-nnUNetv2_plan_and_preprocess -d 117 \
--pl UNetWithClassificationPlanner \
--preprocessor_name WithClassificationPreprocessor \
---verify_dataset_integrity
-```
-11. Copy `/data/nnUNet_plans/Dataset117_nnunet_17/nnUNetWithClassificationPlans.json` to `/data/nnUNet_preprocessed/Dataset117_nnunet_17` and overwrite existing file.
-12. Generate training data for classification branches 
-```{.bash}
-python utils/generate_nnUNet_training_set.py --datatype classification_branches
-```
-13. Preprocess raw data 
-```{.bash}
-nnUNetv2_plan_and_preprocess -d 201 \
--pl UNetWithClassificationPlanner \
--preprocessor_name WithClassificationPreprocessor \
---verify_dataset_integrity
-```
-14. Copy `/data/nnUNet_plans/Dataset201_all_101/nnUNetWithClassificationPlans.json` to `/data/nnUNet_preprocessed/Dataset201_all_101` and overwrite existing file. 
- 
-### Retrain ALADIN
-15. Train ALADIN using 5-fold cross-validation (~ 12 hours) 
-```{.bash}
-./train_aladin.sh #change extension to .bat for Windows
-```
- 
-### Run benchmarks with new models
-16. Update ALADIN's environment variable to use the newly trained models.
-```{.bash}
-export aladin_models=[absolute path to nnUNet_results] #Linux and MacOSX
-$Env:aladin_models = "[absolute path to nnUNet_results]" #Windows
-```
-17. Run delineation benchmark with new models (~ 20 min)
-```{.bash}
-python benchmark_delineation.py --method ALADIN \
---perarrhythmia \
---modelpaths Dataset201_all_101/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding
-```
-18. Run diagnostic benchmark on Stanford with new models (~ 1.5 hour)
-```{.bash}
-python benchmark_diagnosis.py --method ALADIN \
---dataset STANFORD --overwrite \
---modelpaths Dataset201_all_101/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding
-```
-19. Run diagnostic benchmark on CinC competition set with new models (~ 30 hours)
-```{.bash}
-python benchmark_diagnosis.py --method ALADIN \
---dataset CINC --overwrite \
---modelpaths Dataset201_all_101/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding
-```
-20. Create figures (see `Reproduce benchmark using model checkpoints`)
- 
- 
-\newpage
-## Optional: Retrain competitor models
- 
-NOTE: The MongoDB docker instance should be running in the background. If not, run `cd data/MongoDB`,  `docker-compose up -d`, and `cd ../..`.
- 
-### Retrain ResNet implementation from Hannun et al.
-1. Train ResNet implementation ( ~ 1 hour)
-```{.bash}
-cd benchmark
-python train.py --method RESNET
-cd ..
-```
-2. Evaluate trained Resnet on Stanford(~ 10s)
-```{.bash}
-python benchmark_diagnosis.py --method Hannun \
---dataset STANFORD --overwrite \
---modelpaths benchmark/new_weights/HannunNet_checkpoint_best.pth
-```
- 
-### Finetune ECGFounder by Li et al.
-3. Download the `1_lead_ECGFounder.pth` checkpoint from [HugginFace](https://huggingface.co/PKUDigitalHealth/ECGFounder/tree/main) (370Mb) and move it to `/benchmark/weights`
-4. Finetune ECGFounder (~ 30 min) 
-```{.bash}
-cd benchmark
-python train.py --method ECGFOUNDER
-cd ..
-```
-5. Evaluate finetuned ECGFounder on Stanford (~ 10s) 
-```{.bash}
-python benchmark_diagnosis.py --method ECGFounder \
---dataset STANFORD --overwrite \
---modelpaths benchmark/new_weights/ECGFounderNet_checkpoint_best.pth
-```
-6. Create figures (see `Reproduce benchmark using model checkpoints`)
- 
-\newpage
-## Optional: Reproduce feature space analysis
- 
-1. Create embeddings of training, test, and out-of-distribution test data for reference (i.e., ResNet) and ALADIN (~5 hour)
-```{.bash}
-cd benchmark
-./create_embeddings.sh #change extension to .bat for Windows
-cd ..
-```
-2. Create plots 
-```{.bash}
-python paper/plot-featurespace-ref.py
-python paper/plot-featurespace-aladin.py
-```
+- A delineation performance table in raw latex code corresponding to Supplementary Table 1.
+- Two boxplot figures showing the benchmark performance of ALADIN, ECGFounder, ResNet, and the average cardiologist on the iRhythm and AliveCor data sets. The figures are located inside `/paper/images`
  
 \newpage
 ## Resources:

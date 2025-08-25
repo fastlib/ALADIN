@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 from tqdm import tqdm
-from statsmodels.stats.multitest import multipletests
 from typing import Tuple, Dict, Literal, Optional
 
 from aladin.utils.benchmark_utils import Data, Model, DiagnosticBenchmark, CINCData
@@ -399,7 +398,7 @@ def make_ranking_plot(df):
     ax.set_ylabel("Average F1 score (N, A, O)", fontsize=6)
     ax.set_xlabel("Pseudo CinC competition ranking", fontsize=6)
     ax.set_xlim(0.5, len(all_f1s)+0.5)
-    ax.spines['top'].set_vicincsible(False)
+    ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
     own_pos = [x[0] for x in all_f1s].index(own_f1)+1
@@ -776,11 +775,9 @@ def generate_metrics_table(df, percentage=True):
             else:
                 return str(np.round(ci[0], 2))
 
-    print(df)
     metrics = df["Metric"].unique()
     models = df["Model"].unique()
     arrhythmias = df["Arrhythmia"].unique()
-    print(models)
 
     metrics_formatted = {
         "acc": "Accuracy (95\% CI), \%",
@@ -853,8 +850,6 @@ def generate_metrics_table(df, percentage=True):
                     mean = xs.mean()
                     ci_lower = np.percentile(xs, 2.5)
                     ci_upper = np.percentile(xs, 97.5)
-
-                print(mean, ci_lower, ci_upper)
 
                 if best_interval == i:
                     latex += "\\textbf{" + format_ci((mean, ci_lower, ci_upper), percentage=percentage) + "} & "
@@ -1035,7 +1030,6 @@ if __name__ == "__main__":
 
     arrhythmias = list(data["ECGFounder"].keys())
     models = list(data.keys())
-    print(models)
 
     rowdata = []
     metrics = ["acc", "se", "sp", "ppv", "npv", "f1"]

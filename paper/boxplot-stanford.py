@@ -6,7 +6,6 @@ import glob
 import json
 import matplotlib.pyplot as plt
 from scipy import stats
-from statsmodels.stats.multitest import multipletests
 from typing import Tuple, Dict, Literal, Optional
 
 from aladin.utils.benchmark_utils import Data, Model, DiagnosticBenchmark, StanfordData, CINCData, ICENTIAData
@@ -385,6 +384,7 @@ def make_barcharts(df):
 def horizontal_barplot(ax, data):
     #get 7 colors of the pastel palette
     models = data['Model'].unique()
+    models = [m for m in models if m[:4] != "Card"]  # Exclude individual cardiologists
 
     colors = {
         'ECGFounder': "#E2E2EA", 
@@ -445,8 +445,6 @@ def make_horizontal_barplots(df):
     axs = axs.flatten()
 
     metriclabels = ["Correct (%)", "False alarm (%)", "Missed (%)"]
-
-    pairwise_comparisons_df = []
 
     # Plot a boxplot for each arrhythmia in its own subplot
     for i, arr in enumerate(arrhythmias):
@@ -560,6 +558,8 @@ def best_non_overlapping(intervals, lowerbetter=False):
 
 def generate_metrics_table(df, percentage=True):
 
+    models = [m for m in models if m[:4] != "Card"]  # Exclude these models from the bar plot
+
     maxcol = 12
 
     def format_ci(ci, percentage=True, only_ci=False):
@@ -574,9 +574,9 @@ def generate_metrics_table(df, percentage=True):
             else:
                 return str(np.round(ci[0], 2))
 
-    print(df)
     metrics = df["Metric"].unique()
     models = df["Model"].unique()
+    models = [m for m in models if m[:4] != "Card"]  # Exclude individual cardiologists
     arrhythmias = df["Arrhythmia"].unique()
 
     metrics_formatted = {
@@ -768,14 +768,13 @@ if __name__ == "__main__":
     
     basefolder = os.environ.get('benchmark_results')
     aladin_file = get_most_recent_file(basefolder+"/diagnosis", "set_level_diagnosis_ALADIN_STANFORD") 
-    resnet_file = get_most_recent_file(basefolder+"/diagnosis", "set_level_diagnosis_ResNet_STANFORD") 
+    resnet_file = get_most_recent_file(basefolder+"/diagnosis", "set_level_diagnosis_Hannun_STANFORD") 
     ecgfounder_file = get_most_recent_file(basefolder+"/diagnosis", "set_level_diagnosis_ECGFounder_STANFORD") 
 
     aladin_metrics, aladin_distributions = aladin_experiment.aggregate(aladin_file, bootstrap=True)
     aladin_metrics_triage, aladin_distributions_triage = aladin_experiment.aggregate(aladin_file, bootstrap=True, triage=True)
 
     resnet_metrics, resnet_distributions = aladin_experiment.aggregate(resnet_file, bootstrap=True)
-    aladin_experiment.report()
     resnet_metrics_triage, resnet_distributions_triage = aladin_experiment.aggregate(resnet_file, bootstrap=True, triage=True)
     ecgfounder_metrics, ecgfounder_distributions = aladin_experiment.aggregate(ecgfounder_file, bootstrap=True)
     ecgfounder_metrics_triage, ecgfounder_distributions_triage = aladin_experiment.aggregate(ecgfounder_file, bootstrap=True, triage=True)
@@ -793,8 +792,8 @@ if __name__ == "__main__":
 
     data["Avg. Card."] = get_average_cardiologist_metrics(triage=False)
     data_triage["Avg. Card."] = get_average_cardiologist_metrics(triage=True)
-    # for i in range(9):
-    #     data[f"Card. {i+1}"] = get_cardiologist_metrics(i)
+    for i in range(9):
+        data[f"Card. {i+1}"] = get_cardiologist_metrics(i)
         
 
     if not os.path.exists("./paper/images"):
@@ -820,10 +819,10 @@ if __name__ == "__main__":
 
     # Convert data into a long-format DataFrame
     df = pd.DataFrame(rowdata)
-    print(generate_metrics_table(df))
-    #make_boxplots(df)
-    #make_barcharts(df)
-    #make_piechart()
+    #print(generate_metrics_table(df))
+    make_boxplots(df)
+    make_barcharts(df)
+    make_piechart()
 
 
     #triage application
@@ -848,6 +847,5 @@ if __name__ == "__main__":
 
     # Convert data into a long-format DataFrame
     df = pd.DataFrame(rowdata)
-    print(generate_metrics_table(df, percentage=False))
-    #make_horizontal_barplots(df)
-    #make_boxplots_triage(df)
+    #print(generate_metrics_table(df, percentage=False))
+    make_horizontal_barplots(df)

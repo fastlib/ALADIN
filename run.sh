@@ -46,20 +46,20 @@ unzip -o /data/TrainedModels.zip -d "/code/DelineatorSwitchAndCompose/TrainedMod
 chmod 777 benchmark_delineation.sh
 ./benchmark_delineation.sh
  
-#Benchmark diagnosis on STANFORD
+#Benchmark diagnosis on iRhythm dataset
 chmod 777 benchmark_diagnosis_STANFORD.sh
 ./benchmark_diagnosis_STANFORD.sh
  
 python3.10 paper/boxplot-stanford.py
  
-#Benchmark diagnosis on CINC
-# cd /data/CINC
-# chmod 777 download.sh
-# ./download.sh
-# cd ..
-# cd ..
+#Benchmark diagnosis on AliveCor
+cd /data/CINC
+chmod 777 download.sh
+./download.sh
+cd ..
+cd ..
  
-# chmod 777 benchmark_diagnosis_CINC.sh
-# ./benchmark_diagnosis_CINC.sh
+chmod 777 benchmark_diagnosis_CINC.sh
+./benchmark_diagnosis_CINC.sh
  
-# python3.10 paper/boxplot-cinc.py
+python3.10 paper/boxplot-cinc.py
