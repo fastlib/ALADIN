@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import json
+import argparse
 
 
 
@@ -274,7 +275,14 @@ def generate_latex_table(experiment, models, metrics, waves=["P", "QRS", "T"], u
 
 
 if __name__ == '__main__':
-    experiment = "RDB"
+
+    parser = argparse.ArgumentParser(description='Run benchmark')
+    parser.add_argument('--dataset', type=str, help='Dataset used to benchmark (VAL, RDB)', required=True)
+
+    experiment = args.dataset
+    if experiment not in ["VAL", "RDB"]:
+        print("No experiment selected, choose VAL or RDB")
+
     algorithms = [
         {
             "algorithm":"martinez",
@@ -289,13 +297,13 @@ if __name__ == '__main__':
             "header":"ALADIN"
         }]
     
-    #Generate Table 1 of the manuscript
-    metrics = ["Pixel SE", "Pixel SP"]
+    #Generate supplementary tables 1-6 of the manuscript
+    #metrics = ["Pixel SE", "Pixel SP"]
     #metrics = ["Dice", "IoU"]
-    #metrics = ["BDice"]
+    metrics = ["BDice"]
     generate_latex_table(experiment, algorithms, metrics, use_abbr=True)
 
-    #Generate the macro tables as found in the Supplementary materials
+    #Generate the macro tables
     #metrics = ["SE","PP","F1","Error"]
     #generate_macro_latex_table(experiment, algorithms, metrics, use_abbr=True)
     

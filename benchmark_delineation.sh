@@ -1,9 +1,12 @@
 #arrhythmia specific benchmark
-#python benchmark_delineation.py --method ALADIN --perarrhythmia
-#python benchmark_delineation.py --method Martinez
-#python benchmark_delineation.py --method Martinez --perarrhythmia
-#python benchmark_delineation.py --method ALADIN --perarrhythmia
-python benchmark_delineation.py --method Jiminez --perarrhythmia
+python benchmark_delineation.py --method ALADIN --dataset VAL --perarrhythmia
+python benchmark_delineation.py --method Martinez --dataset VAL --perarrhythmia
+python benchmark_delineation.py --method Jiminez --dataset VAL --perarrhythmia
 
-#generate Table 1 of the manuscript
-#python paper/generate_results_tables.py
+python benchmark_delineation.py --method ALADIN --dataset RDB --perarrhythmia
+python benchmark_delineation.py --method Martinez --dataset RDB --perarrhythmia
+python benchmark_delineation.py --method Jiminez --dataset RDB --perarrhythmia
+
+#generate supplementary table 1
+python paper/generate_results_tables.py --datset VAL
+python paper/generate_results_tables.py --datset RDB

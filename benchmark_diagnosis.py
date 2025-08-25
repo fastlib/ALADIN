@@ -52,14 +52,10 @@ class ECGFounderModel(ECGFounderPredictor):
         new_state_dict = {}
         if 'network_weights' in checkpoint:
             for k, value in checkpoint['network_weights'].items():
-                #if k == "model.dense.weight" or k == "model.dense.bias":
-                #    continue
                 new_state_dict[k] = value
 
         elif 'state_dict' in checkpoint:
             for k, value in checkpoint['state_dict'].items():
-                #if k == "model.dense.weight" or k == "model.dense.bias":
-                #    continue
                 new_state_dict["model."+k] = value
 
         if self.network.custom_head:
@@ -173,14 +169,6 @@ class ECGFounderModel(ECGFounderPredictor):
 
         for i in range(len(predictions)):
 
-            # if predictions[i] == 5 or predictions[i] == 32:
-            #     diagnoses.append({"type":"AFIB/AFL", "onset": 0, "offset": 1})
-            # elif predictions[i] == 1 or predictions[i] == 2 or predictions[i] == 3:
-            #     diagnoses.append({"type":"NSR", "onset": 0, "offset": 1})
-            # elif predictions[i] == 39:
-            #     diagnoses.append({"type":"NOISE", "onset": 0, "offset": 1})
-            # elif predictions[i]>1:
-            #     diagnoses.append({"type":"OTHER", "onset": 0, "offset": 1})
             if custom_head:
                 diagnoses.append({"type":self.trainer.labels[predictions[i]], "onset": 0, "offset": 1})
             else:
@@ -193,33 +181,13 @@ class ECGFounderModel(ECGFounderPredictor):
                 # elif predictions[i] == 39:
                 #     diagnoses.append({"type":"NOISE", "onset": 0, "offset": 1})
 
-        # if not custom_head and len(diagnoses) == 0:
-        #     diagnoses.append({"type":"OTHER", "onset": 0, "offset": 1})
-        print(diagnoses)
+        if not custom_head and len(diagnoses) == 0:
+            diagnoses.append({"type":"OTHER", "onset": 0, "offset": 1})
 
         return diagnoses
 
     def predict_on_array(self, sig, fs, output_to_label):
 
-        # Remove power-line interference
-        # fs = 300
-        # b, a = iirnotch(50, 30, fs)
-        # filtered_signal = np.zeros_like(sig)
-        # filtered_signal = filtfilt(b, a, sig)
-
-        # # Simple bandpass filter
-        # b, a = butter(N=4, Wn=[0.67, 40], btype='bandpass', fs=fs)
-        # filtered_signal = filtfilt(b, a, filtered_signal)
-
-        # # # Remove baseline wander
-        # baseline = np.zeros_like(filtered_signal)
-        # kernel_size = int(0.4 * fs) + 1
-        # if kernel_size % 2 == 0:
-        #     kernel_size += 1  # Ensure kernel size is odd
-        # baseline = medfilt(filtered_signal, kernel_size=kernel_size)
-        # filter_ecg = filtered_signal - baseline
-
-        #filter_ecg = resize_signal(filter_ecg, int(filter_ecg.shape[-1]*(500/fs)))
         sig = resize_signal(sig, int(sig.shape[-1]*(500/fs)))
         fs = 500
 
@@ -245,9 +213,6 @@ class ECGFounderModel(ECGFounderPredictor):
         baseline = medfilt(ecg, kernel_size=kernel_size)
         ecg = ecg - baseline
 
-        # ecg = ecg - np.mean(ecg)
-        # ecg = (ecg) / (np.std(ecg))
-
         size = 1000
         ecg = ecg[:int(len(ecg)/size)*size]
         diagnoses = []
@@ -261,7 +226,6 @@ class ECGFounderModel(ECGFounderPredictor):
             while st < inp.shape[-1]:
                 en = min(st + 5000, inp.shape[-1])
                 signal = inp[:,:,st:en]
-                #pad to 5000 samples with zero
                 if signal.shape[-1] < 5000:
                     padding = torch.zeros((1, 1, 5000 - signal.shape[-1]), device=self.device)
                     signal = torch.cat([signal, padding], dim=-1)
@@ -457,7 +421,6 @@ class ALADINModel(Model):
     def calculate_batchsizes(self, data):
         ram = psutil.virtual_memory().available
         vram = torch.cuda.get_device_properties(0).total_memory
-        #vram = (1024*1024*1024) * 1
 
         length = data[0]["signal"].shape[-1]
         ram_per_record = 6*length*4*5 #6 channels, 4 bytes per float, 5 for preprocessing and storing
@@ -503,8 +466,6 @@ class ALADINModel(Model):
             records.append(Record(record["signal"], record["fs"], "bench", record["record"]))
             ids.append(record["record"])
 
-        # collection = RecordCollection(records)
-        # collection.preprocess()
         print("Preprocessing on CPU done: ", batch_index, flush=True)
 
         return records
@@ -519,8 +480,6 @@ class ALADINModel(Model):
         print("Reflection on CPU done: ", batch_index, flush=True)
         print("Diagnosing records on CPU: ", batch_index, flush=True)
         for record in tqdm(recs):
-            #reflection = Reflection(debug = False)
-            #reflection.reflect(record)
             logic = LogicEngine(debug=False)
             logic.diagnose(record)
 
@@ -566,78 +525,8 @@ class ALADINModel(Model):
             data.set_as_finished([record.recordname for record in processed_batch])
             print("Batch ", idx, " processed in ", time.time() - st, " seconds", flush=True)
 
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        #     future_to_batch = {}
-        #     prev_processed_batch = None
-
-        #     # CPU thread preps next batch, GPU processes current batch
-        #     for idx, batch in enumerate(data.batch(self.cpu_batchsize)):
-        #         print(len(batch), "records in batch ", idx)
-
-        #         batch = self.preprocess_batch_on_cpu(batch, idx)
-        #         # If there's a previously processed batch, start processing reflection/diagnosis on CPU
-        #         if prev_processed_batch:
-        #             # Handle reflection and diagnosis for the previous batch (CPU)
-        #             future = executor.submit(self.process_reflection_and_diagnosis_on_cpu, prev_processed_batch, idx-1)
-        #             future_to_batch[future] = prev_processed_batch
-        #             #future_to_batch[executor.submit(self.process_reflection_and_diagnosis_on_cpu, prev_processed_batch)] = prev_processed_batch
-                
-        #         # Start the GPU segmentation for the current batch
-        #         prev_processed_batch = self.analyze_batch(batch, idx)  # GPU handles segmentation
-
-        #         # if idx == num_batches-1:  # Check if this is the last batch
-        #         #     #print(f"Last batch: Processing reflection and diagnosis for batch {prev_processed_batch}")
-        #         #     future = executor.submit(self.process_reflection_and_diagnosis_on_cpu, prev_processed_batch, idx)
-        #         #     future_to_batch[future] = prev_processed_batch
-
-        #         # Wait for any CPU tasks (reflection/diagnosis) to finish and process the results
-        #         done, not_done = concurrent.futures.wait(future_to_batch.keys(), timeout=None, return_when=concurrent.futures.ALL_COMPLETED)
-
-        #         for future in done:
-        #             processed_records = future.result()
-                    
-        #             # Process results on CPU
-        #             for i, record in enumerate(processed_records):
-        #                 #print("Record: ", record.recordname)
-        #                 diagnoses, raw_diagnoses = self.process_diagnoses(record)
-        #                 out.append({"record": record.recordname, "diagnoses": diagnoses, "raw": raw_diagnoses})
-        #                 data.upload_record(record)
-
-        #             data.set_as_finished([record.recordname for record in processed_records])
-
-        #             # Remove completed futures
-        #             future_to_batch.pop(future)
-
         return out
 
-
-        # out = []
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        #     future_to_batch = {}
-
-        #     for batch in tqdm(data.batch(self.cpu_batchsize)):
-        #         print(len(batch), "records in batch")
-
-        #         # Start processing the next batch while the current batch is being processed
-        #         future = executor.submit(self.analyze_batch, batch)
-        #         future_to_batch[future] = batch
-
-        #         # Check if any tasks are finished and process them
-        #         done, not_done = concurrent.futures.wait(future_to_batch.keys(), timeout=0.1, return_when=concurrent.futures.FIRST_COMPLETED)
-
-        #         for future in done:
-        #             processed_records = future.result()
-
-        #             # Process results on CPU
-        #             for i, record in enumerate(processed_records):
-        #                 #print("Record: ", record.recordname)
-        #                 diagnoses = self.process_diagnoses(record)
-        #                 out.append({"record": list(data.keys())[i], "diagnoses": diagnoses, "raw": record.diagnosis + record.subdiagnosis})
-
-        #             # Remove completed futures
-        #             future_to_batch.pop(future)
-
-        # return out
 
 class ALADINModelForCinc(ALADINModel):
     def __init__(self, modelpaths=[]):
@@ -654,10 +543,10 @@ class ALADINModelForCinc(ALADINModel):
         totallength = len(record.ecg)
         diagnoses = []
 
-        # mapper = {
-        #     "EAR": "NSR",
-        #     "JUNCTIONAL": "NSR",
-        # }
+        mapper = {
+            "EAR": "NSR",
+            "JUNCTIONAL": "NSR",
+        }
        
         for d in record.diagnoses:
             type = mapper[d["type"]] if d["type"] in mapper else d["type"]
@@ -740,7 +629,6 @@ class ALADINModelForCinc(ALADINModel):
         hasbradycardia = "BRADYCARDIA" in subdiagnoses
         onlynsr = np.all([d["type"] == "NSR" or d["type"] == "NOISE" for d in diagnoses])
         abnormality = haspac or haspvc or hasivb or hastachycardia or hasbradycardia
-        #return diagnoses + subdiagnoses
         
         if mostnoise:
             diagnose = "~"
@@ -804,40 +692,6 @@ class ALADINModelForICENTIA(ALADINModel):
 
         return filtered_diagnoses, raw_diagnoses
 
-        # diagnoses = []
-        # rawdiagnoses = []
-        # for j in range(len(record.diagnosis)):
-        #     append = True
-        #     if record.diagnosis[j].name == "AFIB":
-        #         if record.diagnosis[j].offset - record.diagnosis[j].onset < 25*record.fs:
-        #             append = False
-                
-        #     if record.diagnosis[j].name == "NOISE":
-        #         if record.diagnosis[j].offset - record.diagnosis[j].onset < 25*record.fs:
-        #             append = False
-            
-        #     if record.diagnosis[j].name == "SVT":
-        #         if record.diagnosis[j].offset - record.diagnosis[j].onset < 25*record.fs:
-        #             append = False
-
-        #     if append:
-        #         diagnoses.append({"type":record.diagnosis[j].name, "onset": record.diagnosis[j].onset, "offset": record.diagnosis[j].offset})
-
-        #     rawdiagnoses.append({"type":record.diagnosis[j].name, "onset": record.diagnosis[j].onset, "offset": record.diagnosis[j].offset})
-
-        # for j in range(len(record.subdiagnosis)):
-        #     rawdiagnoses.append({"type":record.subdiagnosis[j].name, "onset": record.subdiagnosis[j].onset, "offset": record.subdiagnosis[j].offset})
-
-        # onlynsr = np.all([d["type"] == "NSR" or d["type"] == "AVB_TYPE1" or d["type"] == "NOISE" for d in diagnoses])
-        # print("Only NSR: ", onlynsr)
-        # if not onlynsr:
-        #     diagnoses = [d for d in diagnoses if d["type"] != "NSR" and d["type"] != "AVB_TYPE1" and d["type"] != "NOISE"]
-        #     rawdiagnoses = [d for d in rawdiagnoses if d["type"] != "NSR" and d["type"] != "AVB_TYPE1" and d["type"] != "NOISE"]
-        #     print(diagnoses)
-
-
-        # return diagnoses, rawdiagnoses
-
     def predict(self, sig, fs, meta=None, preprocess=False): 
         
         mem_bytes = get_memory_usage_bytes()
@@ -885,10 +739,6 @@ class ALADINModelForICENTIA(ALADINModel):
             data.set_as_finished([record.recordname for record in processed_batch])
             print("Batch ", idx, " processed in ", time.time() - st, " seconds", flush=True)
 
-            if idx>10:
-                print("Stopping after 10 batches for testing purposes")
-                break
-
         return out
 
     def process_reflection_and_diagnosis_on_cpu(self, recs, batch_index):
@@ -925,11 +775,9 @@ class ECGFounderWrapper(Model):
             91: "BIGEMINY",
             93: "SVT",
             98: "VT",
-            #118: "WENCKEBACH",
             121: "SUDDEN_BRADY",
             126: "JUNCTIONAL",
             133: "IVR",
-            #134: "AVB_TYPE2",
             145: "SVT",
             146: "WENCKEBACH",
             147: "AVB_TYPE2",
@@ -948,45 +796,29 @@ class ECGFounderWrapperForCinc(Model):
         self.name = "ECGFounder"
         self.save_output = True
         self.savelogits = True
-        self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/ECGFounderNet_checkpoint_best.pth']
-        #self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/1_lead_ECGFounder.pth']
+        self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/1_lead_ECGFounder.pth']
         self.model = ECGFounderModel(self.modelpaths[0])
         self.output_to_label = {
             0: "O", #ABNORMAL ECG
             6: "O",  # SINUS TACHYCARDIA
             9: "O",  # PREMATURE VENTRICULAR COMPLEXES
-            # #11: "O", # RIGHT BUNDLE BRANCH BLOCK
             16: "O", # PREMATURE ATRIAL COMPLEXES
             19: "O", # PREMATURE SUPRAVENTRICULAR COMPLEXES
-            # #20: "O", # LEFT BUNDLE BRANCH BLOCK
-            # #32: "O", # ATRIAL FLUTTER
             33: "O", # MARKED SINUS BRADYCARDIA
-            #38: "O", # ECTOPIC ATRIAL RHYTHM
-            #49: "O", # JUNCTIONAL RHYTHM
-            #51: "O", # ABERRANT CONDUCTION
-            #58: "O", # WIDE QRS RHYTHM
-            #59: "O", # WITH PREMATURE VENTRICULAR OR ABERRANTLY CONDUCTED COMPLEXES
-            #65: "O", # BIFASCICULAR BLOCK
-            #69: "O", # PREMATURE ECTOPIC COMPLEXES
             79: "O", # WITH 1ST DEGREE AV BLOCK
             81: "O", # WITH PROLONGED AV CONDUCTION
-            #83: "O", # WITH QRS WIDENING AND REPOLARIZATION ABNORMALITY
-            #90: "O", # PREMATURE VENTRICULAR AND FUSION COMPLEXES
             91: "O", # IN A PATTERN OF BIGEMINY
             93: "O", # SUPRAVENTRICULAR TACHYCARDIA
             98: "O", # VENTRICULAR TACHYCARDIA
             112: "O", # NONSPECIFIC INTRAVENTRICULAR BLOCK
             121: "O", # WITH COMPLETE HEART BLOCK
-            #126: "O", # JUNCTIONAL BRADYCARDIA
             133: "O", # IDIOVENTRICULAR RHYTHM
             145: "O", # SUPRAVENTRICULAR COMPLEXES
             146: "O", # WITH 2ND DEGREE AV BLOCK MOBITZ I
             147: "O", # WITH 2:1 AV CONDUCTION
             148: "O", # WITH AV DISSOCIATION
-            #149: "O", # MULTIFOCAL ATRIAL TACHYCARDIA
             1: "N",  # SINUS RHYTHM
             5: "A",  # ATRIAL FIBRILLATION
-            #39: "~"
         }
         
     def predict(self, sig, fs, meta=None, preprocess=False):
@@ -1110,48 +942,6 @@ class HannunWrapperForCinc(Model):
 
         return [{"type":diagnose}], {}
         
-        # mapper = {
-        #     "EAR": "NSR",
-        #     "JUNCTIONAL": "NSR",
-        # }
-
-        # #print("Record diagnoses: ", recorddiagnoses)
-       
-        # for d in recorddiagnoses:
-        #     type = mapper[d["type"]] if d["type"] in mapper else d["type"]
-        #     duration = (d["offset"]-d["onset"])
-        #     diagnoses.append({"type":type, "duration":duration / totallength})
-
-        # #print("Diagnoses: ", diagnoses)
-
-        # #sort diagnoses by duration
-        # diagnoses = sorted(diagnoses, key=lambda x: x["duration"], reverse=True)
-        # per_type = {}
-        # for d in diagnoses:
-        #     if d["type"] in per_type:
-        #         per_type[d["type"]] += d["duration"]
-        #     else:
-        #         per_type[d["type"]] = d["duration"]
-
-        # diagnoses = [{"type":k, "duration":v} for k,v in per_type.items()]
-        # diagnoses = sorted(diagnoses, key=lambda x: x["duration"], reverse=True)
-
-        
-        # if len(diagnoses) == 0:
-        #     diagnose = "N"
-        # elif diagnoses[0]["type"] == "NOISE" and diagnoses[0]["duration"] > 0.5:
-        #     diagnose = "~"
-        # elif diagnoses[0]["type"] == "AFIB/AFL":
-        #     diagnose = "A"
-        # elif np.all([d["type"] == "NSR" or d["type"] == "NOISE" for d in diagnoses]):
-        #     diagnose = "N"
-        # else:
-        #     diagnose = "O"
-
-        # res = [{"type":diagnose}]
-
-        # return res
-        
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Run benchmark')
@@ -1210,31 +1000,18 @@ if __name__ == "__main__":
 
     elif dataset == "ICENTIA":
         data = ICENTIAData("ICENTIA", asynchronous=True)
-
         atexit.register(data.cleanup)
 
         if method == "ALADIN":
             model = ALADINModelForICENTIA(modelpaths=modelpaths)
-        # elif method == "ECGFounder":
-        #     model = ECGFounderModel(modelpaths=modelpaths)
-        # elif method == "Hannun":
-        #     model = HannunModel(modelpaths=modelpaths)
-
-        # if method == 'ALADIN':
-        #     model = ALADINModelForCinc(modelpaths=modelpaths)
-        # elif method == "ECGFounder":
-        #     model = ECGFounderModelForCinc(modelpaths=modelpaths)
-        # elif method == "Hannun":
-        #     model = HannunModelForCinc(modelpaths=modelpaths)
 
     elif dataset == "ICENTIA-SAMPLE":
-        #check gabor data
+        
         data = ICENTIASAMPLEData("ICENTIA", 
-            sample="/home/lukas/UU/ASRA/ALADINv2/traces_matt_v2/mapping.json", 
-            annfile="/home/lukas/UU/ASRA/ALADINv2/paper/consensus.ods",
-            allfile="/home/lukas/UU/ASRA/ALADINv2/data/ICENTIA/samples_xxl.json",
+            sample=datafolder+"/ICENTIA-sample/mapping.json", 
+            annfile=datafolder+"/ICENTIA-sample/consensus.ods",
+            allfile=datafolder+"/ICENTIA-sample/samples_xxl.json",
             asynchronous=True)
-        #data = ICENTIASAMPLEData("ICENTIA", sample="/home/lukas/UU/ASRA/ALADINv2/traces_matt_v2/mapping.json", annfile="/home/lukas/UU/ASRA/ALADINv2/traces_matt_v2/ECG_annotation_lukas.xlsx",asynchronous=True)
 
         if method == "ALADIN":
             model = ALADINModelForICENTIA(modelpaths=modelpaths)
@@ -1246,31 +1023,3 @@ if __name__ == "__main__":
     exp = DiagnosticBenchmark(data, model)
     exp.run_batch(overwrite=overwrite)
     #exp.run(overwrite=overwrite)
-
-    #experiment1 = PerClassBenchmark(stanford, nnunet, trim=1)
-    #experiment1.run()
-    # nnunetstanford = nnUNetModel(folder="Stanford_9")
-    # experiment1 = Benchmark(stanford, nnunetstanford, trim=1)
-    # experiment1.run()
-    # nnunetludb = nnUNetModel(folder="ludb")
-    # experiment2 = PerArrhythmiaBenchmark(ludb, nnunetludb, trim=2)
-    # experiment2.run()
-
-    #Macro benchmarks
-    # experiment4 = Benchmark(ludb, cwt, trim=2)
-    # experiment4.run()
-    # experiment5 = Benchmark(validationset, cwt, trim=1)
-    # experiment5.run()
-    # experiment6 = Benchmark(stanford, cwt, trim=1)
-    # experiment6.run()
-
-    # nnunetludb = nnUNetModel(folder="ludb_2")
-    # nnunetval = nnUNetModel(folder="val_2")
-    # nnunetstanford = nnUNetModel(folder="stanford_2")
-
-    # experiment2 = Benchmark(stanford, nnunetstanford, trim=1)
-    # experiment2.run()
-    # experiment2 = Benchmark(ludb, nnunetludb, trim=2)
-    # experiment2.run()
-    # experiment2 = Benchmark(validationset, nnunetval, trim=1)
-    # experiment2.run()

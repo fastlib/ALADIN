@@ -286,12 +286,14 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Run benchmark')
     parser.add_argument('--method', type=str, help='ALADIN, Martinez or Jiminez', required=True)
+    parser.add_argument('--dataset', type=str, help='Dataset used to benchmark (VAL, RDB)', required=True)
     parser.add_argument('--perarrhythmia', action='store_true', help='Run per arrhythmia benchmark')
     #modelpaths is a list of strings
     parser.add_argument('--modelpaths', nargs='+', help='Paths to the models used in the benchmark', required=False, default=["Dataset201_all_101/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"])
 
     args = parser.parse_args()
     method = args.method
+    dataset = args.dataset
     models = args.modelpaths
     perarrhythmia = args.perarrhythmia
 
@@ -313,10 +315,13 @@ if __name__ == "__main__":
         model = DelineatorSwitchAndCompose()
         model.load_checkpoint('')
 
-    data = Data("VAL", "")
-    #data = Data("RDB", "")
-    #data = Data("STANFORD", "")
-    #data = Data("LUDB", "")
+    if dataset == "VAL":
+        data = Data("VAL", "")
+    elif dataset == "RDB":
+        data = Data("RDB", "")
+    else:
+        print("ERROR: Please select a valid dataset (VAL, RDB)")
+        exit(1)
 
     if not os.path.exists(resultsfolder+"/delineation"):
         os.makedirs(resultsfolder+"/delineation")
