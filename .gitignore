@@ -28,7 +28,6 @@ benchmark/weights/*.pth
 !data/
 !data/arrhythmia_classes.csv
 !data/results_all_F1_scores_for_each_classification_type.csv
-!data/aladin-466917-e056430d6165.json
 !data/demo/
 !data/demo/**
 
@@ -45,9 +44,6 @@ benchmark/weights/*.pth
 !data/CINC/download.sh
 !data/CINC/RECORDS
 !data/CINC/REFERENCE-v3.csv
-
-!data/ICENTIA-test/
-!data/ICENTIA-test/random_patients.txt
 
 # nnUNet
 !nnUNet/
