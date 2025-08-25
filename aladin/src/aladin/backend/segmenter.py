@@ -13,6 +13,7 @@ from scipy.signal import butter, lfilter, filtfilt
 from aladin.utils.morphological import closingcentered, openingcentered
 import scipy.signal as sps
 import subprocess
+import subprocess
 
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
@@ -108,7 +109,6 @@ class UNetSegmenter(SegmenterBase):
                 self.device = torch.device('cpu')
         else:
             self.device = torch.device('cpu')
-
 
         self.sliding_models = []
         self.fullcontext_models = []

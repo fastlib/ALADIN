@@ -14,6 +14,7 @@ cd ..
  
 unzip -o /data/ALADIN-weights.zip -d "/data/models"
 unzip -o /data/STANFORD.zip -d "/data"
+unzip -o /data/RDB.zip -d "/data"
 mkdir /data/VALIDATION
 unzip -o /data/VALIDATION.zip -d "/data/VALIDATION"
  

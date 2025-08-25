@@ -242,7 +242,6 @@ class ECGFounderModel(ECGFounderPredictor):
 
             logits = np.concatenate(logits, axis=0)
             unique_predictions = list(set(unique_predictions))
-            print(unique_predictions)
             return self.get_diagnoses_from_array(unique_predictions, output_to_label=output_to_label, custom_head=self.network.custom_head), logits
 
 class HannunModel(Predictor):
@@ -883,7 +882,6 @@ class HannunWrapper(Model):
     def predict(self, sig, fs, meta=None, preprocess=False):
         preds, logits = self.model.predict_on_array(sig, fs)
         logits = logits[:,[k for k in list(self.output_to_label.keys())]]
-        print(logits)
 
         return {"predictions": preds, "logits": logits}, {}
 
@@ -1005,7 +1003,7 @@ if __name__ == "__main__":
             model = ALADINModelForICENTIA(modelpaths=modelpaths)
 
     elif dataset == "ICENTIA-SAMPLE":
-        
+
         data = ICENTIASAMPLEData("ICENTIA", 
             sample=datafolder+"/ICENTIA-sample/mapping.json", 
             annfile=datafolder+"/ICENTIA-sample/consensus.ods",
