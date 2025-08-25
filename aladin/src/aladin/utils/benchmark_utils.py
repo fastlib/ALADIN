@@ -1383,7 +1383,7 @@ class Data:
         dat = pickle.load(open('/data/ludb.pkl', 'rb'))
         arrhythmia = pd.read_csv(os.path.join(self.folder, "ludb.csv"))
 
-        print('Data db: ', np.unique([d['db'] for d in dat]))
+        #print('Data db: ', np.unique([d['db'] for d in dat]))
 
         objs = {}
         labels = []
@@ -1746,7 +1746,7 @@ class Data:
     def get_validationset(self):
         basefolder = os.environ.get('benchmark_data')
         dat = pickle.load(open(basefolder+'/VALIDATION/val_matched.pkl', 'rb'))
-        print('Data db: ', np.unique([d['db'] for d in dat]))
+        #print('Data db: ', np.unique([d['db'] for d in dat]))
 
         objs = {}
         labels = []
@@ -1810,7 +1810,7 @@ class Data:
     def get_validationset_per_sex(self, sex):
         basefolder = os.environ.get('benchmark_data')
         dat = pickle.load(open(basefolder+'/VALIDATION/val_matched.pkl', 'rb'))
-        print('Data db: ', np.unique([d['db'] for d in dat]))
+        #print('Data db: ', np.unique([d['db'] for d in dat]))
 
         print(dat[0].keys())
         objs = {}
@@ -3779,8 +3779,8 @@ class PerArrhythmiaBenchmark(PerClassBenchmark):
         for i, rec in enumerate(self.arrhythmias):
             if not self.arrhythmias[rec]["matched"]:
                 notmatched += 1
-                print("start:|",data[rec]['diagnosis'], "|end")
-        print("Not matched: ", notmatched)
+                #print("start:|",data[rec]['diagnosis'], "|end")
+        #print("Not matched: ", notmatched)
 
     def get_performance(self, obj, binary, true, true_binary, fs, key, isbinary=False, record=""):
         if isbinary:
@@ -3995,12 +3995,6 @@ class DiagnosticBenchmark(BaseBenchmark):
 
                     if model.save_output:
                         self.append_to_json(filename, model.name, [self.set_predictions[model.name][-1]], rest)
-                
-                #if i > 10:
-                #    break
-
-        self.aggregate()
-        self.report()
 
         if np.any([m.savelogits for m in self.models]):
             self.find_and_apply_optimal_threshold()
@@ -4040,14 +4034,9 @@ class DiagnosticBenchmark(BaseBenchmark):
                     self.get_performance(obj, model, pred["diagnoses"], true_episodes, fs, record=pred["record"])
                     del pred["diagnoses"]
                     del pred["record"]
-                    
-                #print(preds)
 
                 if model.save_output:
                     self.append_to_json(filename, model.name, self.set_predictions[model.name], preds)
-
-        self.aggregate()
-        self.report()
 
         if np.any([m.savelogits for m in self.models]):
             self.find_and_apply_optimal_threshold()
@@ -4068,6 +4057,8 @@ class DiagnosticBenchmark(BaseBenchmark):
                 set_level_logits = [[float(x) for x in logits] for logits in set_level_logits]
                 set_level_predictions = [d["type"] for d in predictions["predictions"]] 
             else:
+                if "logits" in predictions:
+                    predictions = predictions["predictions"]
                 set_level_logits = []
                 set_level_predictions = [d["type"] for d in predictions]
 
@@ -4203,10 +4194,6 @@ class DiagnosticBenchmark(BaseBenchmark):
                     if len(predicted_arrhythmias) > 0:
                         predicted_arrhythmias = [focused_arrhythmia]
 
-                    # if focused_arrhythmia == "VT>10s":
-                    #     print("pred:", modelresults[i]["record"], accepted_arrhythmia, predicted_arrhythmias)
-
-
                     for d in predicted_arrhythmias:
                         if d in class_mapper:
                             one_hot[arrhythmias.index(class_mapper[d])] = 1
@@ -4241,9 +4228,6 @@ class DiagnosticBenchmark(BaseBenchmark):
 
                     if len(true_arrhythmias) > 0:
                         true_arrhythmias = [focused_arrhythmia]
-
-                    # if focused_arrhythmia == "VT>10s":
-                    #     print("true", modelresults[i]["record"], accepted_arrhythmia, true_arrhythmias)
 
                     for d in true_arrhythmias:
                         if d in class_mapper:
@@ -4503,7 +4487,6 @@ class DiagnosticBenchmark(BaseBenchmark):
             best_thresh = 0.5
             logits = np.array([np.array(self.set_predictions[model.name][i]["logits"])[:,taski].max() for i in range(len(self.set_predictions[model.name]))])
             gt = [self.set_predictions[model.name][i]["true"] for i in range(len(self.set_predictions[model.name]))]
-            print(self.data.class_mapper[model.output_to_label[tasks[taski]]])
             gt_binary = [int(self.data.class_mapper[model.output_to_label[tasks[taski]]] in gti) for gti in gt]
             #use task_label to make two binary arrays
             
@@ -4523,7 +4506,10 @@ class DiagnosticBenchmark(BaseBenchmark):
             for i in range(len(self.set_predictions[model.name])):
                 if pred_labels[i]:
                     #print(self.set_predictions[model.name][i]["predicted"], task_label[task])
-                    self.set_predictions[model.name][i]["predicted"] = self.data.class_mapper[model.output_to_label[tasks[taski]]]
+                    if self.data.get_name() == "CINC":
+                        self.set_predictions[model.name][i]["predicted"] = [self.data.class_mapper[model.output_to_label[tasks[taski]]]]
+                    else:
+                        self.set_predictions[model.name][i]["predicted"].append(self.data.class_mapper[model.output_to_label[tasks[taski]]])
 
         for i in range(len(self.set_predictions[model.name])):
             self.set_predictions[model.name][i]["predicted"] = list(set(self.set_predictions[model.name][i]["predicted"]))
@@ -4623,9 +4609,10 @@ class DiagnosticBenchmark(BaseBenchmark):
             row = [arrhythmia]
             for metric in metrics:
                 if metric in ["tp", "fp", "fn"]:
-                    self.set_metrics[arrhythmia][metric][0] *= 1000 / patients_per_arrhythmia[arrhythmia]
-                    self.set_metrics[arrhythmia][metric][1] *= 1000 / patients_per_arrhythmia[arrhythmia]
-                    self.set_metrics[arrhythmia][metric][2] *= 1000 / patients_per_arrhythmia[arrhythmia]
+                    if self.data.get_name() == "ICENTIA-SAMPLE":
+                        self.set_metrics[arrhythmia][metric][0] *= 1000 / patients_per_arrhythmia[arrhythmia]
+                        self.set_metrics[arrhythmia][metric][1] *= 1000 / patients_per_arrhythmia[arrhythmia]
+                        self.set_metrics[arrhythmia][metric][2] *= 1000 / patients_per_arrhythmia[arrhythmia]
                     averages[metric] += self.set_metrics[arrhythmia][metric][0] 
                     row.append(format_ci(self.set_metrics[arrhythmia][metric], percentage=False))
                 else:

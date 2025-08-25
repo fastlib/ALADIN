@@ -242,7 +242,6 @@ class ECGFounderModel(ECGFounderPredictor):
 
             logits = np.concatenate(logits, axis=0)
             unique_predictions = list(set(unique_predictions))
-            print(unique_predictions)
             return self.get_diagnoses_from_array(unique_predictions, output_to_label=output_to_label, custom_head=self.network.custom_head), logits
 
 class HannunModel(Predictor):
@@ -518,8 +517,7 @@ class ALADINModel(Model):
             for i, record in enumerate(processed_batch):
                 #print("Record: ", record.recordname)
                 diagnoses, raw_diagnoses = self.process_diagnoses(record)
-                print(record.recordname, diagnoses)
-                out.append({"record": record.recordname, "diagnoses": diagnoses, "raw": raw_diagnoses, "arrhythmia": batch[i]["arrhythmia"]})
+                out.append({"record": record.recordname, "diagnoses": diagnoses, "raw": raw_diagnoses})
                 data.upload_record(record)
 
             data.set_as_finished([record.recordname for record in processed_batch])
@@ -762,7 +760,7 @@ class ECGFounderWrapper(Model):
         self.name = "ECGFounder"
         self.save_output = True
         self.savelogits = True
-        self.modelpaths = modelpaths if len(modelpaths) > 0 else ["./benchmark/weights/ECGFounderNet_checkpoint_best.pth"]
+        self.modelpaths = modelpaths if len(modelpaths) > 0 else ["./benchmark/weights/1_lead_ECGFounder.pth"]
         self.model = ECGFounderModel(self.modelpaths[0])
         self.output_to_label = {
             3: "NSR",
@@ -884,7 +882,6 @@ class HannunWrapper(Model):
     def predict(self, sig, fs, meta=None, preprocess=False):
         preds, logits = self.model.predict_on_array(sig, fs)
         logits = logits[:,[k for k in list(self.output_to_label.keys())]]
-        print(logits)
 
         return {"predictions": preds, "logits": logits}, {}
 
@@ -1006,7 +1003,7 @@ if __name__ == "__main__":
             model = ALADINModelForICENTIA(modelpaths=modelpaths)
 
     elif dataset == "ICENTIA-SAMPLE":
-        
+
         data = ICENTIASAMPLEData("ICENTIA", 
             sample=datafolder+"/ICENTIA-sample/mapping.json", 
             annfile=datafolder+"/ICENTIA-sample/consensus.ods",
@@ -1021,5 +1018,8 @@ if __name__ == "__main__":
         os.makedirs(resultsfolder+"/diagnosis")
 
     exp = DiagnosticBenchmark(data, model)
-    exp.run_batch(overwrite=overwrite)
-    #exp.run(overwrite=overwrite)
+
+    if method == "ALADIN":
+        exp.run_batch(overwrite=overwrite)
+    else:
+        exp.run(overwrite=overwrite)

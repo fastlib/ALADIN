@@ -8,5 +8,5 @@ python benchmark_delineation.py --method Martinez --dataset RDB --perarrhythmia
 python benchmark_delineation.py --method Jiminez --dataset RDB --perarrhythmia
 
 #generate supplementary table 1
-python paper/generate_results_tables.py --datset VAL
-python paper/generate_results_tables.py --datset RDB
+python paper/generate_results_tables.py --dataset VAL
+python paper/generate_results_tables.py --dataset RDB
