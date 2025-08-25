@@ -329,9 +329,11 @@ if __name__ == "__main__":
     if perarrhythmia:
         #Per arrhythmia benchmarks
         experiment = PerArrhythmiaBenchmark(data, model, trim=1)
-        experiment.run()
     else:
         #Overall benchmark
         experiment = DelineationBenchmark(data, model, trim=1)
-        #experiment.run()
+
+    if method != "ALADIN":
+        experiment.run()
+    else:
         experiment.run_batch()

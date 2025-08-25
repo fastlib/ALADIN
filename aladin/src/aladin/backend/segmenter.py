@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import butter, lfilter, filtfilt
 from aladin.utils.morphological import closingcentered, openingcentered
 import scipy.signal as sps
+import subprocess
 
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
@@ -94,8 +95,20 @@ class UNetSegmenter(SegmenterBase):
         self.cache = cache
         self.num_workers = multiprocessing.cpu_count()
 
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        #self.device = torch.device('cpu')
+        # Check if CUDA is available
+        if torch.cuda.is_available():
+            # Get the current device (GPU)
+            self.device = torch.device('cuda:0')
+            # Get the total memory available in bytes
+            result = subprocess.run(['nvidia-smi', '--query-gpu=memory.total,memory.free,memory.used', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            # Extract memory information
+            _, ram_available, _ = map(int, result.stdout.split(","))
+            if ram_available < 1024:
+                print("Warning: Available GPU memory is less than 1GB. We switch to CPU device instead.")
+                self.device = torch.device('cpu')
+        else:
+            self.device = torch.device('cpu')
+
 
         self.sliding_models = []
         self.fullcontext_models = []

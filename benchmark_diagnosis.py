@@ -518,8 +518,7 @@ class ALADINModel(Model):
             for i, record in enumerate(processed_batch):
                 #print("Record: ", record.recordname)
                 diagnoses, raw_diagnoses = self.process_diagnoses(record)
-                print(record.recordname, diagnoses)
-                out.append({"record": record.recordname, "diagnoses": diagnoses, "raw": raw_diagnoses, "arrhythmia": batch[i]["arrhythmia"]})
+                out.append({"record": record.recordname, "diagnoses": diagnoses, "raw": raw_diagnoses})
                 data.upload_record(record)
 
             data.set_as_finished([record.recordname for record in processed_batch])
@@ -762,7 +761,7 @@ class ECGFounderWrapper(Model):
         self.name = "ECGFounder"
         self.save_output = True
         self.savelogits = True
-        self.modelpaths = modelpaths if len(modelpaths) > 0 else ["./benchmark/weights/ECGFounderNet_checkpoint_best.pth"]
+        self.modelpaths = modelpaths if len(modelpaths) > 0 else ["./benchmark/weights/1_lead_ECGFounder.pth"]
         self.model = ECGFounderModel(self.modelpaths[0])
         self.output_to_label = {
             3: "NSR",
@@ -1021,5 +1020,8 @@ if __name__ == "__main__":
         os.makedirs(resultsfolder+"/diagnosis")
 
     exp = DiagnosticBenchmark(data, model)
-    exp.run_batch(overwrite=overwrite)
-    #exp.run(overwrite=overwrite)
+
+    if method == "ALADIN":
+        exp.run_batch(overwrite=overwrite)
+    else:
+        exp.run(overwrite=overwrite)

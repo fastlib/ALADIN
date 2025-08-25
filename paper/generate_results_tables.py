@@ -278,6 +278,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Run benchmark')
     parser.add_argument('--dataset', type=str, help='Dataset used to benchmark (VAL, RDB)', required=True)
+    args = parser.parse_args()
 
     experiment = args.dataset
     if experiment not in ["VAL", "RDB"]:

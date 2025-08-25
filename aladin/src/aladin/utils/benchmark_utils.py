@@ -4046,9 +4046,6 @@ class DiagnosticBenchmark(BaseBenchmark):
                 if model.save_output:
                     self.append_to_json(filename, model.name, self.set_predictions[model.name], preds)
 
-        self.aggregate()
-        self.report()
-
         if np.any([m.savelogits for m in self.models]):
             self.find_and_apply_optimal_threshold()
             self.append_to_json(filename, model.name, self.set_predictions[model.name], {})
@@ -4623,9 +4620,10 @@ class DiagnosticBenchmark(BaseBenchmark):
             row = [arrhythmia]
             for metric in metrics:
                 if metric in ["tp", "fp", "fn"]:
-                    self.set_metrics[arrhythmia][metric][0] *= 1000 / patients_per_arrhythmia[arrhythmia]
-                    self.set_metrics[arrhythmia][metric][1] *= 1000 / patients_per_arrhythmia[arrhythmia]
-                    self.set_metrics[arrhythmia][metric][2] *= 1000 / patients_per_arrhythmia[arrhythmia]
+                    if self.data.get_name() == "ICENTIA-SAMPLE":
+                        self.set_metrics[arrhythmia][metric][0] *= 1000 / patients_per_arrhythmia[arrhythmia]
+                        self.set_metrics[arrhythmia][metric][1] *= 1000 / patients_per_arrhythmia[arrhythmia]
+                        self.set_metrics[arrhythmia][metric][2] *= 1000 / patients_per_arrhythmia[arrhythmia]
                     averages[metric] += self.set_metrics[arrhythmia][metric][0] 
                     row.append(format_ci(self.set_metrics[arrhythmia][metric], percentage=False))
                 else:

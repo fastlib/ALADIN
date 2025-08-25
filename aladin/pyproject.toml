@@ -26,6 +26,7 @@ dependencies = [
     "torch",
     "google-cloud-storage",
     "google-cloud-bigquery",
+    "boto3",
     "openpyxl",
     "neurokit2",
     "ruptures",
