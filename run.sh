@@ -73,47 +73,12 @@ gsutil -m cp -rn gs://arts-aladin/Dataset301_all_0 ${aladin_models}
 #Run STANFORD benchmark
 #time python benchmark_diagnosis.py --method ALADIN --dataset STANFORD --overwrite
 
-#Run ICENTIA benchmark
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
-time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-rm -R ./data/ICENTIA
+#loop 50 times
+for i in {1..10}
+do
+    time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
+    rm -R ./data/ICENTIA
+done
 
 # #Run CINC benchmark
 # time python3.10 benchmark_diagnosis.py --method ALADIN --dataset CINC --overwrite
