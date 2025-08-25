@@ -1,21 +1,26 @@
-
 # ALADIN documentation
-
+ 
+This CodeOcean capsule contains all the source code and data necessary to reproduce the manuscript's results and figures. Due to CodeOcean's limited computing resources and its runtime constraints, this capsule is limited to i) a demonstration, ii) the complete delineation benchmark and iii) the diagnostic benchmark on the Stanford dataset. With both the ii) and iii) benchmarks a re-evaluation of competing methods is also performed. These results contain the visual and textual outputs for 4 example recordings: 2 from the Stanford dataset and 2 from the Computers-in-Cardiology dataset  (i.e., the demonstration) as well as a text-file containing the raw LaTeX code to reproduce Table 1 (i.e., the delineation benchmark) and 3 figures to reproduce Figure 3 (i..e, the diagnostic benchmark) from the manuscript.
+ 
+Reproducing the benchmark on the Computers-in-Cardiology dataset (Figure 4) exceeded the capabilities of the CodeOcean environment. To aid also a complete reproduction of these results, the '/data/ALADIN-source-code.zip' can be downloaded, which includes detailed instructions in the README.pdf/.html or as seen below, that allow local replication at any system with a Linux, MacOS, or Windows operating system.
+ 
+ 
 ## System requirements:
 - Linux Ubuntu >= 20.04 or MacOSX 13.6.x or Microsoft Windows >=10
 - Python 3.10 
 - $>20$Gb free diskspace
 - Modern GPU with >12Gb VRAM is recommended for training
-- [Git](https://git-scm.com/), [Docker](https://www.docker.com/), and [Docker-compose](https://docs.docker.com/compose/) for training
-
-Tested on Linux Ubuntu 20.04, MacOSX 13.6.x, and Microsoft Windows 10 and 11 Home. CPU-only support is available, but a modern GPU will speed up training and inference substantially. Tested on NVidia GeForce 3090. ALADIN works on newer versions of Python; but, the algorithm of Jimenez-Perez et al. crashes if Python >3.10.
-
+- [Git](https://git-scm.com/)
+- [Docker](https://www.docker.com/) for training
+ 
+Tested on Linux Ubuntu 20.04, MacOSX 13.6.x, and Microsoft Windows 10 and 11 Home. CPU-only support is available, but a modern GPU is required for training and will speed up inference substantially. Tested on NVidia GeForce 3090. ALADIN works on newer versions of Python; but, the algorithm of Jimenez-Perez et al. crashes if Python >3.10.
+ 
 Windows users are advised to use Powershell. Run in administrator mode and see [this](https://stackoverflow.com/a/60210792) StackOverflow question when you experience difficulty activating the virtual python environment (step 2). Also, when using Windows, please change the shell script extensions from `.sh` to `.bat`.
-
-## Getting started
-
+ 
+## Installation guide (local deployment)
+ 
 Out-of-the-box ALADIN installation evaluated on a few demo recordings. We advise to use a clean virtual environment to prevent issues with library versions.
-
+ 
 ### Preparations (~10 min)
 1. Create local python environment 
 ```{.bash}
@@ -44,25 +49,25 @@ mkdir models
 export aladin_models=[absolute path to root]/models #Linux and MacOSX
 $Env:aladin_models="[absolute path to root]\models" #Windows
 ```
-
-### Run demo (~1 min)
+ 
+### Run demo (~5 min)
 8. Run 
 ```{.bash}
 python demo.py --case=[recording]
 ```
 Where `[recording]` can be one of `(STANFORD1, STANFORD2, A01986, A08391)`.
-
+ 
 ### Expected output
 - 'aladin_result.png', a figure showing the delineation and diagnosis with on- and offsets
 - 'aladin_explanation.txt', a textfile containing a detailed explanation behind the diagnosis
-
+ 
 Note: It is possible to analyse your own files. ALADIN expects Lead II electrocardiograms formatted as WFDB files with a header file (.hea) and a data file (.dat). It only selects the first signal from the data file.
-
+ 
 \newpage
 ## Reproduce benchmark using model checkpoints
-
+ 
 NOTE: Use Python 3.10.x as Jimenez-Perez et al. does not work for >3.10.x
-
+ 
 ### Prepare data
 1. Download VALIDATION.zip from [FigShare](https://figshare.com/s/a9cb763a786e0b259cb8) (12Mb) and extract to `/data` such that you have `/data/VALIDATION/...`
 1. Download STANFORD.zip from [FigShare](https://figshare.com/s/b470ddc0845aa1a0ea8f) (6Mb) and extract to `/data` such that you have `/data/STANFORD/...`
@@ -73,7 +78,7 @@ cd data/CINC
 cd ../..
 ```
 or by downloading the zip from [PhysioNet](https://physionet.org/content/challenge-2017/1.0.0/) (1.4Gb) and extract it to `/data/CINC` such that you have `/data/CINC/training/...`.
-
+ 
 ### Prepare competitors
 3. Clone Jimenez-Perez github repository 
 ```{.bash}
@@ -97,7 +102,7 @@ cd ../..
 pip install -r requirements.txt
 ```
 8. Download pretrained weights of the diagnostic models from [FigShare](https://figshare.com/s/3906debcd0b1bfbcedb2) (580Mb) and unzip in `/benchmark/weights`
-
+ 
 ### Prepare benchmark
 9. Make results folder 
 ```{.bash}
@@ -107,11 +112,11 @@ mkdir results
 ```{.bash}
 export benchmark_data=[absolute path to /data folder]
 export benchmark_results=[absolute path to /results folder] #Linux and MacOSX
-
+ 
 $Env:benchmark_data = "[absolute path to /data folder]"
 $Env:benchmark_results = "[absolute path to /results folder]" #Windows
 ```
-
+ 
 ### Run benchmark
 11. Run delineation benchmark (~ 20 min)
 ```{.bash}
@@ -137,19 +142,19 @@ python paper/boxplot-stanford.py
 ```{.bash}
 python paper/boxplot-cinc.py
 ```
-
+ 
 ### Expected results
 - A delineation performance table in raw latex code corresponding to Table 1 of the manuscript.
 - Two boxplot figures showing the benchmark performance of ALADIN, ECGFounder, ResNet, and all human cardiologists on the Stanford test set and the CinC competition set. The figures are located inside `/paper/images`
-
+ 
 \newpage
 ## Retrain ALADIN from scratch
-
+ 
 The following steps require a GPU with CUDA enabled. 
-
+ 
 ### Initialize MongoDB
 NOTE: You may need to run docker with `sudo`.
-
+ 
 1. Install [Docker](https://www.docker.com/) and [Docker-compose](https://docs.docker.com/compose/)
 2. Run the MongoDB container 
 ```{.bash}
@@ -171,7 +176,7 @@ docker exec mongodbtest mongorestore --username=root \
 ```{.bash}
 cd ../..
 ```
-
+ 
 ### Prepare training data
 7. Create the folders required by nnUNet 
 ```{.bash}
@@ -212,45 +217,45 @@ nnUNetv2_plan_and_preprocess -d 201 \
 --verify_dataset_integrity
 ```
 14. Copy `/data/nnUNet_plans/Dataset201_all_101/nnUNetWithClassificationPlans.json` to `/data/nnUNet_preprocessed/Dataset201_all_101` and overwrite existing file. 
-
+ 
 ### Retrain ALADIN
-15. Train ALADIN using 5-fold cross-validation (~ 6 hours) 
+15. Train ALADIN using 5-fold cross-validation (~ 12 hours) 
 ```{.bash}
 ./train_aladin.sh #change extension to .bat for Windows
 ```
-
+ 
 ### Run benchmarks with new models
 16. Update ALADIN's environment variable to use the newly trained models.
 ```{.bash}
 export aladin_models=[absolute path to nnUNet_results] #Linux and MacOSX
 $Env:aladin_models = "[absolute path to nnUNet_results]" #Windows
 ```
-17. Run delineation benchmark with new models (~ 1 min)
+17. Run delineation benchmark with new models (~ 20 min)
 ```{.bash}
 python benchmark_delineation.py --method ALADIN \
 --perarrhythmia \
 --modelpaths Dataset201_all_101/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding
 ```
-18. Run diagnostic benchmark on Stanford with new models (~ 1 min)
+18. Run diagnostic benchmark on Stanford with new models (~ 1.5 hour)
 ```{.bash}
 python benchmark_diagnosis.py --method ALADIN \
 --dataset STANFORD --overwrite \
 --modelpaths Dataset201_all_101/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding
 ```
-19. Run diagnostic benchmark on CinC competition set with new models (~ 12 min)
+19. Run diagnostic benchmark on CinC competition set with new models (~ 30 hours)
 ```{.bash}
 python benchmark_diagnosis.py --method ALADIN \
 --dataset CINC --overwrite \
 --modelpaths Dataset201_all_101/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding
 ```
 20. Create figures (see `Reproduce benchmark using model checkpoints`)
-
-
+ 
+ 
 \newpage
 ## Optional: Retrain competitor models
-
+ 
 NOTE: The MongoDB docker instance should be running in the background. If not, run `cd data/MongoDB`,  `docker-compose up -d`, and `cd ../..`.
-
+ 
 ### Retrain ResNet implementation from Hannun et al.
 1. Train ResNet implementation ( ~ 1 hour)
 ```{.bash}
@@ -264,7 +269,7 @@ python benchmark_diagnosis.py --method Hannun \
 --dataset STANFORD --overwrite \
 --modelpaths benchmark/new_weights/HannunNet_checkpoint_best.pth
 ```
-
+ 
 ### Finetune ECGFounder by Li et al.
 3. Download the `1_lead_ECGFounder.pth` checkpoint from [HugginFace](https://huggingface.co/PKUDigitalHealth/ECGFounder/tree/main) (370Mb) and move it to `/benchmark/weights`
 4. Finetune ECGFounder (~ 30 min) 
@@ -280,10 +285,10 @@ python benchmark_diagnosis.py --method ECGFounder \
 --modelpaths benchmark/new_weights/ECGFounderNet_checkpoint_best.pth
 ```
 6. Create figures (see `Reproduce benchmark using model checkpoints`)
-
+ 
 \newpage
 ## Optional: Reproduce feature space analysis
-
+ 
 1. Create embeddings of training, test, and out-of-distribution test data for reference (i.e., ResNet) and ALADIN (~5 hour)
 ```{.bash}
 cd benchmark
@@ -295,7 +300,7 @@ cd ..
 python paper/plot-featurespace-ref.py
 python paper/plot-featurespace-aladin.py
 ```
-
+ 
 \newpage
 ## Resources:
 - Main code ZIP file
@@ -305,25 +310,3 @@ python paper/plot-featurespace-aladin.py
 - Stanford dataset ([FigShare](https://figshare.com/s/b470ddc0845aa1a0ea8f), 6Mb)
 - Validation dataset ([FigShare](https://figshare.com/s/a9cb763a786e0b259cb8), 12Mb)
 - MongoDB ([FigShare](https://figshare.com/s/241b86301e9a4cffcf64), 5.3Gb)
-
-
----
-monofont: "Fira Code"
-fontsize: 11pt
-geometry: margin=1in
-listings-no-page-break: true
-header-includes:
-  - \usepackage{color}
-  - \usepackage{listings}
-  - \usepackage{xcolor}
-  - \definecolor{lightgray}{rgb}{0.95,0.95,0.95}
-  - \lstset{
-      backgroundcolor=\color{lightgray},
-      basicstyle=\ttfamily\small,
-      frame=single,
-      framerule=0pt,
-      rulecolor=\color{gray},
-      breaklines=true,
-      columns=fullflexible
-    }
----

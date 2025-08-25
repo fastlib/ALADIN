@@ -1,84 +1,64 @@
 #!/usr/bin/env bash
 set -ex
-
-get_installed_cuda_version() {
-    # Check if 'nvcc' is available and return its version
-    if command -v nvcc &> /dev/null
-    then
-        # Get the installed CUDA version using nvcc
-        installed_version=$(nvcc --version | grep -oP "release \K[0-9]+\.[0-9]+")
-        echo "$installed_version"
-    else
-        echo "CUDA not installed"
-    fi
-}
-
-
+ 
 # This is the master script for the capsule. When you click "Reproducible Run", the code in this file will execute.
-python --version
-pip --version
-# installed_version=$(get_installed_cuda_version)
-
-# if [ "$installed_version" == "12.8" ]; then
-#     pip install torch --index-url https://download.pytorch.org/whl/cu128
-# elif [ "$installed_version" == "12.6" ]; then
-#     echo "CUDA 12.6 detected, installing normal pytorch version."
-#     pip install torch
-# fi
-
-#python -m venv ALADIN
-#source ALADIN/bin/activate
-
-pip install ./aladin
-pip install ./nnUNet
-
-pip install boto3
-#python data/ICENTIA/download.py
-
-#check if tar.gz file exists
-if [ ! -f "google-cloud-cli-linux-x86_64.tar.gz" ]; then
-    echo "google-cloud-cli-linux-x86_64.tar.gz not found, downloading..."
-    curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
-    tar -xf google-cloud-cli-linux-x86_64.tar.gz
-    ./google-cloud-sdk/install.sh --bash-completion=false --path-update=false --usage-reporting=false
-    source ./google-cloud-sdk/path.bash.inc
-    source ./google-cloud-sdk/completion.bash.inc
-else
-    source ./google-cloud-sdk/path.bash.inc
-    source ./google-cloud-sdk/completion.bash.inc
-    echo "google-cloud-cli-linux-x86_64.tar.gz already exists, skipping download."
-fi
-
+python3.10 --version
+pip3.10 --version
+ 
+cd src
+pip3.10 install .
+cd ..
+cd nnUNet
+pip3.10 install .
+cd ..
+ 
+unzip -o /data/ALADIN-weights.zip -d "/data/models"
+unzip -o /data/STANFORD.zip -d "/data"
+mkdir /data/VALIDATION
+unzip -o /data/VALIDATION.zip -d "/data/VALIDATION"
+ 
 #Set environment variables
-export aladin_models=./data/models
-export benchmark_results=./results
-export benchmark_data=./data
-
-export GOOGLE_APPLICATION_CREDENTIALS=./data/aladin-466917-e056430d6165.json
-gcloud auth activate-service-account --key-file ./data/aladin-466917-e056430d6165.json
-
-mkdir -p ${aladin_models}
-#gsutil -m cp -rn gs://arts-aladin/Dataset200_all_101 ${aladin_models}
-gsutil -m cp -rn gs://arts-aladin/Dataset301_all_0 ${aladin_models}
-
-# mkdir -p ./data/CINC/training
-# aws s3 sync --no-sign-request s3://physionet-open/challenge-2017/1.0.0/training ./data/CINC/training
-
+export aladin_models=/data/models
+export benchmark_results=/results
+export benchmark_data=/data
+ 
 #Run demo
-# python3.10 demo.py --case STANFORD1
-# python3.10 demo.py --case STANFORD2
-# python3.10 demo.py --case A01986
-# python3.10 demo.py --case A08391
-
-#Run STANFORD benchmark
-#time python benchmark_diagnosis.py --method ALADIN --dataset STANFORD --overwrite
-
-#loop 50 times
-for i in {1..10}
-do
-    time python benchmark_diagnosis.py --method ALADIN --dataset ICENTIA --overwrite
-    rm -R ./data/ICENTIA
-done
-
-# #Run CINC benchmark
-# time python3.10 benchmark_diagnosis.py --method ALADIN --dataset CINC --overwrite
+python3.10 demo.py --case STANFORD1
+python3.10 demo.py --case STANFORD2
+python3.10 demo.py --case A01986
+python3.10 demo.py --case A08391
+ 
+#Install SoTA models for delineation
+git clone https://github.com/guillermo-jimenez/DelineatorSwitchAndCompose.git
+cd DelineatorSwitchAndCompose
+git clone https://github.com/guillermo-jimenez/sak.git
+cd sak
+pip3.10 install . --no-deps
+cd ..
+cd ..
+pip3.10 install -r requirements.txt
+ 
+mkdir DelineatorSwitchAndCompose/TrainedModels
+unzip -o /data/TrainedModels.zip -d "/code/DelineatorSwitchAndCompose/TrainedModels"
+ 
+#Benchmark delineation
+chmod 777 benchmark_delineation.sh
+./benchmark_delineation.sh
+ 
+#Benchmark diagnosis on STANFORD
+chmod 777 benchmark_diagnosis_STANFORD.sh
+./benchmark_diagnosis_STANFORD.sh
+ 
+python3.10 paper/boxplot-stanford.py
+ 
+#Benchmark diagnosis on CINC
+# cd /data/CINC
+# chmod 777 download.sh
+# ./download.sh
+# cd ..
+# cd ..
+ 
+# chmod 777 benchmark_diagnosis_CINC.sh
+# ./benchmark_diagnosis_CINC.sh
+ 
+# python3.10 paper/boxplot-cinc.py
