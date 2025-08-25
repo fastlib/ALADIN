@@ -12,7 +12,6 @@
 !run.sh
 !benchmark_delineation.sh
 !benchmark_diagnosis_CINC.sh
-!benchmark_diagnosis_ICENTIA.sh
 !benchmark_diagnosis_STANFORD.sh
 
 # benchmark folder
