@@ -1377,7 +1377,7 @@ class LogicEngine():
                 #print("Junctional rhythm detected")
                 record.add_diagnosis(
                     "JUNCTIONAL",
-                    "Detected JUNCTIONAL rhythm as no atrial activity was observed while the ventricular beat shows a narrow QRS complex. Furthermore, the heart rate is below 100 BPM and the ventricular rhythm is regular.",
+                    "Detected JUNCTIONAL rhythm as no atrial activity was observed while the ventricular beat shows a narrow QRS complex. Furthermore, the heart rate is below 100 BPM.",
                     beats[match.start()].r,
                     beats[match.end()-1].r
                 )
