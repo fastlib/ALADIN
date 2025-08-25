@@ -77,11 +77,6 @@ aladin/build
 !paper/generate_results_tables.py
 !paper/plot-featurespace-aladin.py
 !paper/plot-featurespace-ref.py
-!paper/images
-!paper/images/fig3-boxplot-stanford.png
-!paper/images/fig3-ranking-stanford.png
-!paper/images/fig4-boxplot-cinc.png
-!paper/images/fig4-ranking_plot.png
 
 
 
