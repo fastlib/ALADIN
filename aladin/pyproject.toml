@@ -26,6 +26,7 @@ dependencies = [
     "torch",
     "google-cloud-storage",
     "google-cloud-bigquery",
+    "openpyxl",
     "neurokit2",
     "ruptures",
     "neurokit2==0.2.10",

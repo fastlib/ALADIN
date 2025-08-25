@@ -69,16 +69,25 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
         
         float sensitivity = (float)tp / (tp + fn);
         float precision = (float)tp / (tp + fp);
+        if (tp+fn == 0) {
+            sensitivity = 0.0f;
+        }
+        if (tp+fp == 0) {
+            precision = 0.0f;
+        }
         float f1_score = 2 * (precision * sensitivity) / (precision + sensitivity);
+        if (sensitivity == 0.0f && precision == 0.0f) {
+            f1_score = 0.0f;
+        }
 
-        // std::cout << "Batch " << st / (10 * record->fs) << ": TP: " << tp << ", FP: " << fp << ", FN: " << fn 
+        // std::cout << "Batch " << st / (30 * record->fs) << ": TP: " << tp << ", FP: " << fp << ", FN: " << fn 
         //           << ", Sensitivity: " << sensitivity << ", Precision: " << precision 
         //           << ", F1 Score: " << f1_score << std::endl;
 
         // std::cout << "Batch " << st / (10 * record->fs) << ": TP: " << tp << ", FP: " << fp << ", FN: " << fn 
         //             << ", Sensitivity: " << sensitivity << ", Precision: " << precision 
         //             << ", F1 Score: " << f1_score << std::endl;
-        if (f1_score < 0.5) {
+        if (f1_score < 0.5 || sensitivity < 0.5 || precision < 0.5) {
             // std::cout << "Low F1 score detected, marking noise region from " << st << " to " << end << std::endl;
             // std::cout << mismatch_aladin.size() << " aladin mismatches: ";
             // for (int i = 0; i < mismatch_aladin.size(); ++i) {
@@ -103,7 +112,7 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
                 record->delineations->noise->binary[i] = 1.0f;
             }
             
-            //remove peaks from aladin_peaks that are in the noise region
+            // //remove peaks from aladin_peaks that are in the noise region
             for (int i = 0; i < beats.size(); ++i) {
                 if (beats[i]->get_r_wave() >= st && beats[i]->get_r_wave() < end) {
                     //remove beat from beats
@@ -112,16 +121,6 @@ void Reflection::match_peaks(std::vector<int> &asra_peaks, std::vector<int> &ala
                     i--; // Adjust index after removal
                 }
             }
-        }
-    }
-
-    for(int i=0; i<record->delineations->noise->size; i++) {
-        if (record->delineations->noise->binary[i] == 1.0f) {
-            //std::cout << "#";
-            record->filtered_ecg[i] = 0;
-            record->ecg[i] = 0;
-        } else {
-            //std::cout << ".";
         }
     }
 
@@ -311,6 +310,7 @@ void Reflection::correct_afib_for_pattern(std::regex pat) {
             beat_types += 'N';
         }
     }
+    //std::cout << "Beat types: " << beat_types << std::endl;
 
     //std::string test("NNNNVNVNVNVNNNNNNVVVVNNNNNVNNVNNVNNVNNNNN");
     auto begin = std::sregex_iterator(beat_types.begin(), beat_types.end(), pat);
@@ -651,31 +651,43 @@ void Reflection::reflect_on_p_waves() {
     }
     //std::cout << "Number of P waves: " << p_waves.size() << std::endl;
 
-    if (false) {
-        float median_range = p_median_range();
+    float qrs_median = qrs_median_range(true);
 
-        float rho_min = 0.01*median_range;
-        float alpha = 4;
-        float beta = 0.125;
+    PWaveProcessor processor = PWaveProcessor();
+    PWaveResult res = processor.get_avg_p_wave(beats, p_waves, record->fs, qrs_median);
 
-        clusterer_p = std::make_unique<Clustering>(rho_min, alpha, beta);
-        clusterer_p->cluster_p(p_waves, record->fs);
-
-        //Identify p wave polarity within clusters
-        for (int i = 0; i < clusterer_p->get_number_of_clusters(); ++i) {
-            identify_polarity(clusterer_p->get_cluster(i), clusterer_p->get_number_of_clusters());
-        }
-
-        //Identify p wave polarity within unclustered beats
-        identify_polarity_of_unclustered_beats();
+    for(int i=0; i<res.p_wave_clusters.size(); i++) {
+        record->p_clusters.push_back(res.p_wave_clusters[i]);
     }
+
+    // std::cout << "Number of p wave groups: " << p_wave_clusters.groups.size() << std::endl;
+    // std::cout << "Number of trimmed pwaves: " << p_wave_clusters.p_waves.size() << std::endl;
+
+    // if (false) {
+    //     float median_range = p_median_range();
+
+    //     float rho_min = 0.01*median_range;
+    //     float alpha = 4;
+    //     float beta = 0.125;
+
+    //     clusterer_p = std::make_unique<Clustering>(rho_min, alpha, beta);
+    //     clusterer_p->cluster_p(p_waves, record->fs);
+
+    //     //Identify p wave polarity within clusters
+    //     for (int i = 0; i < clusterer_p->get_number_of_clusters(); ++i) {
+    //         identify_polarity(clusterer_p->get_cluster(i), clusterer_p->get_number_of_clusters());
+    //     }
+
+    //     //Identify p wave polarity within unclustered beats
+    //     identify_polarity_of_unclustered_beats();
+    // }
 
     //Match P waves to QRS waves
     match_p_waves_to_qrs();
 
 
     // for(int i=0; i<p_waves.size(); i++) {
-    //     std::cout << "P wave " << i << ": " << p_waves[i]->start << ", " << p_waves[i]->end << " unclustered:" << p_waves[i]->unclustered << " polarity: " << p_waves[i]->inverted << " unmatched: " << p_waves[i]->unmatched << std::endl;
+    //     std::cout << "P wave " << i << ": " << p_waves[i]->start << ", " << p_waves[i]->end << " unclustered:" << p_waves[i]->unclustered << " polarity: " << p_waves[i]->inverted << " cluster_id: " << p_waves[i]->cluster_id << std::endl;
     // }
 
     //copy to record
@@ -1083,7 +1095,9 @@ vector<shared_ptr<P>> Reflection::identify_p_waves() {
                 p->end = mid+win_plus;
                 p->wave_start = pstart-p->start;
                 p->wave_end = i-p->start;
-                p->ecg = vector<float>(record->filtered_ecg + p->start, record->filtered_ecg + p->end);
+                p->center = mid;
+                p->ecg = std::vector<float>(record->filtered_ecg + pstart, record->filtered_ecg + i);
+                p->cluster_id = -1;
 
                 waves.push_back(p);
                 pbeatid++;
@@ -1100,6 +1114,7 @@ vector<shared_ptr<P>> Reflection::identify_p_waves() {
             }
         }
     }
+    //std::cout << "Number of P waves identified: " << waves.size() << std::endl;
 
     return waves;
 }
@@ -1333,13 +1348,13 @@ void Reflection::reflect_on_qrs() {
 
     //Cluster QRS waves using complete-linkage hierarchical clustering
     clusterer_qrs = std::make_unique<Clustering>(rho_min, alpha, beta);
-    clusterer_qrs->cluster_qrs(beats, record->fs);
+    //clusterer_qrs->cluster_qrs(beats, record->fs);
 
     //Identify beat abnormality within clusters
-    for (int i = 0; i < clusterer_qrs->get_number_of_clusters(); ++i) {
-        std::shared_ptr<Cluster> cluster = clusterer_qrs->get_cluster(i);
-        identify_abnormality(cluster, clusterer_qrs->get_number_of_clusters());
-    }
+    // for (int i = 0; i < clusterer_qrs->get_number_of_clusters(); ++i) {
+    //     std::shared_ptr<Cluster> cluster = clusterer_qrs->get_cluster(i);
+    //     //identify_abnormality(cluster, clusterer_qrs->get_number_of_clusters());
+    // }
     
     //determine r peak
     for (int i=0; i < beats.size(); ++i) {
@@ -1357,30 +1372,74 @@ void Reflection::reflect_on_qrs() {
     }
     tools.openingcentered(clean, record->size, record->fs*5, clean);
 
+    calculate_rr_intervals();
+
+    //if there is a large interval between two beats, that is suspicious and we want to recheck if we can find the R-peaks again
+    bool abnormal_rmssd = false;
+    for (int i=0; i < record->size; i+= 30*record->fs) {
+        std::vector<float> ibis;
+        for (int j=0; j<beats.size(); ++j) {
+            if (beats[j]->get_global_start() > i && beats[j]->get_global_end() < i + 30*record->fs) {
+                ibis.push_back(beats[j]->rr_raw);
+            }
+        }
+        float rmssd = tools.rmssd(ibis.data(), ibis.size());
+        //std::cout << "RMSSD of RR intervals: " << rmssd << std::endl;
+        if (rmssd > 0.5) {
+            abnormal_rmssd = true;
+            //std::cout << "Abnormal RMSSD detected: " << rmssd << std::endl;
+        }
+    }
+
+    bool large_pause = false;
+    for (int i=0; i<beats.size(); ++i) {
+        if (beats[i]->rr_raw > 3) {
+            large_pause = true;
+            break;
+        }
+    }
+
     int start = 0;
+    bool foundstart = false;
     for (int i=0; i<record->size; i++) {
         if (clean[i]) {
             start = i;
+            foundstart = true;
             break;
         }
     }
     delete[] clean;
+    if (foundstart) {
+        float *asra_ecg = new float[record->size - start];
+        memcpy(asra_ecg, record->filtered_ecg, (record->size - start) * sizeof(float));
+        ECGdetector peakdetector(asra_ecg, (record->size - start), record->fs);
+        std::vector<int> rpeaks = peakdetector.getRPeaks();
+        delete[] asra_ecg;
 
-    float *asra_ecg = new float[record->size - start];
-    memcpy(asra_ecg, record->filtered_ecg, (record->size - start) * sizeof(float));
-    ECGdetector peakdetector(asra_ecg, (record->size - start), record->fs);
-    std::vector<int> rpeaks = peakdetector.getRPeaks();
-    delete[] asra_ecg;
+        for (int i=0; i<rpeaks.size(); i++) {
+            rpeaks[i] += start; // Adjust the R-peaks to the original signal
+            //std::cout << "R-peak detected at: " << rpeaks[i]/record->fs << std::endl;
+        }
+        std::vector<int> aladin_peaks;
+        for (int i=0; i<beats.size(); i++) {
+            aladin_peaks.push_back((int)beats[i]->get_r_wave());
+        }
 
-    for (int i=0; i<rpeaks.size(); i++) {
-        rpeaks[i] += start; // Adjust the R-peaks to the original signal
-        //std::cout << "R-peak detected at: " << rpeaks[i] << std::endl;
+        if (large_pause || abnormal_rmssd) {
+            //std::cout << "Large pause detected, re-matching peaks..." << std::endl;
+            match_peaks(rpeaks, aladin_peaks);
+        }
     }
-    std::vector<int> aladin_peaks;
-    for (int i=0; i<beats.size(); i++) {
-        aladin_peaks.push_back((int)beats[i]->get_r_wave());
+
+    for(int i=0; i<record->delineations->noise->size; i++) {
+        if (record->delineations->noise->binary[i] == 1.0f) {
+            //std::cout << "#";
+            record->filtered_ecg[i] = 0;
+            record->ecg[i] = 0;
+        } else {
+            //std::cout << ".";
+        }
     }
-    match_peaks(rpeaks, aladin_peaks);
 
     calculate_rr_intervals();
 
@@ -1403,7 +1462,7 @@ void Reflection::reflect_on_qrs() {
     // }
 }
 
-float Reflection::qrs_median_range() {
+float Reflection::qrs_median_range(bool norm) {
 
     std::vector<float> ranges;
 
@@ -1411,8 +1470,17 @@ float Reflection::qrs_median_range() {
         int start = beats[i]->start;
         int end = beats[i]->end;
 
-        float min_val = this->tools.min(beats[i]->ecg.data(), end - start);
-        float max_val = this->tools.max(beats[i]->ecg.data(), end - start);
+        float min_val = 0;
+        float max_val = 0;
+
+        if (norm) {
+            min_val = this->tools.min(beats[i]->ecg_norm.data(), end - start);
+            max_val = this->tools.max(beats[i]->ecg_norm.data(), end - start);
+        } else {
+            min_val = this->tools.min(beats[i]->ecg.data(), end - start);
+            max_val = this->tools.max(beats[i]->ecg.data(), end - start);
+        }
+
         float range = max_val - min_val;
 
         ranges.push_back(range);
@@ -1507,7 +1575,9 @@ void Reflection::identify_qrs() {
                 beat->end = mid + win_plus;
                 beat->wave_start = qrsstart-beat->start;
                 beat->wave_end = i-beat->start;
+                beat->width = beat->wave_end - beat->wave_start + 1;
                 beat->ecg = vector<float>(record->ecg_bandpass + beat->start, record->ecg_bandpass + beat->end);
+                beat->ecg_norm = vector<float>(record->filtered_ecg + beat->start, record->filtered_ecg + beat->end);
                 beat->abnormal_logit = tools.max(record->delineations->abnormal_qrs->logits + beat->start, beat->end-beat->start);
                 beat->abnormal_uncertainty = log(tools.max(record->delineations->abnormal_qrs->uncertainty + beat->start, beat->end-beat->start)+0.0001);
                 //std::cout << "QRS uncertainty: " << beat->abnormal_uncertainty << "from " << beat->start << " to " << beat->end << std::endl;

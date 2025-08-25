@@ -47,7 +47,7 @@ class ALADIN():
             if key in self.debug:
                 self.debug[key] = debug[key]
 
-    def plot(self, record: Record, xlim=None, annotations=None):
+    def plot(self, record: Record, name="", xlim=None, annotations=None):
 
         if xlim is None:
             xlim = [0, len(record.ecg) / record.fs]
@@ -58,7 +58,7 @@ class ALADIN():
         interquartile_range = np.percentile(dsig, 95) - np.percentile(dsig, 5)
         lower_bound = np.percentile(dsig, 5) - 1.5 * interquartile_range
         upper_bound = np.percentile(dsig, 95) + 1.5 * interquartile_range
-        sig = record.ecg[int(xlim[0]*record.fs):int(xlim[1]*record.fs)]
+        sig = record.filtered_ecg[int(xlim[0]*record.fs):int(xlim[1]*record.fs)]
         dsig = np.diff(sig)
         #median filter of 3 samples
         dsig = np.where(np.abs(dsig) > upper_bound, 0, dsig)
@@ -68,8 +68,8 @@ class ALADIN():
         #ax.plot(np.arange(xlim[0]*record.fs, xlim[1]*record.fs)[1:], dsig, color='red', label="Derivative of ECG Signal")
         #ax.axhline(upper_bound, color='blue', linestyle='--', label="Upper Bound")
         #ax.axhline(lower_bound, color='blue', linestyle='--', label="Lower Bound")
-        ax.set_xticks(np.arange(xlim[0]*record.fs, xlim[1]*record.fs, record.fs*10))
-        ax.set_xticklabels(np.arange(xlim[0], xlim[1], 10))
+        ax.set_xticks(np.arange(xlim[0]*record.fs, xlim[1]*record.fs, record.fs*2))
+        ax.set_xticklabels(np.arange(xlim[0], xlim[1], 2))
         #ax.set_ylim(-2,2)
 
         pcolor = '#e74c3c'
@@ -147,6 +147,7 @@ class ALADIN():
                 ax.text(annotation[1], ymax, annotation[0], fontsize=8, color="black", ha='center', va='center')
 
         ax.set_xlim(xlim[0]*record.fs, xlim[1]*record.fs)
+        #ax.set_ylim(-2,2)
 
         ax.set_ylabel("Amplitude (mV)")
         ax.set_xlabel("Time (s)")
@@ -156,7 +157,10 @@ class ALADIN():
         ax.spines['left'].set_visible(False)
 
         plt.tight_layout()
-        plt.savefig("aladin_result.png")
+        if name == "":
+            plt.savefig("aladin_result.png")
+        else:
+            plt.savefig(name + ".png")
         plt.close()
 
     def analyse_batch(self, records: list, arrhythmia=None):
@@ -173,6 +177,7 @@ class ALADIN():
         for record in records:
             logic = LogicEngine(debug = False, customarrhythmia=arrhythmia)
             logic.diagnose(record)
+            logic.print_diagnoses(record)
 
         logictime = time.time()-st
         print("Segmenter", segmenttime)

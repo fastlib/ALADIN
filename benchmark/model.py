@@ -114,6 +114,7 @@ class ECGFounderNet(nn.Module):
 
         self.name = "ECGFounderNet"
         self.return_features = features
+        self.custom_head = False
 
         self.model = Net1D(
             in_channels=n_input_channel, 
@@ -141,11 +142,15 @@ class ECGFounderNet(nn.Module):
         else:
             print("WARNING: No pretrained weights found. This is not a problem if you use the finetuned checkpoint. If you want to finetune yourself, this is a problem! In that case, download the pretrained model weights from figshare.")
 
-        #self.model.dense = nn.Linear(self.model.dense.in_features, n_classes)
+        # Uncomment these layers if you want the finetuned head
+        #------------------------------------------------
+        # self.custom_head = True
+        # self.model.dense = nn.Linear(self.model.dense.in_features, n_classes)
 
         # for name, param in self.model.named_parameters():
         #     if 'dense' not in name:  # no freezing last layer
         #         param.requires_grad = True
+        #-------------------------------------------------
 
     def forward(self, x):
         if self.return_features:

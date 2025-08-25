@@ -12,6 +12,10 @@ find_package(OpenMP REQUIRED)
 
 link_directories(${PROJECT_SOURCE_DIR})
 
+# if(NOT CMAKE_BUILD_TYPE)
+#   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+# endif()
+
 set(LIBSRC
   src/iir/Biquad.cpp
   src/iir/Butterworth.cpp
@@ -59,6 +63,7 @@ set(headers
     src/reflect.h
     src/cluster.h
     src/common.h
+    src/pwaveprocessor.h
     src/helpers.h
 )
 set(sources
@@ -67,6 +72,7 @@ set(sources
     src/bindings.cpp
     src/reflect.cpp
     src/common.cpp
+    src/pwaveprocessor.cpp
     src/cluster.cpp
     src/helpers.cpp
 )

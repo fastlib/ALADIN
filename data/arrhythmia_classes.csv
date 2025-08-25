@@ -83,16 +83,16 @@ Form,Axis,Extreme Axis Deviation,EAD,Extreme Axis Deviation,,
 Form,Axis,CW or CCW Vectorcardiographic Loop,CCW,CounterClockwise Vectorcardiographic Loop,,
 Form,Axis,CR,Clockwise rotation,,
 Form,Axis,CCR,CounterClockwise rotation,
-Rhythm,Normal,Sinus Rhythm,SR,Healthy,Normal.,Normal,sinus rhythm,SR,NORM,norm.
+Rhythm,Normal,Sinus Rhythm,SR,Healthy,Normal.,Normal,sinus rhythm,SR,NORM,norm.,NSR
 Rhythm,Normal,Sinus Arrhythmia,SA,Sinus Arrhythmia,SA,SARRH,Irregular sinus rhythm,
-Rhythm,Normal,Sinus Bradycardia,SB,Sinus Bradycardia,SB,bradycardia,SBRAD
-Rhythm,Normal,Sinus Tachycardia,ST,Sinus Tachycardia,ST,STACH
+Rhythm,Normal,Sinus Bradycardia,SB,Sinus Bradycardia,SB,bradycardia,SBRAD,bradycardia
+Rhythm,Normal,Sinus Tachycardia,ST,Sinus Tachycardia,ST,STACH,tachycardia
 Rhythm,Premature & Escape,Atrial tachycardia,AT,Atrial Tachycardia,AT,
-Rhythm,Premature & Escape,Atrial rhythm,AR,atrial rhythm,,
+Rhythm,Premature & Escape,Atrial rhythm,AR,atrial rhythm,EAR,
 Rhythm,Premature & Escape,Atrial escape rhythm,AER,accelerated atrial escape rhythm,,
 Rhythm,Premature & Escape,Atrial fibrillation,AFIB,Atrial Fibrillation,AFib,chronic atrial fibrillation
 Rhythm,Premature & Escape,Atrial flutter,AFL,AFLT,AFLUT,Aflutter,Atrial Flutter,Aflutter,
-Rhythm,Premature & Escape,Atrial fibrillation/flutter,AFIBAFL,Atrial Fibrillation and Flutter,Atrial Fibrillation or Flutter or Nodal
+Rhythm,Premature & Escape,Atrial fibrillation/flutter,AFIBAFL,AFIB/AFL,Atrial Fibrillation and Flutter,Atrial Fibrillation or Flutter or Nodal
 Rhythm,Premature & Escape,Junctional rhythm,JR,Junctional Rhythm,junctional tachycardia
 Rhythm,Premature & Escape,Accelerated Junctional rhythm,AJR,accelerated junctional rhythm,,
 Rhythm,Premature & Escape,Idioventricular rhythm,IVR,Idioventricular Rhythm,IVR,ventricular escape rhythm

@@ -11,14 +11,16 @@ from tqdm.asyncio import tqdm
 import atexit
 
 import scipy.signal as sps
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, filtfilt, medfilt, iirnotch
+from scipy.interpolate import interp1d
 
 from aladin import ALADIN
-from aladin.utils.benchmark_utils import Data, Model, DiagnosticBenchmark, StanfordData, CINCData, ICENTIAData
+from aladin.utils.benchmark_utils import Data, Model, DiagnosticBenchmark, StanfordData, CINCData, ICENTIAData, ICENTIASAMPLEData, InternalData
 from aladin.utils.helpers import resize_signal
 from aladin.core import Record, RecordCollection
 from aladin.backend.segmenter import UNetSegmenter
 from aladin.logicengine.logic import LogicEngine
+from aladin.selfreflection.reflection import Reflection
 from aladin.utils.martinez_v2 import QRSdelineation
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor, nnUNetWithClassificationPredictor
 from nnunetv2.paths import nnUNet_results, nnUNet_raw
@@ -40,18 +42,29 @@ def get_memory_usage_bytes() -> int:
     return process.memory_info().rss
 
 
-class ECGFounderBenchmark(ECGFounderPredictor):
+class ECGFounderModel(ECGFounderPredictor):
     def __init__(self, model_path):
         super().__init__(model_path)
 
-        # if isinstance(self.model_path, str):
-        #     checkpoint = torch.load(self.model_path, map_location=self.device)
+        if isinstance(self.model_path, str):
+            checkpoint = torch.load(self.model_path, map_location=self.device)
         
-        # new_state_dict = {}
-        # for k, value in checkpoint['network_weights'].items():
-        #     new_state_dict[k] = value
+        new_state_dict = {}
+        if 'network_weights' in checkpoint:
+            for k, value in checkpoint['network_weights'].items():
+                #if k == "model.dense.weight" or k == "model.dense.bias":
+                #    continue
+                new_state_dict[k] = value
 
-        # self.network.load_state_dict(new_state_dict)
+        elif 'state_dict' in checkpoint:
+            for k, value in checkpoint['state_dict'].items():
+                #if k == "model.dense.weight" or k == "model.dense.bias":
+                #    continue
+                new_state_dict["model."+k] = value
+
+        if self.network.custom_head:
+            self.network.load_state_dict(new_state_dict)
+
         self.network = self.network.to(self.device)
         self.network.eval()
 
@@ -154,35 +167,69 @@ class ECGFounderBenchmark(ECGFounderPredictor):
         self.analyse_result_per_diagnosis(res, "WENCKEBACH")
         self.analyse_result_per_diagnosis(res, "NOISE")
 
-    def get_diagnoses_from_array(self, predictions):
+    def get_diagnoses_from_array(self, predictions, output_to_label, custom_head=True):
         diagnoses = []
         print("predictions: ", predictions)
 
         for i in range(len(predictions)):
-            if predictions[i] == 5 or predictions[i] == 32:
-                diagnoses.append({"type":"AFIB/AFL", "onset": 0, "offset": 1})
-            elif predictions[i] == 1 or predictions[i] == 2 or predictions[i] == 3:
-                diagnoses.append({"type":"NSR", "onset": 0, "offset": 1})
-            elif predictions[i] == 39:
-                diagnoses.append({"type":"NOISE", "onset": 0, "offset": 1})
-            elif predictions[i]>1:
-                diagnoses.append({"type":"OTHER", "onset": 0, "offset": 1})
 
-            #diagnoses.append({"type":self.trainer.labels[predictions[i]], "onset": 0, "offset": 1})
+            # if predictions[i] == 5 or predictions[i] == 32:
+            #     diagnoses.append({"type":"AFIB/AFL", "onset": 0, "offset": 1})
+            # elif predictions[i] == 1 or predictions[i] == 2 or predictions[i] == 3:
+            #     diagnoses.append({"type":"NSR", "onset": 0, "offset": 1})
+            # elif predictions[i] == 39:
+            #     diagnoses.append({"type":"NOISE", "onset": 0, "offset": 1})
+            # elif predictions[i]>1:
+            #     diagnoses.append({"type":"OTHER", "onset": 0, "offset": 1})
+            if custom_head:
+                diagnoses.append({"type":self.trainer.labels[predictions[i]], "onset": 0, "offset": 1})
+            else:
+                if predictions[i] in output_to_label:
+                    diagnoses.append({"type":output_to_label[predictions[i]], "onset": 0, "offset": 1})
+                # if predictions[i] == 5:# or predictions[i] == 32:
+                #     diagnoses.append({"type":"AFIB/AFL", "onset": 0, "offset": 1})
+                # elif predictions[i] == 3:
+                #     diagnoses.append({"type":"NSR", "onset": 0, "offset": 1})
+                # elif predictions[i] == 39:
+                #     diagnoses.append({"type":"NOISE", "onset": 0, "offset": 1})
+
+        # if not custom_head and len(diagnoses) == 0:
+        #     diagnoses.append({"type":"OTHER", "onset": 0, "offset": 1})
+        print(diagnoses)
+
         return diagnoses
 
-    def predict_on_array(self, sig, fs):
-        
+    def predict_on_array(self, sig, fs, output_to_label):
+
+        # Remove power-line interference
+        # fs = 300
+        # b, a = iirnotch(50, 30, fs)
+        # filtered_signal = np.zeros_like(sig)
+        # filtered_signal = filtfilt(b, a, sig)
+
+        # # Simple bandpass filter
+        # b, a = butter(N=4, Wn=[0.67, 40], btype='bandpass', fs=fs)
+        # filtered_signal = filtfilt(b, a, filtered_signal)
+
+        # # # Remove baseline wander
+        # baseline = np.zeros_like(filtered_signal)
+        # kernel_size = int(0.4 * fs) + 1
+        # if kernel_size % 2 == 0:
+        #     kernel_size += 1  # Ensure kernel size is odd
+        # baseline = medfilt(filtered_signal, kernel_size=kernel_size)
+        # filter_ecg = filtered_signal - baseline
+
+        #filter_ecg = resize_signal(filter_ecg, int(filter_ecg.shape[-1]*(500/fs)))
         sig = resize_signal(sig, int(sig.shape[-1]*(500/fs)))
         fs = 500
 
         #highpass filter 1hz
-        # b, a = butter(4, 1/(fs/2), btype='highpass')
-        # ecg = filtfilt(b, a, sig)
+        b, a = butter(4, 0.5/(fs/2), btype='highpass')
+        ecg = filtfilt(b, a, sig)
 
         #lowpass filter 30hz
-        b, a = butter(2, [1/(fs/2),30/(fs/2)], btype='bandpass')
-        ecg = filtfilt(b, a, sig)
+        b, a = butter(2, 50/(fs/2), btype='lowpass')
+        ecg = filtfilt(b, a, ecg)
 
         #notch filter 50hz
         b, a = sps.iirnotch(50, 30, fs)
@@ -191,36 +238,50 @@ class ECGFounderBenchmark(ECGFounderPredictor):
         b, a = sps.iirnotch(60, 30, fs)
         ecg = filtfilt(b, a, ecg)
 
-        ecg = ecg - np.mean(ecg)
-        ecg = (ecg) / (np.std(ecg))
+        baseline = np.zeros_like(ecg)
+        kernel_size = int(0.4 * fs) + 1
+        if kernel_size % 2 == 0:
+            kernel_size += 1  # Ensure kernel size is odd
+        baseline = medfilt(ecg, kernel_size=kernel_size)
+        ecg = ecg - baseline
+
+        # ecg = ecg - np.mean(ecg)
+        # ecg = (ecg) / (np.std(ecg))
 
         size = 1000
         ecg = ecg[:int(len(ecg)/size)*size]
-
         diagnoses = []
+        logits = []
         with torch.no_grad():
-            inp = torch.from_numpy(ecg).float().to(self.device)
+            inp = torch.from_numpy(ecg.copy()).float().to(self.device)
             inp = inp[None,None,:]
             st = 0
 
             unique_predictions = []
             while st < inp.shape[-1]:
-                if st + 5000 > inp.shape[-1]:
-                    break
-                signal = inp[:,:,st:st+5000]
+                en = min(st + 5000, inp.shape[-1])
+                signal = inp[:,:,st:en]
+                #pad to 5000 samples with zero
+                if signal.shape[-1] < 5000:
+                    padding = torch.zeros((1, 1, 5000 - signal.shape[-1]), device=self.device)
+                    signal = torch.cat([signal, padding], dim=-1)
+                signal -= torch.mean(signal)
+                signal /= torch.std(signal)
                 output = self.network(signal)[0]
                 output = torch.sigmoid(output)
                 output = output.cpu().numpy()
+                logits.append(output.reshape(1, -1))
                 output = np.array([o > 0.5 for k, o in enumerate(output)])
                 unique_prediction = np.where(output)[0]
                 unique_predictions.extend(unique_prediction)
                 st += 5000
 
+            logits = np.concatenate(logits, axis=0)
             unique_predictions = list(set(unique_predictions))
             print(unique_predictions)
-            return self.get_diagnoses_from_array(unique_predictions)
+            return self.get_diagnoses_from_array(unique_predictions, output_to_label=output_to_label, custom_head=self.network.custom_head), logits
 
-class HannunBenchmark(Predictor):
+class HannunModel(Predictor):
     def __init__(self, model_path):
         super().__init__(model_path)
 
@@ -364,10 +425,11 @@ class HannunBenchmark(Predictor):
             inp = torch.from_numpy(sig).float().to(self.device)
             inp = inp[None,None,:]
             output = self.network(inp)[0]
+            logits = output.cpu().numpy()
             output = output.argmax(1)
             output = output.cpu().numpy()
 
-            return self.get_diagnoses_from_array(output)
+            return self.get_diagnoses_from_array(output), logits
 
 
 class ALADINModel(Model):
@@ -441,8 +503,8 @@ class ALADINModel(Model):
             records.append(Record(record["signal"], record["fs"], "bench", record["record"]))
             ids.append(record["record"])
 
-        collection = RecordCollection(records)
-        collection.preprocess()
+        # collection = RecordCollection(records)
+        # collection.preprocess()
         print("Preprocessing on CPU done: ", batch_index, flush=True)
 
         return records
@@ -457,7 +519,8 @@ class ALADINModel(Model):
         print("Reflection on CPU done: ", batch_index, flush=True)
         print("Diagnosing records on CPU: ", batch_index, flush=True)
         for record in tqdm(recs):
-            #self.aladin.reflection.reflect(record)
+            #reflection = Reflection(debug = False)
+            #reflection.reflect(record)
             logic = LogicEngine(debug=False)
             logic.diagnose(record)
 
@@ -492,7 +555,8 @@ class ALADINModel(Model):
             for i, record in enumerate(processed_batch):
                 #print("Record: ", record.recordname)
                 diagnoses, raw_diagnoses = self.process_diagnoses(record)
-                out.append({"record": record.recordname, "diagnoses": diagnoses, "raw": raw_diagnoses})
+                print(record.recordname, diagnoses)
+                out.append({"record": record.recordname, "diagnoses": diagnoses, "raw": raw_diagnoses, "arrhythmia": batch[i]["arrhythmia"]})
                 data.upload_record(record)
 
             data.set_as_finished([record.recordname for record in processed_batch])
@@ -575,7 +639,6 @@ class ALADINModel(Model):
 
         # return out
 
-
 class ALADINModelForCinc(ALADINModel):
     def __init__(self, modelpaths=[]):
         super().__init__(modelpaths=modelpaths)
@@ -591,10 +654,10 @@ class ALADINModelForCinc(ALADINModel):
         totallength = len(record.ecg)
         diagnoses = []
 
-        mapper = {
-            "EAR": "NSR",
-            "JUNCTIONAL": "NSR",
-        }
+        # mapper = {
+        #     "EAR": "NSR",
+        #     "JUNCTIONAL": "NSR",
+        # }
        
         for d in record.diagnoses:
             type = mapper[d["type"]] if d["type"] in mapper else d["type"]
@@ -697,30 +760,83 @@ class ALADINModelForICENTIA(ALADINModel):
         super().__init__(modelpaths=modelpaths)
 
     def process_diagnoses(self, record: Record):
-        diagnoses = []
-        rawdiagnoses = []
-        for j in range(len(record.diagnosis)):
-            append = True
-            if record.diagnosis[j].name == "TRIGEMINY" or record.diagnosis[j].name == "BIGEMINY":
-                if record.diagnosis[j].offset - record.diagnosis[j].onset < 10*record.fs:
-                    append = False
-            if record.diagnosis[j].name == "VT" or record.diagnosis[j].name == "IVR":
-                if record.diagnosis[j].offset - record.diagnosis[j].onset < 10*record.fs:
-                    append = False
-            if record.diagnosis[j].name == "AFIB":
-                if record.diagnosis[j].offset - record.diagnosis[j].onset < 30*record.fs:
-                    append = False
-            if append:
-                diagnoses.append({"type":record.diagnosis[j].name, "onset": record.diagnosis[j].onset, "offset": record.diagnosis[j].offset})
 
-            rawdiagnoses.append({"type":record.diagnosis[j].name, "onset": record.diagnosis[j].onset, "offset": record.diagnosis[j].offset})
+        filtered_diagnoses = []
+        diagnoses = record.diagnosis
+        raw_diagnoses = []
+
+        for diagnosis in diagnoses:
+            onset = diagnosis.onset
+            offset = diagnosis.offset
+            duration = (offset - onset) / 250  # Convert to seconds
+
+            if diagnosis.name == "AFIB" and duration >= 27: #min 90% overlap
+                filtered_diagnoses.append({"type": "AFIB", "onset": onset, "offset": offset})
+            elif diagnosis.name == "VT" and duration >= 10:
+                filtered_diagnoses.append({"type": "VT>10s", "onset": onset, "offset": offset})
+            elif diagnosis.name == "VT" and duration < 10:
+                filtered_diagnoses.append({"type": "VT<10s", "onset": onset, "offset": offset})
+            elif diagnosis.name == "SVT" and duration >= 27: #min 90% overlap
+                filtered_diagnoses.append({"type": "SVT>30s", "onset": onset, "offset": offset})
+            elif diagnosis.name == "IVR":
+                filtered_diagnoses.append({"type": "IVR", "onset": onset, "offset": offset})
+            elif diagnosis.name == "TRIGEMINY":
+                filtered_diagnoses.append({"type": "TRIGEMINY", "onset": onset, "offset": offset})
+            elif diagnosis.name == "BIGEMINY":
+                filtered_diagnoses.append({"type": "BIGEMINY", "onset": onset, "offset": offset})
+            elif diagnosis.name == "NOISE" and duration >= 27: #min 90% overlap
+                filtered_diagnoses.append({"type": "NOISE", "onset": onset, "offset": offset})
+            elif diagnosis.name == "NSR" and duration >= 27: #min 90% overlap
+                filtered_diagnoses.append({"type": "NSR", "onset": onset, "offset": offset})
+            elif diagnosis.name == "WENCKEBACH" or \
+                    diagnosis.name == "AVB" or \
+                    diagnosis.name == "IVR" or \
+                    diagnosis.name == "AVB_TYPE2" or \
+                    diagnosis.name == "SUDDEN_BRADY":
+                filtered_diagnoses.append({"type": diagnosis.name, "onset": onset, "offset": offset})
+
+
+        for j in range(len(record.diagnosis)):
+            raw_diagnoses.append({"type": record.diagnosis[j].name, "onset": record.diagnosis[j].onset, "offset": record.diagnosis[j].offset})
 
         for j in range(len(record.subdiagnosis)):
-            rawdiagnoses.append({"type":record.subdiagnosis[j].name, "onset": record.subdiagnosis[j].onset, "offset": record.subdiagnosis[j].offset})
+            raw_diagnoses.append({"type": record.subdiagnosis[j].name, "onset": record.subdiagnosis[j].onset, "offset": record.subdiagnosis[j].offset})
+
+        return filtered_diagnoses, raw_diagnoses
+
+        # diagnoses = []
+        # rawdiagnoses = []
+        # for j in range(len(record.diagnosis)):
+        #     append = True
+        #     if record.diagnosis[j].name == "AFIB":
+        #         if record.diagnosis[j].offset - record.diagnosis[j].onset < 25*record.fs:
+        #             append = False
+                
+        #     if record.diagnosis[j].name == "NOISE":
+        #         if record.diagnosis[j].offset - record.diagnosis[j].onset < 25*record.fs:
+        #             append = False
+            
+        #     if record.diagnosis[j].name == "SVT":
+        #         if record.diagnosis[j].offset - record.diagnosis[j].onset < 25*record.fs:
+        #             append = False
+
+        #     if append:
+        #         diagnoses.append({"type":record.diagnosis[j].name, "onset": record.diagnosis[j].onset, "offset": record.diagnosis[j].offset})
+
+        #     rawdiagnoses.append({"type":record.diagnosis[j].name, "onset": record.diagnosis[j].onset, "offset": record.diagnosis[j].offset})
+
+        # for j in range(len(record.subdiagnosis)):
+        #     rawdiagnoses.append({"type":record.subdiagnosis[j].name, "onset": record.subdiagnosis[j].onset, "offset": record.subdiagnosis[j].offset})
+
+        # onlynsr = np.all([d["type"] == "NSR" or d["type"] == "AVB_TYPE1" or d["type"] == "NOISE" for d in diagnoses])
+        # print("Only NSR: ", onlynsr)
+        # if not onlynsr:
+        #     diagnoses = [d for d in diagnoses if d["type"] != "NSR" and d["type"] != "AVB_TYPE1" and d["type"] != "NOISE"]
+        #     rawdiagnoses = [d for d in rawdiagnoses if d["type"] != "NSR" and d["type"] != "AVB_TYPE1" and d["type"] != "NOISE"]
+        #     print(diagnoses)
 
 
-
-        return diagnoses, rawdiagnoses
+        # return diagnoses, rawdiagnoses
 
     def predict(self, sig, fs, meta=None, preprocess=False): 
         
@@ -742,6 +858,38 @@ class ALADINModelForICENTIA(ALADINModel):
 
         return diagnoses
 
+    def predict_batch(self, data):
+        
+        self.calculate_batchsizes(data)
+        #self.cpu_batchsize = 2
+        num_batches = len(data) // self.cpu_batchsize + (1 if len(data) % self.cpu_batchsize > 0 else 0)
+        out = []
+
+
+        for idx, batch in enumerate(data.batch(self.cpu_batchsize)):
+            print(len(batch), "records in batch ", idx)
+            st = time.time()
+
+            processed_batch = self.preprocess_batch_on_cpu(batch, idx)
+            self.analyze_batch(processed_batch, idx)
+
+            self.process_reflection_and_diagnosis_on_cpu(processed_batch, idx)
+
+            for i, record in enumerate(processed_batch):
+                #print("Record: ", record.recordname)
+                diagnoses, raw_diagnoses = self.process_diagnoses(record)
+                print(record.recordname, diagnoses)
+                out.append({"record": record.recordname, "diagnoses": diagnoses, "raw": raw_diagnoses, "arrhythmia": batch[i]["arrhythmia"], "seen_elsewhere": batch[i]["seen_elsewhere"]})
+                data.upload_record(record)
+
+            data.set_as_finished([record.recordname for record in processed_batch])
+            print("Batch ", idx, " processed in ", time.time() - st, " seconds", flush=True)
+
+            if idx>10:
+                print("Stopping after 10 batches for testing purposes")
+                break
+
+        return out
 
     def process_reflection_and_diagnosis_on_cpu(self, recs, batch_index):
         print("Processing reflection and diagnosis on CPU start: ", batch_index, flush=True)
@@ -758,98 +906,92 @@ class ALADINModelForICENTIA(ALADINModel):
 
 
 
-class ECGFounderModel(Model):
+class ECGFounderWrapper(Model):
     def __init__(self, modelpaths):
         super().__init__()
         self.name = "ECGFounder"
         self.save_output = True
+        self.savelogits = True
         self.modelpaths = modelpaths if len(modelpaths) > 0 else ["./benchmark/weights/ECGFounderNet_checkpoint_best.pth"]
-        self.model = ECGFounderBenchmark(self.modelpaths[0])
-
-    def predict(self, sig, fs, meta=None, preprocess=False):
-        return self.model.predict_on_array(sig, fs)
-
-
-class HannunModel(Model):
-    def __init__(self, modelpaths):
-        super().__init__()
-        self.name = "Hannun"
-        self.save_output = True
-        self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/HannunNet_checkpoint_best.pth']
-        self.model = HannunBenchmark(self.modelpaths[0])
-
-    def predict(self, sig, fs, meta=None, preprocess=False):
-        return self.model.predict_on_array(sig, fs)
-
-class HannunModelForCinc(Model):
-    def __init__(self, modelpaths):
-        super().__init__()
-        self.name = "Hannun"
-        self.save_output = True
-        self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/HannunNet_checkpoint_best.pth']
-        self.model = HannunBenchmark(self.modelpaths[0])
-
-    def predict(self, sig, fs, meta=None, preprocess=False):
-
-        recorddiagnoses = self.model.predict_on_array(sig, fs)
-        diagnoses = []
-        totallength = len(sig)/fs
-
-        mapper = {
-            "EAR": "NSR",
-            "JUNCTIONAL": "NSR",
+        self.model = ECGFounderModel(self.modelpaths[0])
+        self.output_to_label = {
+            3: "NSR",
+            5: "AFIB",
+            32: "AFL",
+            38: "EAR",
+            49: "JUNCTIONAL",
+            79: "NSR", #AVB1
+            81: "NSR", #AVB1
+            91: "BIGEMINY",
+            93: "SVT",
+            98: "VT",
+            #118: "WENCKEBACH",
+            121: "SUDDEN_BRADY",
+            126: "JUNCTIONAL",
+            133: "IVR",
+            #134: "AVB_TYPE2",
+            145: "SVT",
+            146: "WENCKEBACH",
+            147: "AVB_TYPE2",
+            148: "SUDDEN_BRADY"
         }
 
-        #print("Record diagnoses: ", recorddiagnoses)
-       
-        for d in recorddiagnoses:
-            type = mapper[d["type"]] if d["type"] in mapper else d["type"]
-            duration = (d["offset"]-d["onset"])
-            diagnoses.append({"type":type, "duration":duration / totallength})
+    def predict(self, sig, fs, meta=None, preprocess=False):
+        preds, logits = self.model.predict_on_array(sig, fs, self.output_to_label)
+        logits = logits[:,[k for k in list(self.output_to_label.keys())]]
 
-        #print("Diagnoses: ", diagnoses)
+        return {"predictions": preds, "logits": logits}, {}
 
-        #sort diagnoses by duration
-        diagnoses = sorted(diagnoses, key=lambda x: x["duration"], reverse=True)
-        per_type = {}
-        for d in diagnoses:
-            if d["type"] in per_type:
-                per_type[d["type"]] += d["duration"]
-            else:
-                per_type[d["type"]] = d["duration"]
-
-        diagnoses = [{"type":k, "duration":v} for k,v in per_type.items()]
-        diagnoses = sorted(diagnoses, key=lambda x: x["duration"], reverse=True)
-
-        
-        if len(diagnoses) == 0:
-            diagnose = "N"
-        elif diagnoses[0]["type"] == "NOISE" and diagnoses[0]["duration"] > 0.5:
-            diagnose = "~"
-        elif diagnoses[0]["type"] == "AFIB/AFL":
-            diagnose = "A"
-        elif np.all([d["type"] == "NSR" or d["type"] == "NOISE" for d in diagnoses]):
-            diagnose = "N"
-        else:
-            diagnose = "O"
-
-        res = [{"type":diagnose}]
-
-        return res
-
-
-class ECGFounderModelForCinc(Model):
+class ECGFounderWrapperForCinc(Model):
     def __init__(self, modelpaths):
         super().__init__()
         self.name = "ECGFounder"
         self.save_output = True
-        #self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/ECGFounderNet_checkpoint_best.pth']
-        self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/1_lead_ECGFounder.pth']
-        self.model = ECGFounderBenchmark(self.modelpaths[0])
-
+        self.savelogits = True
+        self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/ECGFounderNet_checkpoint_best.pth']
+        #self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/1_lead_ECGFounder.pth']
+        self.model = ECGFounderModel(self.modelpaths[0])
+        self.output_to_label = {
+            0: "O", #ABNORMAL ECG
+            6: "O",  # SINUS TACHYCARDIA
+            9: "O",  # PREMATURE VENTRICULAR COMPLEXES
+            # #11: "O", # RIGHT BUNDLE BRANCH BLOCK
+            16: "O", # PREMATURE ATRIAL COMPLEXES
+            19: "O", # PREMATURE SUPRAVENTRICULAR COMPLEXES
+            # #20: "O", # LEFT BUNDLE BRANCH BLOCK
+            # #32: "O", # ATRIAL FLUTTER
+            33: "O", # MARKED SINUS BRADYCARDIA
+            #38: "O", # ECTOPIC ATRIAL RHYTHM
+            #49: "O", # JUNCTIONAL RHYTHM
+            #51: "O", # ABERRANT CONDUCTION
+            #58: "O", # WIDE QRS RHYTHM
+            #59: "O", # WITH PREMATURE VENTRICULAR OR ABERRANTLY CONDUCTED COMPLEXES
+            #65: "O", # BIFASCICULAR BLOCK
+            #69: "O", # PREMATURE ECTOPIC COMPLEXES
+            79: "O", # WITH 1ST DEGREE AV BLOCK
+            81: "O", # WITH PROLONGED AV CONDUCTION
+            #83: "O", # WITH QRS WIDENING AND REPOLARIZATION ABNORMALITY
+            #90: "O", # PREMATURE VENTRICULAR AND FUSION COMPLEXES
+            91: "O", # IN A PATTERN OF BIGEMINY
+            93: "O", # SUPRAVENTRICULAR TACHYCARDIA
+            98: "O", # VENTRICULAR TACHYCARDIA
+            112: "O", # NONSPECIFIC INTRAVENTRICULAR BLOCK
+            121: "O", # WITH COMPLETE HEART BLOCK
+            #126: "O", # JUNCTIONAL BRADYCARDIA
+            133: "O", # IDIOVENTRICULAR RHYTHM
+            145: "O", # SUPRAVENTRICULAR COMPLEXES
+            146: "O", # WITH 2ND DEGREE AV BLOCK MOBITZ I
+            147: "O", # WITH 2:1 AV CONDUCTION
+            148: "O", # WITH AV DISSOCIATION
+            #149: "O", # MULTIFOCAL ATRIAL TACHYCARDIA
+            1: "N",  # SINUS RHYTHM
+            5: "A",  # ATRIAL FIBRILLATION
+            #39: "~"
+        }
+        
     def predict(self, sig, fs, meta=None, preprocess=False):
 
-        recorddiagnoses = self.model.predict_on_array(sig, fs)
+        recorddiagnoses, logits = self.model.predict_on_array(sig, fs, self.output_to_label)
         diagnoses = []
         totallength = len(sig)
 
@@ -878,7 +1020,137 @@ class ECGFounderModelForCinc(Model):
 
         res = [{"type":diagnose}]
 
-        return res
+        logits = logits[:,[k for k in list(self.output_to_label.keys())]]
+
+        return {"predictions": res, "logits": logits}, {}
+
+class HannunWrapper(Model):
+    def __init__(self, modelpaths):
+        super().__init__()
+        self.name = "Hannun"
+        self.savelogits = False
+        self.save_output = True
+        self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/HannunNet_checkpoint_best.pth']
+        self.model = HannunModel(self.modelpaths[0])
+        self.labels = ["NSR","AFIB/AFL","AVB_TYPE2","SUDDEN_BRADY","BIGEMINY","TRIGEMINY","EAR","IVR","JUNCTIONAL","SVT","VT","WENCKEBACH","NOISE"]
+        self.output_to_label = {
+            0: "NSR",
+            1: "AFIB/AFL",
+            2: "AVB_TYPE2",
+            3: "SUDDEN_BRADY",
+            4: "BIGEMINY",
+            5: "TRIGEMINY",
+            6: "EAR",
+            7: "IVR",
+            8: "JUNCTIONAL",
+            9: "SVT",
+            10: "VT",
+            11: "WENCKEBACH",
+            12: "NOISE"
+        }
+
+    def predict(self, sig, fs, meta=None, preprocess=False):
+        preds, logits = self.model.predict_on_array(sig, fs)
+        logits = logits[:,[k for k in list(self.output_to_label.keys())]]
+        print(logits)
+
+        return {"predictions": preds, "logits": logits}, {}
+
+class HannunWrapperForCinc(Model):
+    def __init__(self, modelpaths):
+        super().__init__()
+        self.name = "Hannun"
+        self.save_output = True
+        self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/HannunNet_checkpoint_best.pth']
+        self.model = HannunModel(self.modelpaths[0])
+
+    def predict(self, sig, fs, meta=None, preprocess=False):
+
+        recorddiagnoses = self.model.predict_on_array(sig, fs)
+        diagnoses = []
+        totallength = len(sig)/fs
+
+        mapper = {
+            "EAR": "NSR",
+            "JUNCTIONAL": "NSR",
+        }
+
+        for d in recorddiagnoses:
+            type = mapper[d["type"]] if d["type"] in mapper else d["type"]
+            duration = (d["offset"]-d["onset"])
+            diagnoses.append({"type":type, "duration":duration / totallength})
+
+        #sort diagnoses by duration
+        diagnoses = sorted(diagnoses, key=lambda x: x["duration"], reverse=True)
+        per_type = {}
+        for d in diagnoses:
+            if d["type"] in per_type:
+                per_type[d["type"]] += d["duration"]
+            else:
+                per_type[d["type"]] = d["duration"]
+
+        diagnoses = [{"type":k, "duration":v} for k,v in per_type.items()]
+        diagnoses = sorted(diagnoses, key=lambda x: x["duration"], reverse=True)
+    
+        diagnose = ""
+
+        mostnoise = diagnoses[0]["type"] == "NOISE" and diagnoses[0]["duration"] > 0.5 if len(diagnoses) > 0 else False
+        mostafib = diagnoses[0]["type"] == "AFIB" if len(diagnoses) > 0 else False
+        onlynsr = np.all([d["type"] == "NSR" or d["type"] == "NOISE" for d in diagnoses])
+        #return diagnoses + subdiagnoses
+        
+        if mostnoise:
+            diagnose = "~"
+        elif onlynsr:
+            diagnose = "N"
+        elif mostafib:
+            diagnose = "A"
+        else:
+            diagnose = "O"
+
+        return [{"type":diagnose}], {}
+        
+        # mapper = {
+        #     "EAR": "NSR",
+        #     "JUNCTIONAL": "NSR",
+        # }
+
+        # #print("Record diagnoses: ", recorddiagnoses)
+       
+        # for d in recorddiagnoses:
+        #     type = mapper[d["type"]] if d["type"] in mapper else d["type"]
+        #     duration = (d["offset"]-d["onset"])
+        #     diagnoses.append({"type":type, "duration":duration / totallength})
+
+        # #print("Diagnoses: ", diagnoses)
+
+        # #sort diagnoses by duration
+        # diagnoses = sorted(diagnoses, key=lambda x: x["duration"], reverse=True)
+        # per_type = {}
+        # for d in diagnoses:
+        #     if d["type"] in per_type:
+        #         per_type[d["type"]] += d["duration"]
+        #     else:
+        #         per_type[d["type"]] = d["duration"]
+
+        # diagnoses = [{"type":k, "duration":v} for k,v in per_type.items()]
+        # diagnoses = sorted(diagnoses, key=lambda x: x["duration"], reverse=True)
+
+        
+        # if len(diagnoses) == 0:
+        #     diagnose = "N"
+        # elif diagnoses[0]["type"] == "NOISE" and diagnoses[0]["duration"] > 0.5:
+        #     diagnose = "~"
+        # elif diagnoses[0]["type"] == "AFIB/AFL":
+        #     diagnose = "A"
+        # elif np.all([d["type"] == "NSR" or d["type"] == "NOISE" for d in diagnoses]):
+        #     diagnose = "N"
+        # else:
+        #     diagnose = "O"
+
+        # res = [{"type":diagnose}]
+
+        # return res
         
 if __name__ == "__main__":
 
@@ -915,9 +1187,16 @@ if __name__ == "__main__":
         if method == "ALADIN":
             model = ALADINModel(modelpaths=modelpaths)
         elif method == "ECGFounder":
-            model = ECGFounderModel(modelpaths=modelpaths)
+            data.class_mapper["TRIGEMINY"] = "NSR" #account for the fact that ECGFounder cannot detect trigeminy
+            model = ECGFounderWrapper(modelpaths=modelpaths)
         elif method == "Hannun":
-            model = HannunModel(modelpaths=modelpaths)
+            model = HannunWrapper(modelpaths=modelpaths)
+
+    elif dataset == "INTERNAL":
+        data = InternalData("INTERNAL", asynchronous=True)
+
+        if method == "ALADIN":
+            model = ALADINModel(modelpaths=modelpaths)
 
     elif dataset == "CINC":
         data = CINCData("CINC", asynchronous=True)
@@ -925,9 +1204,9 @@ if __name__ == "__main__":
         if method == 'ALADIN':
             model = ALADINModelForCinc(modelpaths=modelpaths)
         elif method == "ECGFounder":
-            model = ECGFounderModelForCinc(modelpaths=modelpaths)
+            model = ECGFounderWrapperForCinc(modelpaths=modelpaths)
         elif method == "Hannun":
-            model = HannunModelForCinc(modelpaths=modelpaths)
+            model = HannunWrapperForCinc(modelpaths=modelpaths)
 
     elif dataset == "ICENTIA":
         data = ICENTIAData("ICENTIA", asynchronous=True)
@@ -948,12 +1227,25 @@ if __name__ == "__main__":
         # elif method == "Hannun":
         #     model = HannunModelForCinc(modelpaths=modelpaths)
 
+    elif dataset == "ICENTIA-SAMPLE":
+        #check gabor data
+        data = ICENTIASAMPLEData("ICENTIA", 
+            sample="/home/lukas/UU/ASRA/ALADINv2/traces_matt_v2/mapping.json", 
+            annfile="/home/lukas/UU/ASRA/ALADINv2/paper/consensus.ods",
+            allfile="/home/lukas/UU/ASRA/ALADINv2/data/ICENTIA/samples_xxl.json",
+            asynchronous=True)
+        #data = ICENTIASAMPLEData("ICENTIA", sample="/home/lukas/UU/ASRA/ALADINv2/traces_matt_v2/mapping.json", annfile="/home/lukas/UU/ASRA/ALADINv2/traces_matt_v2/ECG_annotation_lukas.xlsx",asynchronous=True)
+
+        if method == "ALADIN":
+            model = ALADINModelForICENTIA(modelpaths=modelpaths)
+
     resultsfolder = os.environ.get('benchmark_results')
     if not os.path.exists(resultsfolder+"/diagnosis"):
         os.makedirs(resultsfolder+"/diagnosis")
 
     exp = DiagnosticBenchmark(data, model)
     exp.run_batch(overwrite=overwrite)
+    #exp.run(overwrite=overwrite)
 
     #experiment1 = PerClassBenchmark(stanford, nnunet, trim=1)
     #experiment1.run()

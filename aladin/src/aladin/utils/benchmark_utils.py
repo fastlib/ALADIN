@@ -11,6 +11,8 @@ import glob
 import ast
 import gzip
 from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import balanced_accuracy_score
+import matplotlib.pyplot as plt
 
 from google.cloud import storage
 from google.oauth2 import service_account
@@ -172,7 +174,161 @@ class BaseDataLoader:
     def __iter__(self):
         for key in self.objs:
             yield key
-    
+
+class InternalData(BaseDataLoader):
+    def __init__(self, folder, asynchronous=False, fraction=1.0):
+        super().__init__(folder, asynchronous, fraction)
+        self.name = "INTERNAL"
+        self.annotation_data = {}
+        self.get_annotation_data()
+        self.set_class_mapper()
+        self.init_objects()
+
+    def load_arrhythmia_csv(self, path):
+        df = {"Major":[],"Minor":[],"Name":[], "Abreviation":[],"Synonyms":[]}
+
+        with open(path, "r") as f:
+            for line in f:
+                row = line.strip()
+                cells = row.split(",")
+                major = cells[0]
+                minor = cells[1]
+                name = cells[2]
+                abbr = cells[3]
+                df["Major"].append(major)
+                df["Minor"].append(minor)
+                df["Name"].append(name.strip().lower())
+                df["Abreviation"].append(abbr)
+                
+                synonyms = cells[2:]
+                synonymsstripped = []
+                for synonym in synonyms:
+                    stripped = synonym.strip().lower()
+                    if stripped != "":
+                        synonymsstripped.append(stripped)
+                df["Synonyms"].append(synonymsstripped)
+
+        df = pd.DataFrame(df)
+        self.arrhythmia_df = df
+
+    def get_annotation_data(self):
+        annfile = self.basefolder+'/VALIDATION/val_matched.pkl'
+        self.load_arrhythmia_csv(self.basefolder+'/arrhythmia_classes.csv')
+        print(self.arrhythmia_df)
+
+        dat = pickle.load(open(annfile, 'rb'))
+
+        for d in dat:
+            record_id = "record_" + str(d['record'])
+            #print(d)
+            labels = d['fulllabel'].split(",")
+            self.annotation_data[record_id] = []
+            for label in labels:
+                label = label.strip().lower()
+                #iterate dataframe
+                for i, row in self.arrhythmia_df.iterrows():
+                    if label in row["Synonyms"]:
+                        self.annotation_data[record_id].append(row["Abreviation"])
+                        break
+                #else:
+                #    print(label)
+                    
+            print(self.annotation_data[record_id])
+
+    def init_objects(self):
+        annfile = self.basefolder+'/VALIDATION/val_matched.pkl'
+        dat = pickle.load(open(annfile, 'rb'))
+
+        self.objs = {}
+
+        for d in dat:
+            record_id = "record_" + str(d['record'])
+            labels = self.annotation_data[record_id]
+            labelregions = []
+            ecg = d['signal']
+
+            #print(labels)
+            if not np.any([label in labels for label in self.classes]):
+                continue
+
+            for label in labels:
+                if label in self.class_mapper:
+                    labelregions.append([self.class_mapper[label], 0, len(ecg)])
+
+
+            self.objs[record_id] = {
+                "record": record_id, 
+                "path": "",
+                "initialized": True,
+                "signal": ecg,  
+                "kappa": 0,
+                "fs":204.8, 
+                "p": None,
+                "qrs": None, 
+                "qrsabnorm": None,
+                "t": None,
+                "p_binary": None,
+                "qrs_binary": None,
+                "qrsabnorm_binary": None,
+                "t_binary": None,
+                "labelregions": labelregions
+            }
+
+        print("Initialized objects for INTERNAL")
+        print("Number of objects:", len(self.objs))
+
+    def get_data(self, recordname):
+        
+        obj = self.objs[recordname]
+
+        if obj["initialized"]:
+            return obj
+
+    def get_data_batch(self, keys):
+        return [self.objs[key] for key in keys if key in self.objs]
+
+    def set_class_mapper(self):
+        self.classes = [
+            "SR",
+            "SB",
+            "AFIB",
+            "AFL",
+            "AFIBAFL",
+            "AVB II",
+            "CHB",
+            "AVD",
+            "VT",
+            "WENCK",
+            "SVT",
+            "JR",
+            "PVC",
+            "TRI",
+            "BIG",
+            "AR",
+            "AER",
+            "PChange"
+        ]
+        self.class_mapper = {c: c for c in self.classes}
+        self.class_mapper["AFIB"] = "AFIB/AFL"
+        self.class_mapper["AFL"] = "AFIB/AFL"
+        self.class_mapper["AFIBAFL"] = "AFIB/AFL"
+        self.class_mapper["AVB_TYPE2"] = "AVB"
+        self.class_mapper["SUDDEN_BRADY"] = "AVB"
+        self.class_mapper["AVB II"] = "AVB"
+        self.class_mapper["CHB"] = "AVB"
+        self.class_mapper["AVD"] = "AVB"
+        self.class_mapper["SR"] = "NSR"
+        self.class_mapper["SB"] = "NSR"
+        self.class_mapper["ST"] = "NSR"
+        self.class_mapper["WENCK"] = "WENCKEBACH"
+        self.class_mapper["JR"] = "JUNCTIONAL"
+        self.class_mapper["AJR"] = "JUNCTIONAL"
+        self.class_mapper["TRI"] = "TRIGEMINY"
+        self.class_mapper["BIG"] = "BIGEMINY"
+        self.class_mapper["AR"] = "EAR"
+        self.class_mapper["AER"] = "EAR"
+        self.class_mapper["PChange"] = "EAR"
+
 class StanfordData(BaseDataLoader):
     def __init__(self, folder, asynchronous=False, fraction=1.0):
         super().__init__(folder, asynchronous, fraction)
@@ -289,6 +445,7 @@ class StanfordData(BaseDataLoader):
         self.class_mapper["AVB_TYPE1"] = "NSR"
         self.class_mapper["BRADYCARDIA"] = "NSR"
         self.class_mapper["TACHYCARDIA"] = "NSR"
+        self.class_mapper["AIVR"] = "IVR"
 
 class CINCData(BaseDataLoader):
     def __init__(self, folder, asynchronous=False, fraction=1.0):
@@ -303,6 +460,8 @@ class CINCData(BaseDataLoader):
 
     def get_annotation_data(self):
         self.annotation_data = pd.read_csv(self.basefolder+'/'+self.folder+'/REFERENCE-v3.csv', header=None, names=["Recording", "Label"])
+        #self.annotation_data = self.annotation_data[(self.annotation_data["Label"] == "N") | (self.annotation_data["Label"] == "A")]
+        #print(len(self.annotation_data))
 
     def init_objects(self):
         paths = np.loadtxt(self.basefolder+'/'+self.folder+'/RECORDS', dtype=str)
@@ -314,6 +473,8 @@ class CINCData(BaseDataLoader):
         for path in tqdm(paths, desc="Initializing CINC records"):
             recordname = path
             recordname.replace("/", "_")
+            if self.annotation_data[self.annotation_data["Recording"] == recordname].empty:
+                continue
             obj = {"record": recordname, "path": path,"initialized": False}
             self.objs[recordname] = obj
 
@@ -455,7 +616,6 @@ class ICENTIAData(BaseDataLoader):
         self.init_objects()
         self.table_id = "benchmarks.ICENTIA-Cleaned"
 
-
     def init_objects(self):
         recordname = "p0_p00000_p00000_s00"
         self.objs[recordname] = {"record": recordname, "path": "p00/p00000/p00000_s00", "initialized": False}
@@ -568,7 +728,7 @@ class ICENTIAData(BaseDataLoader):
             "initialized": True,
             "signal": ecg,  
             "kappa": 0,
-            "fs":300, 
+            "fs":250, 
             "p": None,
             "qrs": None, 
             "qrsabnorm": None,
@@ -896,6 +1056,275 @@ class ICENTIAData(BaseDataLoader):
     def set_class_mapper(self):
         self.classes = ["NSR", "AFIB/AFL", "AVB", "BIGEMINY", "TRIGEMINY", "VT", "PVC", "SVPB", "NOISE"]
         self.class_mapper = {c: c for c in self.classes}
+
+
+class ICENTIASAMPLEData(ICENTIAData):
+    def __init__(self, folder, sample, annfile, allfile, asynchronous=False, fraction=1.0):
+        self.folder = folder
+        self.classes = []
+        self.class_mapper = {}
+        self.case_mapper = {}
+        self.objs = {}
+        self.asynchronous = asynchronous
+        self.fraction = fraction
+        self.sample = sample
+        self.annfile = annfile
+        self.allfile = allfile
+        self.basefolder = os.environ.get('benchmark_data')
+        self.name = "ICENTIA"
+        self.boto_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+        self.num_workers = 16
+        #self.set_class_mapper()
+        self.set_class_mapper_triage()
+        self.annotation_data = {}
+        self.credentials = service_account.Credentials.from_service_account_file(self.basefolder+"/aladin-466917-e056430d6165.json")
+        self.bigquery_client = bigquery.Client(credentials=self.credentials, project=self.credentials.project_id)
+        self.bucket = storage.Client(credentials=self.credentials).get_bucket("arts-aladin")
+        self.get_annotation_data()
+        self.init_objects()
+        self.table_id = "benchmarks.ICENTIA-Cleaned"
+
+    def init_objects(self):
+        
+        with open(self.sample, 'r') as f:    
+            records = json.load(f)
+
+        with open(self.allfile, 'r') as f:
+            all_results_per_arrhythmia = json.load(f)
+
+        all_records = []
+        for ID, rec in records.items():
+            # if rec["type"] == "NSR" or rec["type"] == "NOISE":
+            #     continue
+            # if not rec["patient"] == "p09998":
+            #     continue
+            rec["arrhythmia"] = rec["type"]
+            rec["recordname"] = "record_"+str(ID)
+            if rec["recordname"] in self.annotation_data:
+                all_records.append(rec)
+
+        print("Total number of records: ", len(all_records))
+
+        for record in tqdm(all_records, desc="Initializing ICENTIA records"):
+            path = record["path"]
+            recordname = path.split("/")[-1].split(".")[0]
+            patient = recordname
+            patient = patient.split("_")[0]
+            onset = record["onset"]
+            offset = record["offset"]
+            #recordname = recordname+":" + str(onset) + "-" + str(offset)
+            recordname = record["recordname"]
+
+            with_same_arrhythmia = all_results_per_arrhythmia[record["arrhythmia"]]
+            same_patient = [r for r in with_same_arrhythmia if r["patient"] == patient]
+            seen_elsewhere = int(np.any([c["aladin"] for c in same_patient if c["path"] != path]))
+
+            obj = {"record": recordname, "path": path, "onset":onset, "offset":offset, "arrhythmia": record["arrhythmia"], "seen_by_human": record["human"], "seen_elsewhere":seen_elsewhere, "initialized": False}
+            self.objs[recordname] = obj
+
+        self.get_data(list(self.objs.keys())[0])  # Initialize the first record to set fs and other parameters
+        print("Initialized ", len(self.objs), " records from ICENTIA-2 dataset")
+
+    def get_annotation_data(self):
+
+        #read excel file
+        annfile = self.annfile
+        if not os.path.exists(annfile):
+            print("Annotation file not found:", annfile)
+            return
+
+        if annfile.endswith('.xlsx'):
+            dat = pd.read_excel(annfile, engine='openpyxl', sheet_name=0, skiprows=3, names=["ID","Label1","Label2","Label3","Comment"]).to_dict(orient='records')
+        elif annfile.endswith('.json'):
+            dat = pd.read_json(annfile).to_dict(orient='records')
+        elif annfile.endswith('.csv'):
+            dat = pd.read_csv(annfile).to_dict(orient='records')
+        elif annfile.endswith('.ods'):
+            dat = pd.read_excel(annfile, engine='odf', sheet_name=0, skiprows=0, names=["ID","Label1"], usecols="A,G").to_dict(orient='records')
+
+        for ann in dat:
+            recordname = "record_" + str(int(ann["ID"]))
+            
+            if "Label1" in ann and not pd.isna(ann["Label1"]):
+                label = ann["Label1"]
+                if label == "??":
+                    continue
+                self.annotation_data[recordname] = []
+                label = label.replace(" ","").strip()
+                labels = label.split(",")
+                for l in labels:
+                    l = l.strip()
+                    if l not in self.annotation_data[recordname]:
+                        self.annotation_data[recordname].append(l)
+
+            if "Label2" in ann and not pd.isna(ann["Label2"]):
+                label = ann["Label2"]
+                label = label.replace(" ","").strip().lower()
+                self.annotation_data[recordname].append(label)
+
+            if "Label3" in ann and not pd.isna(ann["Label3"]):
+                label = ann["Label3"]
+                label = label.replace(" ","").strip().lower()
+                self.annotation_data[recordname].append(label)
+
+        print(len(self.annotation_data), "records with annotations found in the annotation file.")
+        
+    def upload_record(self, record):
+        return
+
+    def set_as_finished(self, keys):
+        return
+
+    def get_data(self, recordname):
+
+        obj = self.objs[recordname]
+
+        if obj["initialized"]:
+            return obj
+
+        local_file_path = os.path.join(self.basefolder, self.folder, obj["path"])
+
+        rec = wfdb.rdrecord(local_file_path)
+        ecg = rec.p_signal[:,0]
+        midpoint = (int(obj["onset"]) + int(obj["offset"])) // 2
+        window = rec.fs * 30  # 30 seconds window
+        obj["window_start"] = max(0, midpoint - window // 2)
+        obj["window_end"] = min(len(ecg), midpoint + window // 2)
+        ecg = ecg[obj["window_start"]:obj["window_end"]]
+
+        labels = self.annotation_data[obj["record"]]
+        labelregions = []
+        for label in labels:
+            labelregions.append([label, 0, len(ecg)])
+
+        self.objs[recordname] = {
+            "record": recordname, 
+            "path": obj["path"],
+            "onset": obj["onset"],
+            "offset": obj["offset"],
+            "arrhythmia": obj["arrhythmia"],
+            "seen_by_human": obj["seen_by_human"],
+            "seen_elsewhere": obj["seen_elsewhere"],
+            "initialized": True,
+            "signal": ecg,  
+            "kappa": 0,
+            "fs":rec.fs, 
+            "p": None,
+            "qrs": None, 
+            "qrsabnorm": None,
+            "t": None,
+            "p_binary": None,
+            "qrs_binary": None,
+            "qrsabnorm_binary": None,
+            "t_binary": None,
+            "labelregions": labelregions,
+            "false_positive": not obj["seen_by_human"],
+            "segment": [obj["onset"], obj["offset"]]
+        }
+
+    def get_data_batch(self, keys):
+
+        objs = []
+        
+        for key in keys:
+
+            obj = self.objs[key]
+
+            local_file_path = os.path.join(self.basefolder, self.folder, obj["path"])
+
+            midpoint = (int(obj["onset"]) + int(obj["offset"])) // 2
+            window = 250 * 30  # 30 seconds window
+            header = wfdb.rdheader(local_file_path)
+            size = header.sig_len
+            obj["window_start"] = max(0, midpoint - window // 2)
+            obj["window_end"] = min(size, midpoint + window // 2)
+            rec = wfdb.rdrecord(local_file_path, sampfrom=obj["window_start"], sampto=obj["window_end"])
+            ecg = rec.p_signal[:,0]
+            
+            labels = self.annotation_data[obj["record"]]
+            labelregions = []
+            for label in labels:
+                labelregions.append([label, 0, len(ecg)])
+
+            self.objs[key] = {
+                "record": obj["record"], 
+                "path": obj["path"],
+                "initialized": True,
+                "arrhythmia": obj["arrhythmia"],
+                "seen_elsewhere": obj["seen_elsewhere"],
+                "signal": ecg,  
+                "kappa": 0,
+                "fs":rec.fs, 
+                "p": None,
+                "qrs": None, 
+                "qrsabnorm": None,
+                "t": None,
+                "p_binary": None,
+                "qrs_binary": None,
+                "qrsabnorm_binary": None,
+                "t_binary": None,
+                "labelregions": labelregions,
+                "false_positive": not obj["seen_by_human"],
+                "segment": [obj["onset"], obj["offset"]]
+            }
+            #self.objs[key]["labelregions"] = [[label, 0, len(ecg)]]
+
+        return [self.objs[key] for key in keys if key in self.objs]
+
+    def batch(self, batch_size=32):
+        keys = list(self.objs.keys())
+        for i in range(0, len(keys), batch_size):
+            if i + batch_size > len(keys):
+                batch_size = len(keys) - i
+            batch_keys = keys[i:i + batch_size]
+            yield self.get_data_batch(batch_keys)
+
+    def set_class_mapper_triage(self):
+        self.classes = ["NORMAL","NONCRITICAL","CRITICAL"]
+        self.class_mapper["AFIB"] = "CRITICAL"
+        self.class_mapper["AFL"] = "CRITICAL"
+        self.class_mapper["SUDDEN_BRADY"] = "CRITICAL"
+        self.class_mapper["CHB"] = "CRITICAL"
+        self.class_mapper["SVT>30s"] = "CRITICAL"
+        self.class_mapper["VT>10s"] = "CRITICAL"
+
+        self.class_mapper["VT<10s"] = "NONCRITICAL"
+        self.class_mapper["AVB_TYPE2"] = "NONCRITICAL"
+        self.class_mapper["WENCKEBACH"] = "NONCRITICAL"
+        self.class_mapper["BIGEMINY"] = "NONCRITICAL"
+        self.class_mapper["TRIGEMINY"] = "NONCRITICAL"
+        self.class_mapper["AIVR"] = "NONCRITICAL"
+        self.class_mapper["IVR"] = "NONCRITICAL"
+
+        self.class_mapper["NSR"] = "NORMAL"
+        self.class_mapper["NOISE"] = "NORMAL"
+        self.class_mapper["AVB_TYPE1"] = "NONCRITICAL"
+        self.class_mapper["BRADYCARDIA"] = "NONCRITICAL"
+        self.class_mapper["TACHYCARDIA"] = "NONCRITICAL"
+
+        self.case_mapper = self.class_mapper
+
+
+    def set_class_mapper(self):
+        self.classes = ["AFIB", "AFL", "AVB_TYPE2", "BIGEMINY", "SUDDEN_BRADY", "IVR", "NOISE", "NSR", "SVT>30s", "TRIGEMINY", "VT<10s", "VT>10s", "WENCKEBACH"]
+        self.class_mapper = {c: c for c in self.classes}
+        self.class_mapper["AFIB"] = "AFIB"
+        self.class_mapper["AFL"] = "AFIB"
+        self.class_mapper["AVB_TYPE1"] = "NSR"
+        self.class_mapper["BRADYCARDIA"] = "NSR"
+        self.class_mapper["TACHYCARDIA"] = "NSR"
+        self.class_mapper["AVB2"] = "AVB_TYPE2"
+        self.class_mapper["CHB"] = "SUDDEN_BRADY"
+        self.class_mapper["SVT"] = "SVT>30s"
+        self.class_mapper["Wenckebach"] = "WENCKEBACH"
+        # self.class_mapper["WENCEKBACH"] = "AVB"
+        # self.class_mapper["AVB_TYPE2"] = "AVB"
+        self.class_mapper["BIG"] = "BIGEMINY"
+        self.class_mapper["TRI"] = "TRIGEMINY"
+        self.class_mapper["AIVR"] = "IVR"
+
+        self.case_mapper = {c: [c] for c in self.classes}
+        self.case_mapper["IVR"].append("VT<10s") #we also accept VT<10s when we inspect IVR
 
 class Data:
 
@@ -2000,7 +2429,7 @@ class DelineationBenchmark(BaseBenchmark):
 
         preds = self.model.predict_batch(self.data)
 
-        print(preds)
+        #print(preds)
 
         for recordname in list(preds.keys()):
             pred = preds[recordname]
@@ -2039,12 +2468,12 @@ class DelineationBenchmark(BaseBenchmark):
             if self.model.predict_abnorm:
                 qrs = self.merge_qrs(qrs, qrs_abnorm)
 
-            print(recordname)
+            #print(recordname)
             self.get_performance(obj, p, obj["p"], obj["p_binary"], fs, "p", isbinary=self.model.output_binary, record=recordname)
             self.get_performance(obj, qrs, obj["qrs"], obj["qrs_binary"], fs, "qrs", isbinary=self.model.output_binary, record=recordname)
             self.get_performance(obj, t, obj["t"], obj["t_binary"], fs, "t", isbinary=self.model.output_binary, record=recordname)
 
-        print(self.macros["p_onset"]["tp"], self.macros["p_onset"]["fp"], self.macros["p_onset"]["fn"])
+        #print(self.macros["p_onset"]["tp"], self.macros["p_onset"]["fp"], self.macros["p_onset"]["fn"])
         self.aggregate()
         self.save_macro_to_csv()
         self.save_macro_to_json()
@@ -2822,6 +3251,61 @@ class PerClassBenchmark(DelineationBenchmark):
 
         return results
 
+    def run_batch(self):
+
+        results = {}
+
+        preds = self.model.predict_batch(self.data)
+
+        #print(preds)
+
+        for recordname in list(preds.keys()):
+            pred = preds[recordname]
+            obj = self.data[recordname]
+            signal = obj["signal"]
+            fs = obj["fs"]
+            if self.model.savelogits:
+                #check if function returns one or five values
+                if pred is None:
+                    continue
+
+                if self.model.predict_abnorm:
+                    p, qrs, qrs_abnorm, t, hasafib = pred["p"], pred["qrs"], pred["qrs_abnorm"], pred["t"], pred["hasafib"]
+                else:
+                    qrs_abnorm = None
+                    hasafib = None
+                    p, qrs, t = pred["p"], pred["qrs"], pred["t"]
+            else:
+                if pred is None:
+                    continue
+
+                if self.model.predict_abnorm:
+                    p, qrs, qrs_abnorm, t, hasafib = pred["p"], pred["qrs"], pred["qrs_abnorm"], pred["t"], pred["hasafib"]
+                else:
+                    qrs_abnorm = None
+                    hasafib = None
+                    p, qrs, t = pred["p"], pred["qrs"], pred["t"]
+
+            self.trimleft = self.trim*fs
+            self.trimright = len(signal)-self.trim*fs
+
+            if self.model.predict_abnorm:
+                qrs = self.merge_qrs(qrs, qrs_abnorm)
+
+            #print(recordname)
+            self.get_performance(obj, p, obj["p"], obj["p_binary"], fs, "p", isbinary=self.model.output_binary, record=recordname)
+            self.get_performance(obj, qrs, obj["qrs"], obj["qrs_binary"], fs, "qrs", isbinary=self.model.output_binary, record=recordname)
+            self.get_performance(obj, t, obj["t"], obj["t_binary"], fs, "t", isbinary=self.model.output_binary, record=recordname)
+
+        
+        basefolder = os.environ.get('benchmark_results')
+        self.aggregate()
+        self.report()
+        self.save_preds(basefolder+"/delineation/preds_"+self.model.name+".pkl")
+        self.save_micro_to_csv(basefolder+"/delineation/micros_"+self.model.name+"_"+self.data.get_name()+".csv")
+
+        return results
+
     def save_logits(self, obj, logits, fs):
         trim = self.trim*fs
         labelregions = obj["labelregions"]
@@ -3291,8 +3775,8 @@ class PerArrhythmiaBenchmark(PerClassBenchmark):
         for i, rec in enumerate(self.arrhythmias):
             if not self.arrhythmias[rec]["matched"]:
                 notmatched += 1
-                #print("start:|",data[rec]['diagnosis'], "|end")
-        #print("Not matched: ", notmatched)
+                print("start:|",data[rec]['diagnosis'], "|end")
+        print("Not matched: ", notmatched)
 
     def get_performance(self, obj, binary, true, true_binary, fs, key, isbinary=False, record=""):
         if isbinary:
@@ -3451,22 +3935,35 @@ class PerArrhythmiaBenchmark(PerClassBenchmark):
 
 
 class DiagnosticBenchmark(BaseBenchmark):
-    def __init__(self, data, model):
+    def __init__(self, data, models):
 
-        super().__init__(data, model, 0)
-        self.model = model
+        if not isinstance(models, list):
+            models = [models]
+
+        super().__init__(data, models[0], 0)
+        self.models = models
 
         self.initialize()
 
     def initialize(self):
         self.set_predictions = {}
-        self.set_predictions[self.model.name] = []
+        for model in self.models:
+            self.set_predictions[model.name] = []
+            if not hasattr(model, "save_output"):
+                model.save_output = False
+            if not hasattr(model, "savelogits"):
+                model.savelogits = False
+            if not hasattr(model, "modelpaths"):
+                model.modelpaths = []
+            if not hasattr(model, "name"):
+                model.name = "unknown_model"
         
     def run(self, overwrite=False):
         
         #check if a csv exists
         basefolder = os.environ.get('benchmark_results')
-        resfiles = glob.glob(f"{basefolder}/diagnosis/set_level_diagnosis*_{self.model.name}.csv")
+        modelnames = ("_".join([model.name for model in self.models]))
+        resfiles = glob.glob(f"{basefolder}/diagnosis/set_level_diagnosis*_{modelnames}.csv")
         filename = ""
         if len(resfiles) == 0 or overwrite:
 
@@ -3474,19 +3971,36 @@ class DiagnosticBenchmark(BaseBenchmark):
             now = datetime.now()
             dt_string = now.strftime("%d-%m-%Y_%H-%M-%S")
 
-            if self.model.save_output:
+            if np.any([model.save_output for model in self.models]):
                 filename = self.create_json()
 
-            for record in tqdm(self.data):
+            for i, record in tqdm(enumerate(self.data)):
+                self.data.get_data(record)
                 obj = self.data[record]
                 signal = obj["signal"]
                 fs = obj["fs"]
                 true_episodes = obj["labelregions"]
-                pred = self.model.predict(signal, fs, meta=obj)
-                self.get_performance(obj, self.model, pred, true_episodes, fs, record=record)
+                for model in self.models:
+                    if model.name not in self.set_predictions:
+                        self.set_predictions[model.name] = []
+                    pred, rest = model.predict(signal, fs, meta=obj)
+                    self.get_performance(obj, model, pred, true_episodes, fs, record=record)
 
-                if self.model.save_output:
-                    self.append_to_json(filename, self.set_predictions[self.model.name][-1].values(), pred)
+                    for k,v in rest.items():
+                        self.set_predictions[model.name][-1][k] = v
+
+                    if model.save_output:
+                        self.append_to_json(filename, model.name, [self.set_predictions[model.name][-1]], rest)
+                
+                #if i > 10:
+                #    break
+
+        self.aggregate()
+        self.report()
+
+        if np.any([m.savelogits for m in self.models]):
+            self.find_and_apply_optimal_threshold()
+            self.append_to_json(filename, model.name, self.set_predictions[model.name], {})
 
         self.aggregate()
         self.report()
@@ -3495,7 +4009,8 @@ class DiagnosticBenchmark(BaseBenchmark):
         
         #check if a csv exists
         basefolder = os.environ.get('benchmark_results')
-        resfiles = glob.glob(f"{basefolder}/diagnosis/set_level_diagnosis*_{self.model.name}.csv")
+        modelnames = ("_".join([model.name for model in self.models]))
+        resfiles = glob.glob(f"{basefolder}/diagnosis/set_level_diagnosis*_{modelnames}.csv")
         filename = ""
 
         if len(resfiles) == 0 or overwrite:
@@ -3504,59 +4019,74 @@ class DiagnosticBenchmark(BaseBenchmark):
             now = datetime.now()
             dt_string = now.strftime("%d-%m-%Y_%H-%M-%S")
 
-            if self.model.save_output:
+            if np.any([model.save_output for model in self.models]):
                 filename = self.create_json()
 
-            preds = self.model.predict_batch(self.data)
+            for model in self.models:
+                if model.name not in self.set_predictions:
+                    self.set_predictions[model.name] = []
+                
+                preds = model.predict_batch(self.data)
 
+                for pred in preds:
+                    print(pred["record"])
+                    obj = self.data[pred["record"]]
+                    true_episodes = obj["labelregions"]
+                    fs = obj["fs"]
+                    self.get_performance(obj, model, pred["diagnoses"], true_episodes, fs, record=pred["record"])
+                    del pred["diagnoses"]
+                    del pred["record"]
+                    
+                #print(preds)
 
-            for pred in preds:
-                obj = self.data[pred["record"]]
-                true_episodes = obj["labelregions"]
-                fs = obj["fs"]
-                self.get_performance(obj, self.model, pred["diagnoses"], true_episodes, fs, record=pred["record"])
-                del pred["diagnoses"]
-                del pred["record"]
+                if model.save_output:
+                    self.append_to_json(filename, model.name, self.set_predictions[model.name], preds)
 
-            print(preds)
+        self.aggregate()
+        self.report()
 
-            if self.model.save_output:
-                self.append_to_json(filename, self.set_predictions[self.model.name], preds)
+        if np.any([m.savelogits for m in self.models]):
+            self.find_and_apply_optimal_threshold()
+            self.append_to_json(filename, model.name, self.set_predictions[model.name], {})
 
         self.aggregate()
         self.report()
 
     def get_performance(self, obj, model, predictions, true, fs, record=""):
 
-        mapper = {
-            "AVB_TYPE1": "NSR",
-            "AFIB": "AFIB/AFL",
-            "AFL": "AFIB/AFL",
-            "BRADYCARDIA": "NSR",
-            "TACHYCARDIA": "NSR"
-        }
-
         set_level_trues = [d[0] for d in true]
-        set_level_trues = [mapper[d] if d in mapper else d for d in set_level_trues]
+        set_level_trues = [self.data.class_mapper[d] if d in self.data.class_mapper else d for d in set_level_trues]
 
         if predictions != None:
-            set_level_predictions = [d["type"] for d in predictions]
-            set_level_predictions = [mapper[d] if d in mapper else d for d in set_level_predictions]
+            if model.savelogits and "logits" in predictions:
+                set_level_logits = predictions["logits"]
+                #turn into list of lists
+                set_level_logits = [[float(x) for x in logits] for logits in set_level_logits]
+                set_level_predictions = [d["type"] for d in predictions["predictions"]] 
+            else:
+                set_level_logits = []
+                set_level_predictions = [d["type"] for d in predictions]
+
+            set_level_predictions = [self.data.class_mapper[d] if d in self.data.class_mapper else d for d in set_level_predictions]
+            #if "arrhythmia" in obj:
+            #    set_level_predictions = [d for d in set_level_predictions if d == self.data.class_mapper[obj["arrhythmia"]]]
         else:
-            set_level_predictions = []
+            set_level_logits = []
+            set_level_predictions = ["NA"]
 
         row = {
             "record": record,
             "true": set_level_trues,
-            "predicted": set_level_predictions
+            "predicted": set_level_predictions,
+            "logits": set_level_logits
         }
 
-        self.set_predictions[self.model.name].append(row)
+        self.set_predictions[model.name].append(row)
 
     def ci_interval(self, values, ci=95):
             return np.nanmean(values), np.nanpercentile(values, (100 - ci) / 2), np.nanpercentile(values, 100 - (100 - ci) / 2)
-    
-    def aggregate(self, filename="", bootstrap=False, usecache=False, triage=False):
+
+    def aggregate(self, filename="", bootstrap=False, usecache=False, triage=False, sampled=False):
 
         if filename != "":
             with open(filename, 'r') as f:
@@ -3570,9 +4100,10 @@ class DiagnosticBenchmark(BaseBenchmark):
                 "modelpaths": [m["modelpaths"] for m in data["results"]],
                 #"type": (data["modelpaths"][0].split("_")[0] + data["modelpaths"][0].split("1d")[1]) if len(data["modelpaths"]) > 0 else ""
             }
-        elif self.model.save_output:
+        elif np.any([model.save_output for model in self.models]):
             basefolder = os.environ.get('benchmark_results')
-            files = glob.glob(f"{basefolder}/diagnosis/set_level_diagnosis*_{self.model.name}_{self.data.name}_*.json")
+            modelnames = ("_".join([model.name for model in self.models]))
+            files = glob.glob(f"{basefolder}/diagnosis/set_level_diagnosis*_{modelnames}_{self.data.name}_*.json")
             files.sort(reverse=True)
 
             if len(files) > 1:
@@ -3585,16 +4116,18 @@ class DiagnosticBenchmark(BaseBenchmark):
                 data = json.load(f)
         else:
             resobj = []
-            resobj.append({"model":self.model.name, "results": self.set_predictions[self.model.name]})
+            for model in self.models:
+                resobj.append({"model": model.name, "results": self.set_predictions[model.name]})
 
             data = {"results": resobj}
             meta = {
-                "models": [self.model.name], 
-                "modelpaths": [self.model.modelpaths if hasattr(self.model, "modelpaths") else []],
+                "models": [model.name for model in self.models], 
+                "modelpaths": [model.modelpaths if hasattr(model, "modelpaths") else [] for model in self.models],
                 #"type": (self.model.modelpaths[0].split("1d")[1]) if hasattr(self.model, "modelpaths") else ""
             }
 
         results = data["results"]
+        #print(results)
         if triage:
             class_mapper = {
                     "AFIB": "NOTACUTE",
@@ -3613,7 +4146,11 @@ class DiagnosticBenchmark(BaseBenchmark):
                     "NSR": "NORMAL",
                     "SVT": "ACUTE",
                     "VT": "ACUTE",
-                    "WENCKEBACH": "SUBACUTE"
+                    "WENCKEBACH": "SUBACUTE",
+                    "N": "NORMAL",
+                    "A": "NOTACUTE",
+                    "O": "NOTACUTE",
+                    "~": "NORMAL"
                 }
             arrhythmias = ["NORMAL", "NOTACUTE", "SUBACUTE", "ACUTE"]
         else:
@@ -3631,27 +4168,82 @@ class DiagnosticBenchmark(BaseBenchmark):
             modelresults = results[m]["results"]
             y_true = []
             y_pred = []
+            #print(len(modelresults), "records for model", results[m]["model"])
             for i in range(len(modelresults)):
-                one_hot = np.zeros(len(arrhythmias))
+                one_hot = np.zeros(len(arrhythmias)+1)
                 if triage:
                     predicted_scores = [arrhythmias.index(class_mapper[d]) for d in modelresults[i]["predicted"] if d in class_mapper]
                     if len(predicted_scores) == 0:
                         predicted_scores = [0]
                     worst_score = np.max(predicted_scores)
                     one_hot[worst_score] = 1
+                elif sampled:
+                    #the arrhythmia we are interested in 
+                    focused_arrhythmia = modelresults[i]["arrhythmia"]
+                    #the arrhythmia we will accept to be correct also
+                    accepted_arrhythmia = self.data.case_mapper[focused_arrhythmia] if focused_arrhythmia in self.data.case_mapper else [focused_arrhythmia]
+
+                    #get the arrhythmias from the model results
+                    if "raw" in modelresults[i]:
+                        preds, _ = self.model.process_diagnoses(modelresults[i]["raw"])
+                        preds = [p["type"] for p in preds]
+                    else:
+                        preds = modelresults[i]["predicted"]
+
+                    #map the arrhythmias to the class mapper
+                    predicted_arrhythmias = [class_mapper[d] for d in preds if d in class_mapper]
+
+                    #filter the predicted arrhythmias to only those that are in the accepted arrhythmia
+                    predicted_arrhythmias = [d for d in predicted_arrhythmias if d in accepted_arrhythmia]
+
+                    if len(predicted_arrhythmias) > 0:
+                        predicted_arrhythmias = [focused_arrhythmia]
+
+                    # if focused_arrhythmia == "VT>10s":
+                    #     print("pred:", modelresults[i]["record"], accepted_arrhythmia, predicted_arrhythmias)
+
+
+                    for d in predicted_arrhythmias:
+                        if d in class_mapper:
+                            one_hot[arrhythmias.index(class_mapper[d])] = 1
                 else:
                     for d in modelresults[i]["predicted"]:
                         if d in class_mapper:
                             one_hot[arrhythmias.index(class_mapper[d])] = 1
+
+                #set activity flag
+                if len(modelresults[i]["predicted"]) == 1 and modelresults[i]["predicted"][0] == "NA":
+                    #print("NOT ACTIVE")
+                    one_hot[len(arrhythmias)] = 0
+                else:
+                    #print(modelresults[i]["record"], "ACTIVE")
+                    one_hot[len(arrhythmias)] = 1
+
                 y_pred.append(one_hot)
 
-                one_hot = np.zeros(len(arrhythmias))
+                one_hot = np.zeros(len(arrhythmias)+1)
                 if triage:
                     true_scores = [arrhythmias.index(class_mapper[d]) for d in modelresults[i]["true"] if d in class_mapper]
                     if len(true_scores) == 0:
                         true_scores = [0]
                     worst_score = np.max(true_scores)
                     one_hot[worst_score] = 1
+                elif sampled:
+                    focused_arrhythmia = modelresults[i]["arrhythmia"]
+                    accepted_arrhythmia = self.data.case_mapper[focused_arrhythmia] if focused_arrhythmia in self.data.case_mapper else [focused_arrhythmia]
+                    trues = self.data.annotation_data[modelresults[i]["record"]]
+                    true_arrhythmias = [class_mapper[d] for d in trues if d in class_mapper]
+                    true_arrhythmias = [d for d in true_arrhythmias if d in accepted_arrhythmia]
+
+                    if len(true_arrhythmias) > 0:
+                        true_arrhythmias = [focused_arrhythmia]
+
+                    # if focused_arrhythmia == "VT>10s":
+                    #     print("true", modelresults[i]["record"], accepted_arrhythmia, true_arrhythmias)
+
+                    for d in true_arrhythmias:
+                        if d in class_mapper:
+                            one_hot[arrhythmias.index(class_mapper[d])] = 1
                 else:
                     for d in modelresults[i]["true"]:
                         if d in class_mapper:
@@ -3661,8 +4253,6 @@ class DiagnosticBenchmark(BaseBenchmark):
             y_true_all.append(y_true)
             y_pred_all.append(y_pred)
 
-
-
         y_true_all = np.array(y_true_all)
         y_pred_all = np.array(y_pred_all)
 
@@ -3671,20 +4261,41 @@ class DiagnosticBenchmark(BaseBenchmark):
         self.false_positives = {}
         self.false_negatives = {}
         self.true_positives = {}
+        self.confusion_matrix = np.zeros((len(arrhythmias), len(arrhythmias)))
 
         bootstrap_n = 1000 if bootstrap else 1
         cacheexists = False
         self.bootstrap_indices = {}
         num_splits = 1
 
-        for arrhythmia in arrhythmias:
+        for m in range(len(results)):
+            modelresults = results[m]["results"]
+            model = results[m]["model"]
+            self.false_negatives[model] = {}
+            self.false_positives[model] = {}
+            self.true_positives[model] = {}
 
+            for i in range(len(modelresults)):
+                
+                y_true_arrhythmia = y_true_all[m,i,:-1]
+                y_pred_arrhythmia = y_pred_all[m,i,:-1]
+
+                self.confusion_matrix += np.outer(y_true_arrhythmia, y_pred_arrhythmia)
+
+
+
+        for arrhythmia in arrhythmias:
+            
+            acc_vals = []
             se_vals = []
             sp_vals = []
             ppv_vals = []
             npv_vals = []
             fnr_vals = []
             f1_vals = []
+            tp_vals = []
+            fp_vals = []
+            fn_vals = []
 
             for m in range(len(results)):
                 modelresults = results[m]["results"]
@@ -3697,6 +4308,8 @@ class DiagnosticBenchmark(BaseBenchmark):
                     y_true_arrhythmia = y_true_all[m,i,arrhythmias.index(arrhythmia)]
                     y_pred_arrhythmia = y_pred_all[m,i,arrhythmias.index(arrhythmia)]
 
+                    #if "seen_elsewhere" in modelresults[i] and modelresults[i]["seen_elsewhere"] == 1 and y_pred_arrhythmia == 0:
+                    #    y_pred_all[m,i,arrhythmias.index(arrhythmia)] = 1
 
                     # if np.sum(y_pred_arrhythmia) == 0:
                     #     continue
@@ -3723,22 +4336,23 @@ class DiagnosticBenchmark(BaseBenchmark):
                             self.true_positives[model][arrhythmia] = []
                         self.true_positives[model][arrhythmia].append(modelresults[i]["record"])
 
-            if arrhythmia == "A":
-                model = results[0]["model"]
-                # print(self.false_negatives)
-                # print(f"False negatives for {arrhythmia}", len(self.false_negatives[model][arrhythmia]))
-                # print(f"False positives for {arrhythmia}", len(self.false_positives[model][arrhythmia]))
-                # print(f"True positives for {arrhythmia}", len(self.true_positives[model][arrhythmia]))
+            # if arrhythmia == "AVB_TYPE2":
+            #     model = results[0]["model"]
+            #     # print(self.false_negatives)
+            #     print(f"False negatives for {arrhythmia}", len(self.false_negatives[model][arrhythmia]))
+            #     print(f"False positives for {arrhythmia}", len(self.false_positives[model][arrhythmia]))
+            #     # print(f"True positives for {arrhythmia}", len(self.true_positives[model][arrhythmia]))
 
-                # for rec in self.false_negatives[model][arrhythmia]:
-                #     print(rec)
+            #     for rec in self.false_negatives[model][arrhythmia]:
+            #         print("FN", rec)
 
-                #for fpi in self.false_positives[model][arrhythmia]:
-                    #print("FP", fpi)
+            #     for rec in self.false_positives[model][arrhythmia]:
+            #         print("FP", rec)
 
             y_true_arrhythmia = y_true_all[:,:,arrhythmias.index(arrhythmia)]
             y_pred_arrhythmia = y_pred_all[:,:,arrhythmias.index(arrhythmia)]
-            use_prediction = np.sum(y_pred_all, axis=2) > 0
+            use_prediction = y_pred_all[:,:,len(arrhythmias)] == 1
+
 
             if not cacheexists:
                 self.bootstrap_indices[arrhythmia] = []
@@ -3770,10 +4384,15 @@ class DiagnosticBenchmark(BaseBenchmark):
                 fn = np.sum(np.logical_and(y_true_arrhythmia_bootstrap,(1-y_pred_arrhythmia_bootstrap)))
                 tn = np.sum(np.logical_and((1-y_true_arrhythmia_bootstrap),(1-y_pred_arrhythmia_bootstrap)))
 
+
                 # print("Arrhythmia:", arrhythmia)
-                # print("TP:", tp, "FP:", fp, "TN:", tn, "FN:", fn)
 
+                # if tp + fp + fn == 0:
+                #     acc = se = sp = ppv = npv = fnr = f1 = 0
+                #     tp = fp = fn = 0
 
+                # else:
+                acc = (tp + tn) / (tp + fp + fn + tn) if (tp + fp + fn + tn) != 0 else np.nan
                 se = tp / (tp + fn) if (tp + fn) != 0 else np.nan
                 sp = tn / (tn + fp) if (tn + fp) != 0 and tp > 0 else np.nan
                 ppv = tp / (tp + fp) if (tp + fp) != 0 else np.nan
@@ -3781,6 +4400,8 @@ class DiagnosticBenchmark(BaseBenchmark):
                 fnr = fn / (fn + tp) if (fn + tp) != 0 else np.nan
                 f1 = 2*tp / (2*tp + fp + fn) if (2*tp + fp + fn) != 0 else np.nan
 
+                if not np.isnan(acc):
+                    acc_vals.append(acc)
                 if not np.isnan(se):
                     se_vals.append(se)
                 if not np.isnan(sp):
@@ -3793,7 +4414,15 @@ class DiagnosticBenchmark(BaseBenchmark):
                     fnr_vals.append(fnr)
                 if not np.isnan(f1):
                     f1_vals.append(f1)
+                if not np.isnan(tp):
+                    tp_vals.append(tp)
+                if not np.isnan(fp):
+                    fp_vals.append(fp)
+                if not np.isnan(fn):
+                    fn_vals.append(fn)
 
+            if len(acc_vals) == 0:
+                acc_vals = [0]
             if len(se_vals) == 0:
                 se_vals = [0]
             if len(sp_vals) == 0:
@@ -3802,46 +4431,129 @@ class DiagnosticBenchmark(BaseBenchmark):
                 ppv_vals = [0]
             if len(npv_vals) == 0:
                 npv_vals = [0]
+            if len(fnr_vals) == 0:
+                fnr_vals = [0]
+            if len(f1_vals) == 0:
+                f1_vals = [0]
+            if len(tp_vals) == 0:
+                tp_vals = [0]
+            if len(fp_vals) == 0:
+                fp_vals = [0]
+            if len(fn_vals) == 0:
+                fn_vals = [0]
 
+            acc_m, acc_low, acc_high = self.ci_interval(acc_vals)
             se_m, se_low, se_high = self.ci_interval(se_vals)
             sp_m, sp_low, sp_high = self.ci_interval(sp_vals)
             ppv_m, ppv_low, ppv_high = self.ci_interval(ppv_vals)
             npv_m, npv_low, npv_high = self.ci_interval(npv_vals)
             fnr_m, fnr_low, fnr_high = self.ci_interval(fnr_vals)
             f1_m, f1_low, f1_high = self.ci_interval(f1_vals)
+            tp_m, tp_low, tp_high = self.ci_interval(tp_vals)
+            fp_m, fp_low, fp_high = self.ci_interval(fp_vals)
+            fn_m, fn_low, fn_high = self.ci_interval(fn_vals)
 
             self.set_distributions[arrhythmia] = {
+                "acc": acc_vals,
                 "se": se_vals,
                 "sp": sp_vals,
                 "ppv": ppv_vals,
                 "npv": npv_vals,
                 "fnr": fnr_vals,
-                "f1": f1_vals
+                "f1": f1_vals,
+                "tp": tp_vals,
+                "fp": fp_vals,
+                "fn": fn_vals
             }
 
             self.set_metrics[arrhythmia] = {
+                "acc": [acc_m, acc_low, acc_high],
                 "se": [se_m, se_low, se_high],
                 "sp": [sp_m, sp_low, sp_high],
                 "ppv": [ppv_m, ppv_low, ppv_high],
                 "npv": [npv_m, npv_low, npv_high],
                 "fnr": [fnr_m, fnr_low, fnr_high],
-                "f1": [f1_m, f1_low, f1_high]
+                "f1": [f1_m, f1_low, f1_high],
+                "tp": [tp_m, tp_low, tp_high],
+                "fp": [fp_m, fp_low, fp_high],
+                "fn": [fn_m, fn_low, fn_high]
             }
 
         return self.set_metrics, self.set_distributions
             #print(arrhythmia)
             #print(self.metrics[arrhythmia])
 
-    def report(self):
-        
-        table = Table(title=self.data.get_name()+" Macro Performance per Arrhythmia")
-        columns = ["Arrhythmia", "SE", "PPV", "NPV", "F1"]
-        metrics = ["se", "ppv", "npv", "f1"]
+    def find_and_apply_optimal_threshold(self):
+
+        model = self.models[0]
+        tasks = list(model.output_to_label.keys())
+        n_tasks = np.array(self.set_predictions[model.name][0]["logits"]).shape[1]
+        optimal_thresholds = []
+        new_labels = []
+
+        for i in range(len(self.set_predictions[model.name])):
+            self.set_predictions[model.name][i]["predicted"] = []
+
+        for taski in range(n_tasks):
+            best_ba = -1
+            best_thresh = 0.5
+            logits = np.array([np.array(self.set_predictions[model.name][i]["logits"])[:,taski].max() for i in range(len(self.set_predictions[model.name]))])
+            gt = [self.set_predictions[model.name][i]["true"] for i in range(len(self.set_predictions[model.name]))]
+            print(self.data.class_mapper[model.output_to_label[tasks[taski]]])
+            gt_binary = [int(self.data.class_mapper[model.output_to_label[tasks[taski]]] in gti) for gti in gt]
+            #use task_label to make two binary arrays
+            
+            for thresh in np.linspace(0.01, 0.99, 99):
+                pred_labels = (logits > thresh).astype(int)
+                if np.all(gt_binary == 0) and np.all(pred_labels == 0):
+                    continue
+                # print(tasks[taski], gt_binary, pred_labels)
+                ba = balanced_accuracy_score(gt_binary, pred_labels)
+                if ba > best_ba:
+                    best_ba = ba
+                    best_thresh = thresh
+            optimal_thresholds.append(best_thresh)
+
+            # Apply the best threshold
+            pred_labels = (logits > best_thresh).astype(int)
+            for i in range(len(self.set_predictions[model.name])):
+                if pred_labels[i]:
+                    #print(self.set_predictions[model.name][i]["predicted"], task_label[task])
+                    self.set_predictions[model.name][i]["predicted"] = self.data.class_mapper[model.output_to_label[tasks[taski]]]
+
+        for i in range(len(self.set_predictions[model.name])):
+            self.set_predictions[model.name][i]["predicted"] = list(set(self.set_predictions[model.name][i]["predicted"]))
+            # if len(self.set_predictions[model.name][i]["predicted"]) == 0:
+            #     self.set_predictions[model.name][i]["predicted"] = ["~"]
+            #print(self.set_predictions[model.name][i]["predicted"])
+
+        return optimal_thresholds
+
+    def export_table(self, metrics):
+
+        def format_ci(ci, percentage=True):
+            if percentage:
+                return str(np.round(ci[0]*1000)/10) + " (" + str(np.round(ci[1]*1000)/10) + "-" + str(np.round(ci[2]*1000)/10) + ")"
+            return str(np.round(ci[0], 2)) + " (" + str(np.round(ci[1], 2)) + "-" + str(np.round(ci[2], 2)) + ")"
+
+        table = {}
+        for arrhythmia in self.set_metrics.keys():
+            table[arrhythmia] = {metric: format_ci(self.set_metrics[arrhythmia][metric]) for metric in metrics}
+
+        return table
+
+    def print_latex_table(self):
+
+        table = Table(title=self.data.get_name()+" Performance per Arrhythmia")
+        columns = ["Arrhythmia", "Accuracy", "SE", "PPV", "NPV", "F1"]
+        metrics = ["acc", "sp", "se", "ppv", "npv", "f1"]
         rows = []
         arrhythmias = list(self.set_metrics.keys())
 
-        def format_ci(ci):
-            return str(np.round(ci[0]*1000)/10) + " (" + str(np.round(ci[1]*1000)/10) + "-" + str(np.round(ci[2]*1000)/10) + ")"
+        def format_ci(ci, percentage=True):
+            if percentage:
+                return str(np.round(ci[0]*1000)/10) + " (" + str(np.round(ci[1]*1000)/10) + "-" + str(np.round(ci[2]*1000)/10) + ")"
+            return str(np.round(ci[0], 2)) + " (" + str(np.round(ci[1], 2)) + "-" + str(np.round(ci[2], 2)) + ")"
 
         averages = {}
         for metric in metrics:
@@ -3851,7 +4563,7 @@ class DiagnosticBenchmark(BaseBenchmark):
             row = [arrhythmia]
             for metric in metrics:
                 averages[metric] += self.set_metrics[arrhythmia][metric][0]
-                row.append(format_ci(self.set_metrics[arrhythmia][metric]))
+                row.append(format_ci(self.set_metrics[arrhythmia][metric], percentage=True))
             rows.append(row)
 
         row = ["Average"]
@@ -3868,6 +4580,87 @@ class DiagnosticBenchmark(BaseBenchmark):
         console = Console()
         console.print(table)
 
+    def report(self):
+        
+        table = Table(title=self.data.get_name()+" Macro Performance per Arrhythmia")
+        columns = ["Arrhythmia", "SP", "SE", "PPV", "NPV", "F1", "TP", "FP", "FN"]
+        metrics = ["sp", "se", "ppv", "npv", "f1", "tp", "fp", "fn"]
+        rows = []
+        arrhythmias = list(self.set_metrics.keys())
+
+        patients_per_arrhythmia = {
+            "NSR": 55,
+            "NOISE": 74,
+            "AFIB": 395,
+            "VT>10s": 4735,
+            "VT<10s": 399,
+            "SVT>30s": 277,
+            "IVR": 1009,
+            "TRIGEMINY": 264,
+            "BIGEMINY": 268,
+            "WENCKEBACH": 3750,
+            "AVB_TYPE2": 1387,
+            "SUDDEN_BRADY": 4835,
+            "NORMAL": 125,
+            "NONCRITICAL": 6799,
+            "CRITICAL": 10388
+        }
+
+        def format_ci(ci, percentage=True):
+            if percentage:
+                return str(np.round(ci[0]*1000)/10) + " (" + str(np.round(ci[1]*1000)/10) + "-" + str(np.round(ci[2]*1000)/10) + ")"
+            return str(np.round(ci[0], 2)) + " (" + str(np.round(ci[1], 2)) + "-" + str(np.round(ci[2], 2)) + ")"
+
+        averages = {}
+        for metric in metrics:
+            averages[metric] = 0
+
+        for arrhythmia in arrhythmias:
+            row = [arrhythmia]
+            for metric in metrics:
+                if metric in ["tp", "fp", "fn"]:
+                    self.set_metrics[arrhythmia][metric][0] *= 1000 / patients_per_arrhythmia[arrhythmia]
+                    self.set_metrics[arrhythmia][metric][1] *= 1000 / patients_per_arrhythmia[arrhythmia]
+                    self.set_metrics[arrhythmia][metric][2] *= 1000 / patients_per_arrhythmia[arrhythmia]
+                    averages[metric] += self.set_metrics[arrhythmia][metric][0] 
+                    row.append(format_ci(self.set_metrics[arrhythmia][metric], percentage=False))
+                else:
+                    averages[metric] += self.set_metrics[arrhythmia][metric][0] 
+                    row.append(format_ci(self.set_metrics[arrhythmia][metric], percentage=True))
+            rows.append(row)
+
+        row = ["Average"]
+        for metric in metrics:
+            if metric in ["tp", "fp", "fn"]:
+                row.append(str(np.round(averages[metric]/len(arrhythmias)*10)/10))
+            else:
+                row.append(str(np.round(averages[metric]/len(arrhythmias)*1000)/10))
+        rows.append(row)
+
+        for column in columns:
+            table.add_column(column)
+
+        for row in rows:
+            table.add_row(*row, style='bright_green')
+
+        console = Console()
+        console.print(table)
+
+        fig, ax = plt.subplots(figsize=(10, 10))
+        im = ax.imshow(self.confusion_matrix, cmap='Blues')
+        ax.set_xticks(np.arange(len(arrhythmias)))
+        ax.set_yticks(np.arange(len(arrhythmias)))
+        ax.set_xticklabels(arrhythmias)
+        ax.set_yticklabels(arrhythmias)
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+        for i in range(len(arrhythmias)):
+            for j in range(len(arrhythmias)):
+                text = ax.text(j, i, int(self.confusion_matrix[i, j]), ha="center", va="center", color="black")
+        ax.set_title("Confusion Matrix")
+        fig.tight_layout()
+        modelnames = ("_".join([model.name for model in self.models]))
+        plt.savefig(os.environ.get('benchmark_results') + f"/diagnosis/confusion_matrix_{modelnames}_{self.data.get_name()}.png")
+
         #print(self.to_latex(table))
 
     def create_json(self):
@@ -3879,38 +4672,53 @@ class DiagnosticBenchmark(BaseBenchmark):
             "dataset": self.data.get_name(),
             "results": [
                 {
-                    "model": self.model.name,
-                    "modelpaths": self.model.modelpaths if hasattr(self.model, "modelpaths") else [],
+                    "model": model.name,
+                    "modelpaths": model.modelpaths if hasattr(model, "modelpaths") else [],
                     "results": []
-                }
+                } for model in self.models
             ]
         }
         basefolder = os.environ.get('benchmark_results')
-        filename = f"{basefolder}/diagnosis/set_level_diagnosis_{self.model.name}_{self.data.get_name()}_[{date_compressed}].json"
+        modelnames = ("_".join([model.name for model in self.models]))
+        filename = f"{basefolder}/diagnosis/set_level_diagnosis_{modelnames}_{self.data.get_name()}_[{date_compressed}].json"
 
         with open(filename, 'w') as f:
             json.dump(data, f)
 
         return filename
 
-    def append_to_json(self, filename, predictions, rest={}):
+    def append_to_json(self, filename, model_name,predictions, rest={}):
 
         with open(filename, 'r') as f:
             data = json.load(f)
 
         if len(predictions) > 1:
-            data["results"][0]["results"] = predictions
-            if type(rest) == list and len(rest) > 0:
-                for i in range(len(data["results"][0]["results"])):
-                    for key, value in rest[i].items():
-                        data["results"][0]["results"][i][key] = value
+            model_index = -1
+            for i, res in enumerate(data["results"]):
+                if res["model"] == model_name:
+                    model_index = i
+                    break
+            if model_index != -1:
+                data["results"][model_index]["results"] = predictions
+
+                if type(rest) == list and len(rest) > 0:
+                    for i in range(len(data["results"][model_index]["results"])):
+                        for key, value in rest[i].items():
+                            data["results"][model_index]["results"][i][key] = value
+            else:
+                print(f"Model {model_name} not found in results.")
         else:
-            data["results"][0]["results"].append(predictions[0])
+            model_index = -1
+            for i, res in enumerate(data["results"]):
+                if res["model"] == model_name:
+                    model_index = i
+                    break
+            data["results"][model_index]["results"].append(predictions[0])
 
             if len(rest) > 0:
                 for obj in rest:
                     for key, value in obj.items():
-                        data["results"][0]["results"][-1][key] = value
+                        data["results"][model_index]["results"][-1][key] = value
 
         with open(filename, 'w') as f:
             json.dump(data, f)

@@ -72,7 +72,11 @@ aladin/build
 # utils and paper
 !utils/
 !paper/
-!paper/*.py
+!paper/boxplot-cinc.py
+!paper/boxplot-stanford.py
+!paper/generate_results_tables.py
+!paper/plot-featurespace-aladin.py
+!paper/plot-featurespace-ref.py
 !paper/images
 !paper/images/fig3-boxplot-stanford.png
 !paper/images/fig3-ranking-stanford.png

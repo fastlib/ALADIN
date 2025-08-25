@@ -54,6 +54,10 @@ class Record():
         return self.cpp_record.ecg
 
     @property
+    def normalized_ecg(self):
+        return self.cpp_record.normalized_ecg
+
+    @property
     def filtered_ecg(self):
         return self.cpp_record.filtered_ecg
 

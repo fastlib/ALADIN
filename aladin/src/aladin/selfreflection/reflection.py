@@ -27,7 +27,7 @@ class Reflection():
         self.pwave_reflection = PWaveReflection(debug=debug)
         self.record = None
         self.debug = debug
-        self.plot = False
+        self.plot = True
         pass
     
     def initialize(self, record):
@@ -125,6 +125,7 @@ class Reflection():
         if self.debug: print("PWave", time.time()-st)
 
         if self.debug and self.plot:
+            print("Plot p waves")
             #plot P waves
             nbeats = self.cpp_reflection.number_of_p_beats
             if nbeats == 0:
@@ -137,14 +138,9 @@ class Reflection():
             ax = ax.flatten()
             for i in range(nbeats):
                 ax[i].plot(self.cpp_reflection.get_p_beat(i).ecg, label="Cluster " + str(i))
-                for j in range(self.cpp_reflection.get_p_beat(i).number_of_dominant_points):
-                    midpoint = self.cpp_reflection.get_p_beat(i).get_dominant_point(j).j
-                    support = self.cpp_reflection.get_p_beat(i).get_dominant_point(j).support
-                    xs = np.array([support[0], midpoint, support[1]])
-                    ax[i].plot(xs, self.cpp_reflection.get_p_beat(i).ecg[xs], color='green', label="Dominant Point")
-                    ax[i].scatter(xs, self.cpp_reflection.get_p_beat(i).ecg[xs], color='green', label="Dominant Point")
                 peak = self.cpp_reflection.get_p_beat(i).peak
-                ax[i].scatter(peak, self.cpp_reflection.get_p_beat(i).ecg[peak], color='red', label="Peak")
+                ax[i].set_title("P Wave " + str(i))
+                #ax[i].scatter(peak, self.cpp_reflection.get_p_beat(i).ecg[peak], color='red', label="Peak")
                 # ax[i].scatter([sup_start, sup_end], [self.cpp_reflection.get_qrs_cluster(i).template.ecg[int(sup_start)], self.cpp_reflection.get_qrs_cluster(i).template.ecg[int(sup_end)]], color='red', label="Support Region")
                 # ax[i].set_title("Cluster " + str((sup_end-sup_start)/self.record.fs) + "samples")
                 # ax[i].set_xlabel("Time (s)")
@@ -153,21 +149,21 @@ class Reflection():
             plt.savefig("p_waves.png")
 
             #plot P clusters
-            nclusters = self.cpp_reflection.number_of_p_clusters
-            #print("Number of P clusters", nclusters)
-            fig, ax = plt.subplots(1, max(2,nclusters), figsize=(nclusters*4, 4), sharex=True, dpi=200)
-            for i in range(nclusters):
-                ax[i].plot(self.cpp_reflection.get_p_cluster(i).template.ecg, label="Cluster " + str(i))
-                sup_start = self.cpp_reflection.get_p_cluster(i).wave_onset
-                sup_end = self.cpp_reflection.get_p_cluster(i).wave_offset
-                for j in range(self.cpp_reflection.get_p_cluster(i).template.number_of_dominant_points):
-                    midpoint = self.cpp_reflection.get_p_cluster(i).template.get_dominant_point(j).j
-                    support = self.cpp_reflection.get_p_cluster(i).template.get_dominant_point(j).support
-                    xs = np.array([support[0], midpoint, support[1]])
-                    ax[i].plot(xs, self.cpp_reflection.get_p_cluster(i).template.ecg[xs], color='green', label="Dominant Point")
-                    ax[i].scatter(xs, self.cpp_reflection.get_p_cluster(i).template.ecg[xs], color='green', label="Dominant Point")
-            plt.show()
-            plt.savefig("pclusters.png")
+            # nclusters = self.cpp_reflection.number_of_p_clusters
+            # #print("Number of P clusters", nclusters)
+            # fig, ax = plt.subplots(1, max(2,nclusters), figsize=(nclusters*4, 4), sharex=True, dpi=200)
+            # for i in range(nclusters):
+            #     ax[i].plot(self.cpp_reflection.get_p_cluster(i).template.ecg, label="Cluster " + str(i))
+            #     sup_start = self.cpp_reflection.get_p_cluster(i).wave_onset
+            #     sup_end = self.cpp_reflection.get_p_cluster(i).wave_offset
+            #     for j in range(self.cpp_reflection.get_p_cluster(i).template.number_of_dominant_points):
+            #         midpoint = self.cpp_reflection.get_p_cluster(i).template.get_dominant_point(j).j
+            #         support = self.cpp_reflection.get_p_cluster(i).template.get_dominant_point(j).support
+            #         xs = np.array([support[0], midpoint, support[1]])
+            #         ax[i].plot(xs, self.cpp_reflection.get_p_cluster(i).template.ecg[xs], color='green', label="Dominant Point")
+            #         ax[i].scatter(xs, self.cpp_reflection.get_p_cluster(i).template.ecg[xs], color='green', label="Dominant Point")
+            # plt.show()
+            # plt.savefig("pclusters.png")
     
     def reset(self):
         if self.debug: print("Reset reflection module")

@@ -79,6 +79,7 @@ PYBIND11_MODULE(_main, m) {
         
     py::class_<Cluster, std::shared_ptr<Cluster>>(m, "Cluster")
         .def_property_readonly("template", &Cluster::get_template)
+        .def_property_readonly("template_ecg", &Cluster::get_template_ecg)
         .def_property_readonly("id", &Cluster::get_id)
         .def_property_readonly("last_updated", &Cluster::get_last_updated)
         .def_property_readonly("wave_onset", &Cluster::get_wave_onset)
@@ -115,6 +116,7 @@ PYBIND11_MODULE(_main, m) {
         .def("reverse", &Record::reverse)
         .def_property_readonly("ecg", &Record::get_ecg)
         .def_property_readonly("fs", &Record::get_fs)
+        .def_property("normalized_ecg", &Record::get_normalized_ecg, &Record::set_normalized_ecg)
         .def_property("filtered_ecg", &Record::get_filtered_ecg, &Record::set_filtered_ecg)
         .def_property("ecg_no_qrst", &Record::get_ecg_no_qrst, &Record::set_ecg_no_qrst)
         .def_property("ecg_noise", &Record::get_ecg_noise, &Record::set_ecg_noise)

@@ -165,20 +165,26 @@ class UNetSegmenter(SegmenterBase):
         sig_band = sig_band - baseline
         record.cpp_record.ecg_bandpass = sig_band.copy()
 
-        # highcut = 40
-        # nyquist = 0.5 * fs
-        # high = highcut / nyquist
-        # b, a = butter(4, high, btype='low')
-        # signal = filtfilt(b, a, signal)
+        norm_signal = signal.copy()
+        norm_signal -= np.mean(norm_signal)
+        norm_signal /= np.std(norm_signal)
 
-        # ms200 = int(0.2 * fs)
-        # ms600 = int(0.6 * fs)
-        # ms200 = ms200 if ms200 % 2 == 1 else ms200 + 1
-        # ms600 = ms600 if ms600 % 2 == 1 else ms600 + 1
-        # baseline = sps.medfilt(sps.medfilt(signal, ms200), ms600)
-        # signal = signal - baseline
+        record.cpp_record.normalized_ecg = norm_signal
 
-        signal -= np.mean(signal)
+        highcut = 40
+        nyquist = 0.5 * fs
+        high = highcut / nyquist
+        b, a = butter(4, high, btype='low')
+        signal = filtfilt(b, a, signal)
+
+        ms200 = int(0.2 * fs)
+        ms600 = int(0.6 * fs)
+        ms200 = ms200 if ms200 % 2 == 1 else ms200 + 1
+        ms600 = ms600 if ms600 % 2 == 1 else ms600 + 1
+        baseline = sps.medfilt(sps.medfilt(signal, ms200), ms600)
+        signal = signal - baseline
+
+        #signal -= np.mean(signal)
         signal /= np.std(signal)
 
         record.cpp_record.filtered_ecg = signal.copy()
@@ -252,7 +258,7 @@ class UNetSegmenter(SegmenterBase):
         return records
 
     def prepare_ecg(self, record: Record):
-        sig = record.filtered_ecg.copy()
+        sig = record.normalized_ecg.copy()
         record.original_length = len(sig)
         record.before_padding = len(sig)
 
@@ -279,7 +285,7 @@ class UNetSegmenter(SegmenterBase):
         ecgs = []
         maxlen = 0
         for record in records:
-            sig = record.filtered_ecg.copy()
+            sig = record.normalized_ecg.copy()
             record.original_length = len(sig)
             record.before_padding = len(sig)
 
@@ -529,7 +535,7 @@ class UNetSegmenter(SegmenterBase):
 
     def batch(self, records: list):
         
-        #records = self.preprocess_batch(records)
+        records = self.preprocess_batch(records)
         sig, props = self.prepare_batch(records)
 
         #print("Batch processing ", len(records), "records with 10s sliding window")

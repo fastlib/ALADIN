@@ -149,7 +149,8 @@ class LogicEngine():
         #print(invp)
         invp = np.pad(invp, (1,1), 'constant', constant_values=(0,0))
         #print(invp)
-        invp = openingcentered(invp, np.ones(4))
+        invp = closingcentered(invp, np.ones(3))
+        #invp = openingcentered(invp, np.ones(3))
         #print(invp)
         invp = invp[1:-1]
         #print(invp)
@@ -159,6 +160,8 @@ class LogicEngine():
         inverted_regions = get_regions(invp)
 
         for region in inverted_regions:
+            if region[1] - region[0] < 3:
+                continue
             #print("Inverted region, check p-waves", region[0], region[1])
             record.add_diagnosis(
                 "EAR",
@@ -167,66 +170,53 @@ class LogicEngine():
                 beats[region[1]-1].r
             )
 
+        #print("EAR check completed, found", len(inverted_regions), "inverted P-wave regions.")
+
         #Check if P waves were clustered at all
-        if np.all([p.cluster == None for p in record.p]):
+        if np.all([p.cluster != None for p in record.p]):
             return
         
-        group_sig = [beat.p.cluster.id if beat.p is not None and beat.p.cluster is not None else -1 for beat in record.qrs]
+        group_sig = np.array([beats[i].p.cluster.id if beats[i].p != None and beats[i].p.cluster != None else -1 for i in range(len(beats))], dtype=int)
         groups = np.unique(group_sig)
-        groups = [g for g in groups if g != -1]
 
         #print(group_sig)
-        #print(groups)
 
         proper_groups = []
         n_groups = 0
 
         for group in groups:
+            if group == -1:
+                continue
             proper_groups.append([])
-
-            #Get a binary mask of all p waves in the group
             group_level = group_sig == group
-
-            #Only keep the p waves of beats that are not yet diagnosed 
             group_level = np.array([group_level[i] if beats[i].diagnosis == "" else 0 for i in range(len(beats))], dtype=int)
-
-            #Do a morphological opening to remove streaks shorter than 6
             group_level = np.pad(group_level, (1,1), 'constant', constant_values=(0,0))
-            group_level = openingcentered(group_level, np.ones(5))
+            group_level = openingcentered(group_level, np.ones(6))
             group_level = group_level[1:-1]
 
-            #Get the remaining streaks
             group_level_regions = get_regions(group_level)
             if len(group_level_regions) > 0:
                 n_groups += 1
                 proper_groups[-1] = group_level_regions
 
-        #Get the group ids of the p wave groups that are longer than 6 long where no beat was diagnosed
-        groupinds = [i for i in range(len(proper_groups)) if len(proper_groups[i]) > 0]
-        #print("Group ids", groupinds)
+        groupids = [i for i in range(len(proper_groups)) if len(proper_groups[i]) > 0]
+        if len(groupids) == 0:
+            return record
 
-        #If no streak is left, skip
-        if len(groupinds) == 0:
-            return
+        #print(len(record.p_clusters))
+        group_with_tallest_p_wave = np.argmax([np.max(record.p_clusters[i].template_ecg) for i in groupids])
+        #print("Largest P-wave group", group_with_tallest_p_wave)
 
-        #Only do something if we have more than 2 large p wave streaks
+        #print("Proper groups", proper_groups)
+
+        #print("Number of groups", n_groups)
         if n_groups > 1:
 
-            #search the group with the tallest p wave
-            heights = []
-            for ind in groupinds:
-                #print("Group id", ind)
-                clst = [cl for cl in record.p_clusters if cl.id == groups[ind]][0]
-                heights.append(np.max(clst.template.ecg))
-
-            group_with_tallest_p_wave = groupinds[np.argmax(heights)]
-
-            #Find other groups that are not the tallest
-            for ind, group in enumerate(proper_groups):
+            for i, group in enumerate(proper_groups):
 
                 for region in group:
                     #print("Group region", region[0], region[1])
-                    if ind == group_with_tallest_p_wave:
+                    if i == group_with_tallest_p_wave:
                         continue
                     
                     record.add_diagnosis(
@@ -319,34 +309,62 @@ class LogicEngine():
 
         removed_ids = [dangling_p_waves[i].id for i in range(len(dangling_p_waves)) if i in to_remove]
         dangling_p_waves = [dangling_p_waves[i] for i in range(len(dangling_p_waves)) if i not in to_remove]
+        avbbeats = []
 
         for i, wave in enumerate(dangling_p_waves):
             #print("Checking Dangling P-wave", wave)
             last_beat = None
+            last_pwave = None
+            next_pwave = None
             for j in range(len(beats)):
                 if beats[j].r < wave.onset:
                     last_beat = j
                 else:
                     break
 
+            if last_beat is not None and beats[last_beat].p is not None:
+                last_pwave = beats[last_beat].p
+            else:
+                for j in range(len(allpwaves)):
+                    if allpwaves[j].onset < wave.onset:
+                        last_pwave = allpwaves[j]
+                    else:
+                        break
+
+            for j in range(len(allpwaves)):
+                if allpwaves[j].onset > wave.onset:
+                    next_pwave = allpwaves[j]
+                    break
+            
+            last_pibi = (wave.onset - last_pwave.onset)/record.fs if last_pwave is not None else np.nan
+            next_pibi = (next_pwave.onset - wave.onset)/record.fs if next_pwave is not None else np.nan
+
             next_beat = last_beat + 1 if last_beat is not None else None
 
             if last_beat is None or next_beat >= len(beats):
                 #print("No last or next beats found, skip")
                 continue
-
+            
             pwaves_between = [p for p in allpwaves if p.onset > beats[last_beat].r and p.onset < beats[next_beat].r]
             hasnoise = np.any(record.delineations.noise.binary[beats[last_beat].onset:beats[next_beat].offset])
             if len(pwaves_between) != 2:
                 #print("No two P-waves between beats, skip")
                 continue
 
-            noiselevel = np.sum(np.square(record.ecg_noise[wave.offset:beats[next_beat].onset])) / (beats[next_beat].onset - wave.offset)
-            signallevel = np.sum(np.square(record.filtered_ecg[wave.onset:wave.offset])) / (wave.offset - wave.onset)
-            snr = 10 * np.log10(signallevel/noiselevel)
-            #print("SNR between beats", snr)
+            onsetnextwave = pwaves_between[1].onset if pwaves_between[1].onset > wave.offset else beats[next_beat].onset
+            #print(wave.onset/record.fs, wave.offset/record.fs, onsetnextwave/record.fs)
+            signalrange = np.max(record.filtered_ecg[wave.start:wave.end]) - np.min(record.filtered_ecg[wave.start:wave.end])
+            background = record.ecg_no_qrst[wave.offset:onsetnextwave]
+            # #filter with highpass filter of 10Hz
+            # #background = nk.signal_filter(background, sampling_rate=record.fs, lowcut=10, method="butterworth", order=4)
+
+            noiserange = np.max(background) - np.min(background)
+            # #print("Signal range", signalrange, "Noise range", noiserange)
+            snr = 10 * np.log10(signalrange/noiserange)
+            #print("SNR", snr)
+            #print("signal level", signalrange, "noise level", noiserange, "SNR", snr)
             
-            if hasnoise or snr < 6:
+            if hasnoise or snr < -6:
                 #print("Noise in between beats, skip")
                 continue
 
@@ -362,13 +380,30 @@ class LogicEngine():
             #print("Last PR", last_pr, "Next PR", next_pr)
             #print("Last beat", last_beat, "Next beat", next_beat)
             qrsibi = beats[next_beat].rr_raw
+            lastqrsibi = beats[last_beat].rr_raw
+            secondlastqrsibi = beats[last_beat-1].rr_raw if last_beat > 0 else lastqrsibi
             pibi = ((beats[next_beat].p.onset - wave.onset))/(record.fs)
             #print("QRS ibi", qrsibi)
             #print("P ibi", pibi)
 
-            if np.abs(qrsibi - 2*pibi) > 0.1*qrsibi:
+            if np.abs(qrsibi - 2*pibi) > 0.2*qrsibi:
                 #print("QRS interval is not a multiple of the PP interval -> not an AVB 2:1 block")
                 continue
+
+            if np.abs(last_pibi - next_pibi) > 0.2*last_pibi:
+                #print("P-wave intervals are not stable, skip")
+                continue
+
+            # if np.abs(secondlastqrsibi - lastqrsibi) > 0.2*secondlastqrsibi:
+            #     #print("QRS interval is not stable, skip")
+            #     #Wenckebach
+            #     continue
+
+
+            
+            #  np.abs(qrsibi - lastqrsibi) < 0.1*qrsibi:
+            #     #no dropped beat
+            #     continue
 
             if last_pr - next_pr > 0.03:
                 #print("PR interval changes significantly, this could be wenckebach")
@@ -418,11 +453,30 @@ class LogicEngine():
         for i, wave in enumerate(dangling_p_waves):
             #print("Checking Dangling P-wave", wave)
             last_beat = None
-            for i in range(len(beats)):
-                if beats[i].r < wave.onset:
-                    last_beat = i
+            last_pwave = None
+            next_pwave = None
+            for j in range(len(beats)):
+                if beats[j].r < wave.onset:
+                    last_beat = j
                 else:
                     break
+
+            if last_beat is not None and beats[last_beat].p is not None:
+                last_pwave = beats[last_beat].p
+            else:
+                for j in range(len(allpwaves)):
+                    if allpwaves[j].onset < wave.onset:
+                        last_pwave = allpwaves[j]
+                    else:
+                        break
+
+            for j in range(len(allpwaves)):
+                if allpwaves[j].onset > wave.onset:
+                    next_pwave = allpwaves[j]
+                    break
+
+            last_pibi = (wave.onset - last_pwave.onset)/record.fs if last_pwave is not None else np.nan
+            next_pibi = (next_pwave.onset - wave.onset)/record.fs if next_pwave is not None else np.nan
 
             next_beat = last_beat + 1 if last_beat is not None else None
 
@@ -432,6 +486,10 @@ class LogicEngine():
 
             last_pr = beats[last_beat].pr
             next_pr = beats[next_beat].pr if beats[next_beat].pr < 0.5 else np.nan
+            qrsibi = beats[next_beat].rr_raw
+            lastqrsibi = beats[last_beat].rr_raw
+            secondlastqrsibi = beats[last_beat-1].rr_raw if last_beat > 0 else lastqrsibi
+            pibi = ((beats[next_beat].p.onset - wave.onset))/(record.fs)
 
             if np.isnan(last_pr):
                 #print("PR interval is NaN, skip")
@@ -444,6 +502,16 @@ class LogicEngine():
                 #print("PR interval does not change significantly, this cannot be wenckebach")
                 continue
 
+
+            if np.abs(last_pibi - next_pibi) > 0.2*last_pibi:
+                #print("P-wave intervals are not stable, skip")
+                continue
+
+            # if np.abs(secondlastqrsibi - lastqrsibi) < 0.1*secondlastqrsibi:
+            #     #print("QRS interval is not stable, skip")
+            #     #Wenckebach
+            #     continue
+
             no_next = False
             if np.isnan(next_pr):
                 no_next = True
@@ -454,9 +522,31 @@ class LogicEngine():
             if not (np.abs(last_rr*2 - next_rr) < 0.25*next_rr or (np.abs(last_rr - next_rr) < 0.1*next_rr)):
                 #print("RR interval is not a multiple of the PP interval and it is not a 2:1 wenckebach -> not a wenckebach")
                 continue
+            
+            
+            nextpwave = None
+            for j in range(len(allpwaves)):
+                if allpwaves[j].onset > wave.onset and allpwaves[j].onset < beats[next_beat].r:
+                    nextpwave = allpwaves[j]
+                    break
 
             hasnoise = np.any(record.delineations.noise.binary[beats[last_beat].onset:beats[next_beat].offset])
-            if hasnoise:
+            onsetnextwave = nextpwave.onset if nextpwave is not None else beats[next_beat].onset
+            signalrange = np.max(record.filtered_ecg[wave.start:wave.end]) - np.min(record.filtered_ecg[wave.start:wave.end])
+            background = record.ecg_no_qrst[wave.offset:onsetnextwave]
+            # #filter with highpass filter of 10Hz
+            # #background = nk.signal_filter(background, sampling_rate=record.fs, lowcut=10, method="butterworth", order=4)
+            noiserange = np.max(background) - np.min(background)
+            # print("Signal range", signalrange, "Noise range", noiserange)
+            # print(wave.offset/record.fs, onsetnextwave/record.fs)
+            snr = 10 * np.log10(signalrange/noiserange)
+            # print("SNR", snr)
+            #print("signal level", signalrange, "noise level", noiserange, "SNR", snr)
+
+
+            #print(beats[last_beat].r/record.fs, beats[next_beat].r/record.fs)
+            hasnoise = np.any(record.delineations.noise.binary[beats[last_beat].onset:beats[next_beat].offset])
+            if hasnoise or snr < -6:
                 #print("Noise in between beats, skip")
                 continue
 
@@ -1153,19 +1243,27 @@ class LogicEngine():
                 #get median width
                 medianwidth = np.mean([(beats[i].width) for i in range(match.start(), match.end())])
 
-                max_ibi = np.max([(beats[i].r - beats[i].r) for i in range(match.start(), match.end()-1) if not np.isnan(beats[i].r)])
+                max_ibi = np.max([(beats[i+1].r - beats[i].r) for i in range(match.start(), match.end()-1) if not np.isnan(beats[i].r)])
+                min_ibi = np.min([(beats[i+1].r - beats[i].r) for i in range(match.start(), match.end()-1) if not np.isnan(beats[i].r)])
 
                 if max_ibi > 3*record.fs:
                     #print("Max IBI is too large, skipping")
                     continue
+                    
+                irregular_ibi = False
+                if max_ibi > 1.6*min_ibi:
+                    irregular_ibi = True
+                #irregular_ibi = False
+                #print(irregular_ibi, max_ibi, min_ibi)
+
 
                 #print("Median width: ", medianwidth/record.fs)
 
                 #check if any are part of AFIB
                 isafib = np.any([beat.diagnosis == "AFIB" for beat in beats[match.start()+1:match.end()-1]])
 
-                if isafib:
-                    continue
+                # if isafib:
+                #     continue
                 
                 #check PR intervals
                 prs = [beats[i].pr for i in range(match.start(), match.end())]
@@ -1178,7 +1276,7 @@ class LogicEngine():
                         #print("There are P waves and those signal a CHB causing IVR")
                         continue
                 
-                if hr < 100 and medianwidth >= 0.12*record.fs:
+                if not irregular_ibi and hr < 100 and medianwidth >= 0.12*record.fs:
                     #If HR is low but QRS is wide, we have IVR
                     record.add_diagnosis(
                         "IVR",
@@ -1186,6 +1284,22 @@ class LogicEngine():
                         beats[match.start()].r,
                         beats[match.end()-1].r
                     )
+                elif irregular_ibi and hr < 100 and medianwidth >= 0.12*record.fs:
+                    if min_ibi > record.fs*0.6:
+                        # If HR is low and QRS is wide, we have IVR
+                        record.add_diagnosis(
+                            "IVR",
+                            "Detected IVR with a heart rate of " + str(hr) + " bpm across " + str(match.end()-match.start()) + " beats. The QRS complexes are widened and show an abnormal shape while the ventricular rhythm is regular and the HR is below 100 bpm.",
+                            beats[match.start()].r,
+                            beats[match.end()-1].r
+                        )
+                    else:
+                        record.add_diagnosis(
+                            "AIVR",
+                            "Detected VT with a heart rate of " + str(hr) + " bpm across " + str(match.end()-match.start()) + " beats. The QRS complexes are widened and show an abnormal shape while the ventricular rhythm is regular and the HR is above 100 bpm.",
+                            beats[match.start()].r,
+                            beats[match.end()-1].r
+                        )
                 elif hr > 100 and medianwidth/period >= 0.25:
                     # If HR is high and QRS is wide, we have VT
                     record.add_diagnosis(
@@ -1368,7 +1482,7 @@ class LogicEngine():
             # else:
             #     print(f"[{i}] Pos:", beats[i].onset/record.fs ," Width: ", beats[i].width, "Abnormal: ", beats[i].abnormal, "SNR: ", beats[i].snr, "P-wave: () PRatio: ", beats[i].pratio)
                 
-            if (beats[i].abnormal and beats[i].width > 0.12 * record.fs) or afib[beats[i].onset:beats[i].offset].any() or beats[i].snr < 30:
+            if (beats[i].abnormal and beats[i].width > 0.12 * record.fs) or afib[beats[i].onset:beats[i].offset].any() or beats[i].snr < 20:
                 beats[i].junctional = False
                 continue
 
@@ -1379,7 +1493,7 @@ class LogicEngine():
             elif beats[i].p is not None and (beats[i].onset - beats[i].p.onset) < 0.075*record.fs:
                 beats[i].junctional = True
             elif beats[i].p is not None and beats[i].pratio > 50:
-                beats[i].junctional = True
+               beats[i].junctional = True
             else:
                 beats[i].junctional = False
     

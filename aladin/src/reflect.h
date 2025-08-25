@@ -4,6 +4,7 @@
 #include "common.h"
 #include "helpers.h"
 #include "cluster.h"
+#include "pwaveprocessor.h"
 #include "asra/asra.h"
 
 using namespace std;
@@ -19,7 +20,7 @@ class Reflection {
         void reflect_on_noise();
 
         void reflect_on_qrs();
-        float qrs_median_range();
+        float qrs_median_range(bool norm = false);
         float p_median_range();
         void identify_qrs();
         void calculate_rr_intervals();

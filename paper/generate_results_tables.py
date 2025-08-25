@@ -135,7 +135,8 @@ def generate_latex_table(experiment, models, metrics, waves=["P", "QRS", "T"], u
     nrecords = {
         "VAL": 797,
         "STANFORD": 324,
-        "LUDB": 200
+        "LUDB": 200,
+        "RDB":2400
     }
 
 
@@ -167,7 +168,7 @@ def generate_latex_table(experiment, models, metrics, waves=["P", "QRS", "T"], u
 
     #Table begin and column definition
     latex = "\\begin{threeparttable} \n"
-    latex += "\\begin{tabular}{l|r|r|l" + ("||"+(("r"*len(metrics)+"|")*len(waves))[:-1])*len(algorithms) + "} \n"
+    latex += "\\begin{tabular}{l|r|r" + ("||"+(("r"*len(metrics)+"|")*len(waves))[:-1])*len(algorithms) + "} \n"
 
     #Header with model names
     latex += "\\toprule & & &" + " & ".join(["\multicolumn{"+str(len(waves)*len(metrics))+"}{c||}{"+model["header"]+"}" for model in models]) + "\\\\ \\midrule\n"
@@ -273,7 +274,7 @@ def generate_latex_table(experiment, models, metrics, waves=["P", "QRS", "T"], u
 
 
 if __name__ == '__main__':
-    experiment = "VAL"
+    experiment = "RDB"
     algorithms = [
         {
             "algorithm":"martinez",
@@ -289,9 +290,10 @@ if __name__ == '__main__':
         }]
     
     #Generate Table 1 of the manuscript
-    #metrics = ["Pixel SE", "Pixel SP"]
-    metrics = ["BDice"]
-    generate_latex_table(experiment, algorithms, metrics, use_abbr=False)
+    metrics = ["Pixel SE", "Pixel SP"]
+    #metrics = ["Dice", "IoU"]
+    #metrics = ["BDice"]
+    generate_latex_table(experiment, algorithms, metrics, use_abbr=True)
 
     #Generate the macro tables as found in the Supplementary materials
     #metrics = ["SE","PP","F1","Error"]

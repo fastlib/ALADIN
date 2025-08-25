@@ -36,6 +36,9 @@ static float set_nan() {
     return std::numeric_limits<float>::quiet_NaN();
 }
 
+
+
+
 class DominantPoint {
     public:
         DominantPoint() {};
@@ -75,13 +78,25 @@ class Cluster {
         float get_wave_onset() const { return onset; }
         float get_wave_offset() const { return offset; }
         std::shared_ptr<Component> get_template() const { std::shared_ptr<Component> shared(template_beat); return shared; }
+        py::array_t<float> get_template_ecg() const { return py::array_t<float>({ template_ecg.size() }, { sizeof(float) }, template_ecg.data()); }
 
         int cluster_id, last_updated;
         int peak;
         float onset, offset, width, p_qrs_ratio;
         std::shared_ptr<Component> template_beat;
+        vector<float> template_ecg; // Template ECG signal
         std::shared_ptr<Cluster> closest;
         vector<std::shared_ptr<Component>> beats;
+};
+
+struct PWaveResult {
+    std::vector<std::vector<float>> p_wave_avgs;      // averaged P‑waves per group
+    std::vector<std::vector<int>>   groups;           // indices of the original P‑waves per group
+    std::vector<std::vector<float>> p_waves;          // raw (trimmed + detrended) P‑waves
+    std::vector<int>                p_centers;        // centre index in original ECG for each P‑wave
+    std::vector<int>                p_wave_avg_peakpos; // peak sample inside the averaged P‑wave
+    std::vector<int>                p_wave_avg_polarity; // polarity of the averaged P‑wave (1 for positive, -1 for negative)
+    std::vector<std::shared_ptr<Cluster>> p_wave_clusters; // clusters of P‑waves
 };
 
 class Component {
@@ -107,7 +122,7 @@ class Component {
         std::shared_ptr<DominantPoint> get_dominant_point(int i) { return std::make_shared<DominantPoint>(dominant_points[i]);}
 
         std::shared_ptr<Cluster> cluster;
-        int id, start, end, wave_start, wave_end, wave_onset, wave_offset, peak; // Start and end indices of the beat
+        int id, start, end, wave_start, wave_end, wave_onset, wave_offset, peak, center; // Start and end indices of the beat
         float width;
         vector<DominantPoint> dominant_points; // Array of dominant points
         int dominant_count = 0;
@@ -130,12 +145,15 @@ class P : public Component {
         bool get_biphasic() const { return biphasic; }
         bool get_unmatched() const { return unmatched; }
         bool get_unclustered() const { return unclustered; }
+        int get_cluster_id() const { return cluster_id; }
+        std::vector<float> get_ecg() const { return ecg; }
 
         bool inverted;
         bool biphasic;
         bool unmatched;
         bool unclustered;
         bool isdouble;
+        int cluster_id;
 };
 
 class T : public Component {
@@ -189,6 +207,7 @@ class QRS : public Component {
         float snr;
         float prediction_m, prediction_std, uncertain, hr, hrv, ibi;
         std::string diagnosis;
+        std::vector<float> ecg_norm;
 };
 
 class Diagnosis {
@@ -273,6 +292,7 @@ class Record {
         void reverse();
 
         float *ecg;
+        float *normalized_ecg;
         float *filtered_ecg;
         float *ecg_no_qrst;
         float *ecg_noise;
@@ -290,13 +310,19 @@ class Record {
         vector<std::shared_ptr<Cluster>> p_clusters;
 
         py::array_t<float> ecg_python;
+        py::array_t<float> normalized_ecg_python; // Normalized ECG for visualization
         py::array_t<float> filtered_ecg_python;
         py::array_t<float> ecg_bandpass_python; // ECG without QRS complexes
         py::array_t<float> ecg_no_qrst_python;
         py::array_t<float> ecg_noise_python;
 
         py::array_t<float> get_ecg() const { return ecg_python; }
+        py::array_t<float> get_normalized_ecg() const { return normalized_ecg_python; }
         py::array_t<float> get_filtered_ecg() const { return filtered_ecg_python; }
+        void set_normalized_ecg(py::array_t<float, py::array::c_style | py::array::forcecast> _normalized_ecg) {
+            normalized_ecg_python = _normalized_ecg; // Keep ownership alive
+            normalized_ecg = _normalized_ecg.mutable_data();
+        }
         void set_filtered_ecg(py::array_t<float, py::array::c_style | py::array::forcecast> _filtered_ecg) {
             filtered_ecg_python = _filtered_ecg; // Keep ownership alive
             filtered_ecg = _filtered_ecg.mutable_data();

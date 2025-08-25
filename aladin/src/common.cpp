@@ -102,6 +102,12 @@ Record::Record(py::array_t<float, py::array::c_style | py::array::forcecast> _ec
         filtered_ecg[i] = 0.0f;
     }
 
+    normalized_ecg_python = py::array_t<float>(size);
+    normalized_ecg = normalized_ecg_python.mutable_data();
+    for (int i = 0; i < size; ++i) {
+        normalized_ecg[i] = 0.0f;
+    }
+
     ecg_no_qrst_python = py::array_t<float>(size);
     ecg_no_qrst = ecg_no_qrst_python.mutable_data();
     for (int i = 0; i < size; ++i) {
@@ -131,9 +137,16 @@ void Record::preprocess() {
     tls.filtfilt_lowpass(ecg_bandpass, size, 30.0f, fs);
     tls.remove_baseline(ecg_bandpass, size, fs);
     
+
+    memcpy(normalized_ecg, ecg, size * sizeof(float));
+    tls.normalize_zscore(normalized_ecg, size);
+
     // Calculate filtered ecg
     memcpy(filtered_ecg, ecg, size * sizeof(float));
+    // tls.filtfilt_lowpass(filtered_ecg, size, 40.0f, fs);
+    // tls.remove_baseline(filtered_ecg, size, fs);
     tls.normalize_zscore(filtered_ecg, size);
+    
 
     // Copy filtered_ecg to ecg_no_qrst
     memcpy(ecg_no_qrst, filtered_ecg, size * sizeof(float));

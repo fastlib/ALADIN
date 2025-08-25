@@ -191,6 +191,15 @@ def load_case_trimmed(dir, case, start, end):
     st = int(start * fs)
     en = int(end * fs)
 
+    if os.path.exists(file + ".atr"):
+        anns = wfdb.rdann(file, 'atr')
+        anntypes = anns.symbol
+        beatpos = anns.sample
+        anntypes = [anntypes[i] for i in range(len(beatpos)) if st <= beatpos[i] <= en]
+        beattypes = "".join(anntypes)
+        #beattypes = beattypes.replace('S', 'N')
+        print(beattypes)
+
     if st < 0 or en > len(ecg):
         raise ValueError("Start and end times are out of bounds for the ECG signal.")
 
@@ -198,6 +207,30 @@ def load_case_trimmed(dir, case, start, end):
 
     record = Record(ecg_segment, fs, "DEMO", case)
     return record
+
+def load_case_internal(caseid):
+    basefolder = os.environ.get('benchmark_data')
+    dat = basefolder+"/VALIDATION/val_matched.pkl"
+    with open(dat, 'rb') as f:
+        data = pickle.load(f)
+
+    casedata = None
+    for case in data:
+        if case['record'] == int(caseid):
+            casedata = case
+            break
+
+    return Record(casedata['signal'], 204.8, "DEMO", caseid)
+
+def load_case_from_json(dir, jsn, key):
+    with open(jsn, 'r') as f:
+        data = json.load(f)
+
+    if key not in data:
+        raise KeyError(f"Key '{key}' not found in JSON file.")
+    fs = 250
+    middle = (data[key]['onset'] + data[key]['offset']) / 2
+    return load_case_trimmed(dir, data[key]['path'], max(0,(middle/fs)-15), (middle/fs)+15)
 
 def analyse_single_case(record):
     aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
@@ -225,10 +258,10 @@ def test_segmenter():
     aladin.segmenter.segment(rec)
 
 def compare_outputs(arrhythmia):
-    file1 = "/home/lukas/UU/ASRA/ALADINv2/results/diagnosis/set_level_diagnosis_ALADIN_CINC_[2025-03-19_22-20-35].json"
-    file2 = "/home/lukas/UU/ASRA/ALADINv2/results/diagnosis/set_level_diagnosis_ALADIN_CINC_[2025-07-23_16-35-33].json"
-    # file1 = "/home/lukas/UU/ASRA/ALADINv2/results/diagnosis/set_level_diagnosis_ALADIN_STANFORD_[2025-04-03_01-33-02].json"
-    # file2 = "/home/lukas/UU/ASRA/ALADINv2/results/diagnosis/set_level_diagnosis_ALADIN_STANFORD_[2025-06-23_14-40-40].json"
+    #file1 = "/home/lukas/UU/ASRA/ALADINv2/results/diagnosis/set_level_diagnosis_ALADIN_CINC_[2025-03-19_22-20-35].json"
+    #file2 = "/home/lukas/UU/ASRA/ALADINv2/results/diagnosis/set_level_diagnosis_ALADIN_CINC_[2025-07-23_16-35-33].json"
+    file1 = "/home/lukas/UU/ASRA/ALADINv2/results/diagnosis/set_level_diagnosis_ALADIN_STANFORD_[2025-04-03_01-33-02].json"
+    file2 = "/home/lukas/UU/ASRA/ALADINv2/results/diagnosis/set_level_diagnosis_ALADIN_STANFORD_[2025-08-08_19-00-20].json"
 
     with open(file1, 'r') as f1, open(file2, 'r') as f2:
         data1 = json.load(f1)
@@ -298,7 +331,18 @@ def test_reflection():
     #b240d601680212834dac1291ae25fc06_0001
     #cb8ef7a29c392d17159bbc6a33b5be9c_0001
 
-    rec = load_case("./data/STANFORD", "cb8ef7a29c392d17159bbc6a33b5be9c_0001")
+    #false negatives EAR
+    #a9d9501b7dfb21eb142e5df6f3038bd6_0001
+    #eea7621866c4f3ab9926ac2762c28a14_0001
+    #22c28207a311e1f54ab009d2269bee2d_0003
+    #4b2ccf48e338b76d6210204bfe7eb686_0005
+
+    #false positives EAR
+    #10b1135a8368215bf81513cc1c961e90_0002
+    #d443bbd42707e24d061fa6fa58ab6c4d_0005
+
+
+    rec = load_case("./data/STANFORD", "eea7621866c4f3ab9926ac2762c28a14_0001")
     aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
                     debug={"segmenter": True, "afibdetector": False, "reflection": True, "total": True})
     aladin.analyse(rec)
@@ -363,6 +407,13 @@ def analyse_result_per_diagnosis(diagnosis):
         print("Diagnosis: ", diagnosis)
         print("No true positives")
 
+def test_internal():
+    rec = load_case_internal("21462")
+    aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
+                    debug={"segmenter": True, "afibdetector": False, "reflection": False, "total": False})
+    aladin.analyse(rec)
+    aladin.plot(rec)
+
 def test_rdb():
 
     recfiles = glob.glob("/home/lukas/UU/ASRA/ALADINv2/data/RDB/dat_csv/*.csv")
@@ -381,25 +432,77 @@ def test_rdb():
 def test_icentia():
     t0 = time.time()
     basefolder = os.environ.get('benchmark_data')
+    # False positive: rec_38 #wenck
+    # False positive: rec_37 #notwenck
+    # False positive: rec_43 #wenck
+    # False positive: rec_51 #wenck
+    # False positive: rec_64
+    # False positive: rec_103
+    # False positive: rec_107
+    # False positive: rec_104
+    # False positive: rec_119
+    # False positive: rec_117
+    # False positive: rec_125
+    # False positive: rec_141
+    # False positive: rec_147
+    # False positive: rec_157
+    # False positive: rec_175
+    # False positive: rec_186
+    # False positive: rec_225
+    # False positive: rec_259 #wenck
+    # False positive: rec_266
+    # False positive: rec_297
+    # False positive: rec_317
+    # False positive: rec_359
+    # False positive: rec_368
+    # False positive: rec_384
+    # False positive: rec_403 #notwenck
+    # False positive: rec_400 #noise
+    # False positive: rec_422
+    # False positive: rec_451 #wenck
+    # False positive: rec_448
+    # False positive: rec_455
+    # False positive: rec_453
+    # False positive: rec_466
+    # False positive: rec_465 #wenck
+    # False positive: rec_482 #wenck
+    # False positive: rec_480
+    # False positive: rec_488
+    # False positive: rec_499 #notwenck
     #rec = load_case("./data/ICENTIA", "p00/p00153/p00153_s20", "ICENTIA")
-    rec = load_case_trimmed("./data/ICENTIA", "p01/p01229/p01229_s40", 1900, 2100)
+    # rec = load_case_trimmed("./data/ICENTIA", "p10/p10979/p10979_s00", 2800, 2900)
+    # rec = load_case_trimmed("./data/ICENTIA", "p00/p00045/p00045_s14", 3050, 3080) 
+    # rec = load_case_trimmed("./data/ICENTIA", "p00/p00009/p00009_s21", 2850, 2880)
+    # rec = load_case_trimmed("./data/ICENTIA", "p00/p00080/p00080_s11", 3921, 3955)
+    # rec = load_case_trimmed("./data/ICENTIA", "p00/p00570/p00570_s26", 3800, 3830)
+    # rec = load_case_trimmed("./data/ICENTIA", "p00/p00492/p00492_s44", 3570, 3600)
+    # rec = load_case_trimmed(basefolder+"/ICENTIA", "p09/p09164/p09164_s12", 4030, 4060)
+    # rec = load_case_trimmed(basefolder+"/ICENTIA", "p05/p05543/p05543_s11", int(659136/250)-15, int(659426/250)+15)
+    # rec = load_case_trimmed(basefolder+"/ICENTIA", "p00/p00071/p00071_s26", int(422787/250)-15, int(423059/250)+15)
+    #rec = load_case_trimmed(basefolder+"/ICENTIA","p03/p03697/p03697_s02", 1129.16, 1165.348)
+    rec = load_case_from_json(basefolder+"/ICENTIA", "/home/lukas/UU/ASRA/ALADINv2/traces_matt_v2/mapping.json", "247") #247, 421, 475, 876, 944, 965, 1017
+    #rec = load_case_trimmed(basefolder+"/ICENTIA", "p00/p00203/p00203_s23", 2445, 2445+30) #noise
+    #rec = load_case_trimmed(basefolder+"/ICENTIA", "p03/p03199/p03199_s44", 2240, 2240+40) #noise
     #rec = load_case_trimmed(basefolder+"/ICENTIA", "p07/p07840/p07840_s28", 2000, 2200)
     #rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p07/p07840/p07840_s28", 3800, 3950)
     #rec = load_case_trimmed("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p02/p02050/p02050_s48", 2800, 3000)
     #rec = load_case("/home/lukas/UU/ASRA/Datasets/MIT-NORMAL", "16265")
 
+
+
     t1 = time.time()
     print(f"Loading record took {t1-t0:.2f} seconds")
     aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
-                    debug={"segmenter": False, "afibdetector": False, "reflection": False, "total": False})
+                    debug={"segmenter": True, "afibdetector": False, "reflection": False, "total": False})
     aladin.analyse(rec)
-    aladin.plot(rec)#, xlim=(380,600))
+    aladin.plot(rec) #, xlim=(380,600))
     t2 = time.time()
     print(f"ALADIN took {t2-t1:.2f} seconds")
 
 def test_batch():
     aladin = ALADIN(modelpaths=["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
                     debug={"segmenter": False, "afibdetector": False, "reflection": False, "total": False})
+    basefolder = os.environ.get('benchmark_data')
     records = []
     # for file in os.listdir("./data/STANFORD"):
     #     if file.endswith(".dat"):
@@ -407,8 +510,9 @@ def test_batch():
     #         records.append(rec)
 
     records = [
-        #load_case("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p01/p01056/p01056_s13"),
-        load_case("/home/lukas/UU/ASRA/Datasets/ICENTIA", "p05/p05205/p05205_s15"),
+        load_case_trimmed(basefolder+"/ICENTIA", "p01/p01834/p01834_s46", int(255582/250)-15, int(256039/250)+15),
+        load_case_trimmed(basefolder+"/ICENTIA", "p03/p03657/p03657_s26", int(246503/250)-15, int(247047/250)+15),
+        load_case_trimmed(basefolder+"/ICENTIA", "p09/p09998/p09998_s42", int(211774/250)-15, int(212142/250)+15)
     ]
 
     collection = RecordCollection(records)
@@ -418,11 +522,12 @@ def test_batch():
     
 
 if __name__ == "__main__":
+    #test_internal()
     test_icentia()
     #test_reflection()
     #test_batch()
     #test_rdb()
-    #compare_outputs("A")
-    #analyse_result_per_diagnosis("SVT")
+    #compare_outputs("EAR")
+    #analyse_result_per_diagnosis("EAR")
     print("All tests passed.")
 
