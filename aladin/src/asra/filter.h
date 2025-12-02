@@ -2,8 +2,6 @@
 //  filter.hpp
 //  minHR
 //
-//  Created by Lukas Arts on 01/07/2019.
-//  Copyright © 2019 Limstone Applications. All rights reserved.
 //
 /*!
 @class Filter
@@ -12,9 +10,6 @@
  
 Calculating the mean, standard deviation, the sum and extrema of an array is done throughout the application. This helper class facilitates these functions to improve readability and efficiency of other parts of the application. Not all functions are used in the final application due to the long development process.
  
-@author Lukas Arts
-@copyright  2020 Lukas Arts
-@version    1.0.0
 */
 
 #pragma once

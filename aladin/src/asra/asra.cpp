@@ -2,15 +2,13 @@
 //  asra.cpp
 //  ASRA
 //
-//  Created by Lukas Arts on 06/04/2022.
-//
 
 #include "asra.h"
 
 /// Constructor of the ECGdetector class.
 /// @brief Constructor
 /// @param ecg Pointer to ECG signal
-/// @param ecgref Pointer to optional 1Hz HR estimation signal based on R-Peak annotations. The conversion from R-Peak annotations to a 1Hz HR signal is done in the Data class for the MESA dataset.
+/// @param ecgref 
 /// @param size Number of samples
 /// @param fs Sample frequency
 ECGdetector::ECGdetector(float* ecg, int size, int fs) {

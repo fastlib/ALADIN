@@ -3,12 +3,6 @@
 @class ECGdetector
 
 @brief Calculates HR from ECG signal
- 
-To validate the PPG analysis done in the Analyse and Event classes, an ECG signal is processed and compared to the HR estimated from the PPG. The ECGdetector class detects QRS-complexes in the ECG signal using an Adaptive Search Region algorithm which is an adapted version of the Pan-Tompkins algorithm. Details about this algorithm can be found in the appendix of the main article 'Context-induced real-world PPG denoising'
-
-@author Lukas Arts
-@copyright  2020 Lukas Arts
-@version    1.0.0
 */
 #pragma once
 

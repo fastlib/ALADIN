@@ -21,6 +21,9 @@
 benchmark/weights/*.pth
 !benchmark/diagnosis/
 
+!utils/
+!utils/**
+
 # data folder and selected files
 !data/
 !data/arrhythmia_classes.csv

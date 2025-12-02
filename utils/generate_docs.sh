@@ -1,0 +1,2 @@
+pandoc README.md --pdf-engine=xelatex --highlight-style=tango -V geometry:margin=1in -V monofont="Fira Code" -V fontsize=11pt -V colorlinks=true \-V linkcolor=blue \-V urlcolor=blue \-V toccolor=gray -o README.pdf
+pandoc README.md --toc --highlight-style=tango -s -o README.html

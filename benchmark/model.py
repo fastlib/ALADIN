@@ -131,9 +131,9 @@ class ECGFounderNet(nn.Module):
             return_features=features,
             n_classes=150)
 
-        if os.path.exists("/home/lukas/UU/ASRA/ALADINv2/benchmark/weights/1_lead_ECGFounder.pth"):
+        if os.path.exists("./benchmark/weights/1_lead_ECGFounder.pth"):
             print("Loading pretrained weights")
-            checkpoint = torch.load("/home/lukas/UU/ASRA/ALADINv2/benchmark/weights/1_lead_ECGFounder.pth")
+            checkpoint = torch.load("./benchmark/weights/1_lead_ECGFounder.pth")
             state_dict = checkpoint['state_dict']
 
             #state_dict = {k: v for k, v in state_dict.items() if not k.startswith('dense.')} 
