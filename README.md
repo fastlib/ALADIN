@@ -1,4 +1,4 @@
-# ALADIN documentation
+![ALADIN](data/resources/aladin_logo_2.png)
  
 ALADIN is a neuro-symbolic AI model that preprocesses, segments, and diagnoses single- and multi-lead ECG signals. It has been validated extensively on three diverse patient cohorts with a combined size of 13,000 patients. ALADIN can handle any ECG recording from clinical MUSE recordings to handheld KardiaMobile measurements ranging from 6 seconds to 24 hours. 
  

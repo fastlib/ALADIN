@@ -40,6 +40,7 @@ class Record():
         self._diagnoses = []
         self._groundtruth = []
         self._avail_leads = []
+        self._median_beat = None
         self.cpp_record = cpp_backend.Record(self.parse_ecg(ecg_dict), fs)
 
     def add_diagnosis(self, name, explanation, start, end):
@@ -68,6 +69,14 @@ class Record():
     @property
     def ecg(self):
         return self.cpp_record.ecg
+
+    @property
+    def median_beat(self):
+        return self._median_beat
+
+    @median_beat.setter
+    def median_beat(self, val):
+        self._median_beat = val
 
     @property
     def normalized_ecg(self):
@@ -140,6 +149,69 @@ class Record():
     @property
     def p_clusters(self):
         return self.cpp_record.p_clusters
+
+class MedianBeatDelineation():
+    def __init__(self, onset = None, offset = None, length = 0):
+        self._onset = int(onset)
+        self._offset = int(offset)
+        self._mask = np.zeros(length)
+        if onset is not None and offset is not None:
+            self._mask[self._onset:self._offset] = 1
+
+    @property
+    def onset(self):
+        return self._onset
+
+    @property
+    def offset(self):
+        return self._offset
+
+    @property
+    def mask(self):
+        return self._mask
+
+class MedianBeatDelineations():
+    def __init__(self, p_delineation: MedianBeatDelineation, qrs_delineation: MedianBeatDelineation, t_delineation: MedianBeatDelineation):
+        self._p = p_delineation
+        self._qrs = qrs_delineation
+        self._t = t_delineation
+
+    @property
+    def p_delineation(self):
+        return self._p
+
+    @property
+    def qrs_delineation(self):
+        return self._qrs
+
+    @property
+    def t_delineation(self):
+        return self._t
+
+class MedianBeat():
+    def __init__(self, nlead, length):
+        self._ecg = np.zeros((nlead,length))
+        self._delineations = MedianBeatDelineations(
+            MedianBeatDelineation(None,None,self._ecg.shape[1]), 
+            MedianBeatDelineation(None,None,self._ecg.shape[1]), 
+            MedianBeatDelineation(None,None,self._ecg.shape[1])
+        )
+
+    @property
+    def ecg(self):
+        return self._ecg
+
+    @ecg.setter
+    def ecg(self, val):
+        self._ecg = val
+
+    @property
+    def delineations(self):
+        return self._delineations
+
+    @delineations.setter
+    def delineations(self, val):
+        self._delineations = val
 
 class RecordCollection():
     def __init__(self, records: list):

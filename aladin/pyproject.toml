@@ -18,11 +18,14 @@ classifiers = [
 keywords = [
     'ecg',
     'delineation',
+    'segmentation',
+    'diagnosis',
+    'arrhythmia',
     'ambulatory',
-    'active learning',
     'deep learning'
 ]
 dependencies = [
+    "setuptools<82.0.0",
     "torch",
     "google-cloud-storage",
     "google-cloud-bigquery",
@@ -34,10 +37,9 @@ dependencies = [
     "wfdb==4.1.2",
     "tqdm==4.67.0",
     "scipy",
-    "numpy==1.26.4",
+    "numpy",
     "rich==13.9.4",
-    "torchmetrics",
-    "baal==2.0.0",
+    "baal==2.1.0",
     "dtw-python==1.5.3",
     "pandas==2.2.3",
     "matplotlib==3.9.2",

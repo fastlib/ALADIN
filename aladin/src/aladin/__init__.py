@@ -2,7 +2,7 @@ import numpy as np
 import time
 import os
 
-from aladin.core import Record
+from aladin.core import Record, MedianBeat, MedianBeatDelineations, MedianBeatDelineation
 from aladin.backend.segmenter import UNetSegmenter
 from aladin.selfreflection.reflection import Reflection
 from aladin.logicengine.logic import LogicEngine
@@ -211,7 +211,8 @@ class ALADIN():
 
     def calculate_median(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1):
         
-        median_beat = np.zeros((len(record.available_lead_names),int(record.fs)))
+        median_beat = MedianBeat(len(record.available_lead_names), int(record.fs), None)
+
         rpeak_before = int(time_before_peak*record.fs)
         rpeak_after = int(time_after_peak*record.fs)
         smooth_interval = int(gaussian_time*record.fs)
@@ -219,6 +220,13 @@ class ALADIN():
         cluster_ids = [qrs.cluster_id for qrs in record.qrs]
         largest_cluster_id = max(set(cluster_ids), key=cluster_ids.count)
         largest_cluster_size = cluster_ids.count(largest_cluster_id)
+
+        p_onsets = []
+        p_offsets = []
+        t_onsets = []
+        t_offsets = []
+        qrs_onsets = []
+        qrs_offsets = []
 
         for beat in record.qrs:
             if beat.cluster_id != largest_cluster_id:
@@ -229,10 +237,17 @@ class ALADIN():
 
             if beat.p is not None:
                 onset = beat.p.onset-smooth_interval
+                p_onsets.append(beat.p.onset - (beat.r - rpeak_before))
+                p_offsets.append(beat.p.offset - (beat.r - rpeak_before))
                 #print("P-wave onset", beat.p.onset)
             if beat.t is not None:
                 offset = beat.t.offset+smooth_interval
+                t_onsets.append(beat.t.onset - (beat.r - rpeak_before))
+                t_offsets.append(beat.t.offset - (beat.r - rpeak_before))
                 #print("T-wave offset", beat.t.offset)
+
+            qrs_onsets.append(beat.onset - (beat.r - rpeak_before))
+            qrs_offsets.append(beat.offset - (beat.r - rpeak_before))
 
             if onset < 0 or offset > len(record.filtered_ecg):
                 continue
@@ -258,11 +273,23 @@ class ALADIN():
                 pqrst = np.pad(pqrst, (preprend, append), mode='constant', constant_values=0)
                 pqrst = pqrst[:int(record.fs)]
 
-                median_beat[i,:] += pqrst
+                median_beat.ecg[i,:] += pqrst
                 i+=1
-        
-        for i in range(median_beat.shape[0]):
-            median_beat /= sum([1 for beat in record.qrs if beat.cluster_id == largest_cluster_id])
+
+        median_p_onset = np.median(p_onsets) if len(p_onsets) > 0 else 0
+        median_p_offset = np.median(p_offsets) if len(p_offsets) > 0 else 0
+        median_t_onset = np.median(t_onsets) if len(t_onsets) > 0 else 0
+        median_t_offset = np.median(t_offsets) if len(t_offsets) > 0 else 0
+        median_qrs_onset = np.median(qrs_onsets) if len(qrs_onsets) > 0 else 0
+        median_qrs_offset = np.median(qrs_offsets) if len(qrs_offsets) > 0 else 0
+
+        p = MedianBeatDelineation(median_p_onset, median_p_offset, int(record.fs))
+        qrs = MedianBeatDelineation(median_qrs_onset, median_qrs_offset, int(record.fs))
+        t = MedianBeatDelineation(median_t_onset, median_t_offset, int(record.fs))
+        median_beat.delineations = MedianBeatDelineations(p,qrs,t)
+
+        for i in range(median_beat.ecg.shape[0]):
+            median_beat.ecg /= sum([1 for beat in record.qrs if beat.cluster_id == largest_cluster_id])
 
         record.median_beat = median_beat
 
@@ -289,7 +316,7 @@ class ALADIN():
             try:
                 self.calculate_median(record, time_before_peak, time_after_peak, gaussian_time)
             except Exception as e:
-                record.median_beat = np.zeros((len(record.available_lead_names),int(record.fs)))
+                record.median_beat = MedianBeat(len(record.available_lead_names),int(record.fs), None)
                 print(f"Error processing record {record.recordname}: {e}")
             i+=1
         

@@ -31,24 +31,47 @@ def load_case(dir, case):
     record.groundtruth = anntypes
     return record
 
+def plot_median_beat(record):
+    median_beat = record.median_beat
+    p_onset = record.median_beat.delineations.p.onset
+    p_offset = record.median_beat.delineations.p.offset
+    qrs_onset = record.median_beat.delineations.qrs.onset
+    qrs_offset = record.median_beat.delineations.qrs.offset
+    t_onset = record.median_beat.delineations.t.onset
+    t_offset = record.median_beat.delineations.t.offset
+
+    plt.plot(median_beat)
+    plt.title("Median Beat")
+    plt.xlabel("Time (samples)")
+    plt.ylabel("Amplitude")
+
+    plt.rectangle((p_onset, np.min(median_beat)), p_offset-p_onset, np.max(median_beat)-np.min(median_beat), color='green', alpha=0.3, label="P wave")
+    plt.rectangle((qrs_onset, np.min(median_beat)), qrs_offset-qrs_onset, np.max(median_beat)-np.min(median_beat), color='red', alpha=0.3, label="QRS complex")
+    plt.rectangle((t_onset, np.min(median_beat)), t_offset-t_onset, np.max(median_beat)-np.min(median_beat), color='blue', alpha=0.3, label="T wave")
+
+    plt.savefig("median_beat.png")
+
 def analyse_single_case(record):
 
     aladin = ALADIN(modelpaths=["ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
                     debug={"segmenter": True, "afibdetector": False, "reflection": False, "total": True})
 
     #segment     
-    aladin.segment(record)
+    #aladin.segment(record)
     #see record.delineations.[p, qrs, t, abnormal_qrs, noise, afib] for binary masks
 
     #extract median beat
     aladin.extract_median_beat(record)
     median_beat = record.median_beat
 
+    plot_median_beat(record)
+
+
     #analyse and diagnose
     aladin.analyse(record)
     
     #use aladin without preprocessing, so that you can do your own preprocessing
-    #NOTE: Performance may be altered if you use your own form of preprocessing
+    #NOTE: Performance may be altered if you use your preprocessing
     aladin.analyse(record, preprocess=False)
 
 

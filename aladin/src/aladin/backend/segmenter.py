@@ -182,16 +182,21 @@ class UNetSegmenter(SegmenterBase):
             if not record.available_leads[ch]:
                 continue
 
+            sig = signal[ch, :]
+
             if not preprocess:
                 warnings.warn("Preprocessing is turned off. The raw signal will be used for segmentation, which might lead to suboptimal performance. It is recommended to turn on preprocessing for best results.")
-                record.cpp_record.filtered_ecg[ch,:] = sig.copy()
-                record.cpp_record.ecg_no_qrst[ch,:] = sig.copy()
-                record.cpp_record.ecg_bandpass[ch,:] = sig.copy()
-                record.cpp_record.ecg_noise[ch,:] = np.zeros_like(sig)
+                
+                if ch == 1: #use lead II for symbolic reasoning
+                    record.cpp_record.filtered_ecg = sig.copy()
+                    record.cpp_record.ecg_no_qrst = sig.copy()
+                    record.cpp_record.ecg_bandpass = sig.copy()
+                    record.cpp_record.ecg_noise = np.zeros_like(sig)
+                
+                record.cpp_record.normalized_ecg[ch,:] = sig.copy()
+
                 continue
 
-            sig = signal[ch, :]
-            # filter signal between 5 and 30 Hz
 
             lowcut = 0.2
             highcut = 30
