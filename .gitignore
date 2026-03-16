@@ -2,7 +2,7 @@
 *
 
 # Un-ignore specific files in root
-!README-codeocean.md
+!README.md
 !requirements.txt
 !train_aladin.sh
 !benchmark_delineation.py
