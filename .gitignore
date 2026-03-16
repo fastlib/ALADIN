@@ -26,11 +26,13 @@ benchmark/weights/*.pth
 
 # data folder and selected files
 !data/
-!data/resources/**
 !data/arrhythmia_classes.csv
 !data/results_all_F1_scores_for_each_classification_type.csv
 !data/demo/
 !data/demo/**
+
+!data/resources/
+!data/resources/**
 
 !data/MongoDB/
 !data/MongoDB/docker-compose.yml
