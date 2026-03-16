@@ -1,8 +1,6 @@
 # ALADIN documentation
  
-This CodeOcean capsule contains all the source code and data necessary to reproduce the manuscript's results and figures. Due to CodeOcean's limited computing resources and its runtime constraints, this capsule is limited to i) a demonstration, ii) the complete delineation benchmark and iii) the diagnostic benchmarks on the iRhythm and AliveCor data sets. With both the ii) and iii) benchmarks a re-evaluation of competing methods is also performed. These results contain the visual and textual outputs for 4 example recordings: 2 from the iRhythm dataset and 2 from the AliveCor dataset as well as a text-file containing the raw LaTeX code to reproduce Supplementary table 1 (i.e., the delineation benchmark) and all figures to reproduce Figures 2 and 3 from the manuscript.
- 
-Reproducing the benchmark on the CardioSTAT dataset (Figure 4) exceeded the capabilities of the CodeOcean environment.
+ALADIN is a neuro-symbolic AI model that preprocesses, segments, and diagnoses single- and multi-lead ECG signals. It has been validated extensively on three diverse patient cohorts with a combined size of 13,000 patients. ALADIN can handle any ECG recording from clinical MUSE recordings to handheld KardiaMobile measurements ranging from 6 seconds to 24 hours. 
  
 ## Changelog:
 
