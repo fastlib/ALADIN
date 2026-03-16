@@ -163,11 +163,11 @@ class ALADIN():
             plt.savefig(name + ".png")
         plt.close()
 
-    def analyse_batch(self, records: list, arrhythmia=None):
+    def analyse_batch(self, records: list, arrhythmia=None, preprocess=True):
         print("Analyse batch", len(records))
 
         st = time.time()
-        self.segmenter.batch(records)
+        self.segmenter.batch(records, preprocess=preprocess)
         segmenttime = time.time()-st 
         st = time.time()
         self.reflection.batch(records)
@@ -184,12 +184,11 @@ class ALADIN():
         print("Reflection", reflecttime)
         print("Logic", logictime)
 
-
-    def analyse(self, record: Record):
+    def analyse(self, record: Record, preprocess=True):
         print("Analyse record", record.recordname)
 
         st = time.time()
-        self.segmenter.segment(record)
+        self.segmenter.segment(record, preprocess=preprocess)
         print("Segmenter", time.time()-st)
         st = time.time()
         self.reflection.reflect(record)
@@ -267,10 +266,10 @@ class ALADIN():
 
         record.median_beat = median_beat
 
-    def extract_median_beat(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1):
+    def extract_median_beat(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1, preprocess=True):
         print("Analyse record", record.recordname)
 
-        self.segmenter.segment(record)
+        self.segmenter.segment(record, preprocess=preprocess)
         print("self reflect")
         self.reflection.reflect(record)
         print("calculate median")
@@ -278,10 +277,10 @@ class ALADIN():
         
         print("Median beat extracted")
 
-    def extract_median_beat_batch(self, records: list, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1):
+    def extract_median_beat_batch(self, records: list, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1, preprocess=True):
         print("Extract median beat batch", len(records))
 
-        self.segmenter.batch(records)
+        self.segmenter.batch(records, preprocess=preprocess)
         self.reflection.batch(records)
 
         i=0
@@ -296,9 +295,32 @@ class ALADIN():
         
         print("Median beat extracted for batch")
 
+    def segment(self, record: Record, preprocess=True):
+        print("Segment record", record.recordname)
 
-    def embed(self, record: Record):
-        self.segmenter.segment(record)
+        st = time.time()
+        self.segmenter.segment(record, preprocess=preprocess)
+        print("Segmenter", time.time()-st)
+        st = time.time()
+        self.reflection.reflect(record)
+        print("Reflection", time.time()-st)
+
+        return record
+
+    def segment_batch(self, records: list, preprocess=True):
+        print("Segment batch", len(records))
+
+        st = time.time()
+        self.segmenter.batch(records, preprocess=preprocess)
+        print("Segmenter", time.time()-st)
+        st = time.time()
+        self.reflection.batch(records)
+        print("Reflection", time.time()-st)
+
+        return records
+
+    def embed(self, record: Record, preprocess=True):
+        self.segmenter.segment(record, preprocess=preprocess)
         self.reflection.reflect(record)
         features = self.embedder.embed(record)
 
@@ -307,10 +329,10 @@ class ALADIN():
             
         return features
 
-    def analyse_noise(self, record: Record):
+    def analyse_noise(self, record: Record, preprocess=True):
         print("Analyse noise", record.recordname)
 
-        record = self.segmenter.segment(record)
+        record = self.segmenter.segment(record, preprocess=preprocess)
         record = self.reflection.noise_module.correct(record)
         pc_of_noise = self.embedder.get_percentage_noise(record)
 

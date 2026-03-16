@@ -4,6 +4,7 @@ import torch
 from tqdm import tqdm
 import wfdb
 import time
+import warnings
 
 import aladin._main as cpp_backend
 from aladin.core import Record
@@ -108,7 +109,7 @@ class UNetSegmenter(SegmenterBase):
             # Extract memory information
             _, ram_available, _ = map(int, res.split(","))
             if ram_available < 1024:
-                print("Warning: Available GPU memory is less than 1GB. We switch to CPU device instead.")
+                warnings.warn("Available GPU memory is less than 1GB. Switching to CPU device.")
                 self.device = torch.device('cpu')
             print("Using GPU device:", torch.cuda.get_device_name(dev_id), "with", ram_available, "MB free memory")
         else:
@@ -161,12 +162,12 @@ class UNetSegmenter(SegmenterBase):
         self.heuristic = BALD()
 
         if len(set(self.n_leads)) > 1:
-            print("Warning: The models have different number of input leads. This might lead to suboptimal performance. Make sure all models have the same number of input leads for best performance.")
+            warnings.warn("The provided models have different number of input leads. This might lead to suboptimal performance. Make sure all models have the same number of input leads for best performance.")
         else:
             self.n_leads = self.n_leads[0]
     
 
-    def preprocess(self, record: Record):
+    def preprocess(self, record: Record, preprocess=True):
 
         fs = record.fs
 
@@ -179,6 +180,14 @@ class UNetSegmenter(SegmenterBase):
             
             #if lead is not available, skip processing for this channel and leave it as zeros in the normalized_ecg and filtered_ecg properties
             if not record.available_leads[ch]:
+                continue
+
+            if not preprocess:
+                warnings.warn("Preprocessing is turned off. The raw signal will be used for segmentation, which might lead to suboptimal performance. It is recommended to turn on preprocessing for best results.")
+                record.cpp_record.filtered_ecg[ch,:] = sig.copy()
+                record.cpp_record.ecg_no_qrst[ch,:] = sig.copy()
+                record.cpp_record.ecg_bandpass[ch,:] = sig.copy()
+                record.cpp_record.ecg_noise[ch,:] = np.zeros_like(sig)
                 continue
 
             sig = signal[ch, :]
@@ -240,12 +249,12 @@ class UNetSegmenter(SegmenterBase):
 
         return record
 
-    def preprocess_batch(self, records: list):
+    def preprocess_batch(self, records: list, preprocess=True):
 
         #print("Preprocessing batch of records")
         
         for i in tqdm(range(len(records))):
-            records[i] = self.preprocess(records[i])
+            records[i] = self.preprocess(records[i], preprocess=preprocess)
 
             # fs = records[i].fs
 
@@ -562,9 +571,9 @@ class UNetSegmenter(SegmenterBase):
 
         # return out
 
-    def segment(self, record: Record):
+    def segment(self, record: Record, preprocess=True):
             
-        record = self.preprocess(record)
+        record = self.preprocess(record, preprocess=preprocess)
         sig, props = self.prepare_ecg(record)
 
         print(sig.shape)
@@ -595,9 +604,9 @@ class UNetSegmenter(SegmenterBase):
         if self.debug:
             self.plot(record)
 
-    def batch(self, records: list):
+    def batch(self, records: list, preprocess=True):
         
-        records = self.preprocess_batch(records)
+        records = self.preprocess_batch(records, preprocess=preprocess)
         sig, props = self.prepare_batch(records)
 
         #print("Batch processing ", len(records), "records with 10s sliding window")
@@ -657,10 +666,9 @@ class UNetSegmenter(SegmenterBase):
                 recname = records[i].recordname.split("/")[-1]
                 self.plot(records[i], filename=f"segmentation_{recname}.png")
 
+    def embed(self, record: Record, preprocess=True):
 
-    def embed(self, record: Record):
-
-        record = self.preprocess(record)
+        record = self.preprocess(record, preprocess=preprocess)
         sig, props = self.prepare_ecg(record)
 
         embedding = self.fullcontext_models[0].embed_single_npy_array(sig, props, latent_layer=0)
@@ -671,10 +679,9 @@ class UNetSegmenter(SegmenterBase):
 
         return record
 
-    
-    def embed_batch(self, records: list):
+    def embed_batch(self, records: list, preprocess=True):
 
-        records = self.preprocess_batch(records)
+        records = self.preprocess_batch(records, preprocess=preprocess)
         sig, props = self.prepare_batch(records)
 
         res = []

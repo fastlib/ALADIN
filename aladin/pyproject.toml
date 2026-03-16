@@ -36,6 +36,7 @@ dependencies = [
     "scipy",
     "numpy==1.26.4",
     "rich==13.9.4",
+    "torchmetrics",
     "baal==2.0.0",
     "dtw-python==1.5.3",
     "pandas==2.2.3",

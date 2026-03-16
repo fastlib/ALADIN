@@ -35,7 +35,21 @@ def analyse_single_case(record):
 
     aladin = ALADIN(modelpaths=["ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
                     debug={"segmenter": True, "afibdetector": False, "reflection": False, "total": True})
+
+    #segment     
+    aladin.segment(record)
+    #see record.delineations.[p, qrs, t, abnormal_qrs, noise, afib] for binary masks
+
+    #extract median beat
+    aladin.extract_median_beat(record)
+    median_beat = record.median_beat
+
+    #analyse and diagnose
     aladin.analyse(record)
+    
+    #use aladin without preprocessing, so that you can do your own preprocessing
+    #NOTE: Performance may be altered if you use your own form of preprocessing
+    aladin.analyse(record, preprocess=False)
 
 
 if __name__ == "__main__":
@@ -48,6 +62,9 @@ if __name__ == "__main__":
     # Specify the path to the directory containing the .ecg files
     directory_path = "./data/demo"
 
+    #Load the ECG file from disk and create the Record object
     record = load_case(directory_path, case)
+
+    #Segment and analyse the ECG
     analyse_single_case(record)
 
