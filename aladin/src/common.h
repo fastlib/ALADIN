@@ -72,6 +72,7 @@ class Cluster {
         void set_closest(std::shared_ptr<Cluster> c) { closest = c; }
 
         int get_id() const { return cluster_id; }
+        int get_peak() const { return peak; }
         int get_last_updated() const { return last_updated; }
         int get_number_of_beats() const { return beats.size(); }
         std::shared_ptr<Component> get_beat(int i) { return beats[i]; }
@@ -105,7 +106,7 @@ class Component {
         virtual ~Component() = default;
         py::array_t<float> get_ecg() const { return py::array_t<float>({ ecg.size() }, { sizeof(float) }, ecg.data());}
         int get_id() const { return id; }
-        int get_cluster_id() const { return cluster->cluster_id; }
+        int get_cluster_id() const { return cluster!=nullptr ? (int)cluster->cluster_id : -1; }
         std::shared_ptr<Cluster> get_cluster() const { return cluster; }
         int get_start() const { return start; }
         int get_end() const { return end; }

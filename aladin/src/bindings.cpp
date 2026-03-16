@@ -81,6 +81,7 @@ PYBIND11_MODULE(_main, m) {
         .def_property_readonly("template", &Cluster::get_template)
         .def_property_readonly("template_ecg", &Cluster::get_template_ecg)
         .def_property_readonly("id", &Cluster::get_id)
+        .def_property_readonly("peak", &Cluster::get_peak)
         .def_property_readonly("last_updated", &Cluster::get_last_updated)
         .def_property_readonly("wave_onset", &Cluster::get_wave_onset)
         .def_property_readonly("wave_offset", &Cluster::get_wave_offset);

@@ -792,7 +792,7 @@ class LogicEngine():
                     #print("skipped because of no p-wave or qrs")
                     continue
 
-                if beats[i].r > len(record.ecg) and len(nn_intervals) > 2:
+                if beats[i].r > len(record.filtered_ecg) and len(nn_intervals) > 2:
                     break
                 
                 #print(beats[i].get_r_wave(), beats[i-step].get_r_wave())

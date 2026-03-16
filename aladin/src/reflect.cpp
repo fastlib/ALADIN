@@ -1348,7 +1348,7 @@ void Reflection::reflect_on_qrs() {
 
     //Cluster QRS waves using complete-linkage hierarchical clustering
     clusterer_qrs = std::make_unique<Clustering>(rho_min, alpha, beta);
-    //clusterer_qrs->cluster_qrs(beats, record->fs);
+    clusterer_qrs->cluster_qrs(beats, record->fs);
 
     //Identify beat abnormality within clusters
     // for (int i = 0; i < clusterer_qrs->get_number_of_clusters(); ++i) {
@@ -1360,8 +1360,8 @@ void Reflection::reflect_on_qrs() {
     for (int i=0; i < beats.size(); ++i) {
         //std::cout << "Determine peak" << std::endl;
         beats[i]->determine_peak();
-        std::shared_ptr<QRS> beat = beats[i];
-        //std::cout << "QRS " << i << ": " << beat->start << ", " << beat->end << ", " << beat->abnormal << std::endl;
+        //std::shared_ptr<QRS> beat = beats[i];
+        //std::cout << "QRS " << i << ": " << beat->wave_start << ", " << beat->wave_end << ", " << beat->abnormal << std::endl;
     }
 
 
@@ -1446,7 +1446,9 @@ void Reflection::reflect_on_qrs() {
     //copy qrs waves to record
     record->qrs.clear();
     for(int i=0; i<beats.size(); ++i) {
-        record->qrs.push_back(beats[i]);
+        std::shared_ptr<QRS> beat = beats[i];
+        //std::cout << beat->get_r_wave() << std::endl;
+        record->qrs.push_back(beat);
     }
 
     //copy t waves to record
@@ -1457,9 +1459,10 @@ void Reflection::reflect_on_qrs() {
         }
     }
     record->qrs_clusters.clear();
-    // for(int i=0; i<clusterer_qrs->get_number_of_clusters(); i++) {
-    //     record->qrs_clusters.push_back(clusterer_qrs->get_cluster(i));
-    // }
+    for(int i=0; i<clusterer_qrs->get_number_of_clusters(); i++) {
+        //std::cout << "Cluster " << i << ": " << clusterer_qrs->get_cluster(i)->beats.size() << " beats" << std::endl;
+        record->qrs_clusters.push_back(clusterer_qrs->get_cluster(i));
+    }
 }
 
 float Reflection::qrs_median_range(bool norm) {
@@ -1529,13 +1532,17 @@ void Reflection::identify_qrs() {
 
     for(int i=0; i<record->delineations->qrs->size; i++) {
         qrsmask[i] = ((qrs_normal_logit[i]+qrs_abnormal_logit[i]) > 0.25);
+        //std::cout << "QRS logit at " << i << ": normal=" << qrs_normal_logit[i] << ", abnormal=" << qrs_abnormal_logit[i] << ", mask=" << qrsmask[i] << std::endl;
     }
 
+    //std::cout << record->fs << std::endl;
     tools.closingcentered(qrsmask, (int)(0.12*record->fs));
 
     auto t0 = chrono::high_resolution_clock::now();
     int win_min = record->fs * 0.1;
     int win_plus = record->fs * 0.2;
+    //std::cout << "Win min: " << win_min << ", Win plus: " << win_plus << std::endl;
+    //std::cout << "Record size: " << record->size << std::endl;
 
     int qrsstart = -1;
     int pstart = -1;

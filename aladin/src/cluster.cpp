@@ -86,6 +86,7 @@ void Clustering::cluster_qrs(vector<std::shared_ptr<QRS>> &beats, float fs) {
             continue;
         }
         //std::cout << "Comparing beats " << i << " and 0" << std::endl;
+        beats[i]->cluster = nullptr;
         this->assign_to_cluster(beats[i]);
     }
     tstop = chrono::high_resolution_clock::now();
@@ -93,7 +94,7 @@ void Clustering::cluster_qrs(vector<std::shared_ptr<QRS>> &beats, float fs) {
     // std::cout << "Time taken to compare beats: " << chrono::duration_cast<chrono::milliseconds>(tstop - t1).count() << " ms" << std::endl;
     // std::cout << "Time taken in total: " << chrono::duration_cast<chrono::milliseconds>(tstop - t0).count() << " ms" << std::endl;
 
-    process_clusters();
+    //process_clusters();
     if (verbose) {
         list_clusters();
     }
@@ -293,7 +294,7 @@ void Clustering::cluster_p(vector<std::shared_ptr<P>> &beats, float _fs) {
         use_beat.push_back(true);
     }
     for (int i = 0; i < beats.size(); ++i) {
-        std::cout << "Processing beat " << i << std::endl;
+        //std::cout << "Processing beat " << i << std::endl;
         this->process_beat(beats[i]);
         //break;
     }
@@ -852,8 +853,6 @@ void Clustering::assign_to_cluster(std::shared_ptr<Component> beat) {
     // Assign the beat to a cluster based on the similarity
     // This function should implement the logic to assign the beat
     // to the appropriate cluster based on the parameters provided.
-
-    beat->cluster = nullptr;
 
     //std::cout << "============== Assigning beat " << beat->id << " to a cluster ==============" << std::endl;
 

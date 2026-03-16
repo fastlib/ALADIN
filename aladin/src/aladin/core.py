@@ -33,17 +33,33 @@ class MultiRecord():
         return iter(self.records)
 
 class Record():
-    def __init__(self, ecg: np.ndarray, fs: int, db: str, recordname: str, delineation = None):
+    def __init__(self, ecg_dict: dict, fs: int, db: str, recordname: str, delineation = None):
 
-        self.cpp_record = cpp_backend.Record(ecg, fs)
         self._db = db
         self._recordname = recordname
         self._diagnoses = []
         self._groundtruth = []
+        self._avail_leads = []
+        self.cpp_record = cpp_backend.Record(self.parse_ecg(ecg_dict), fs)
 
     def add_diagnosis(self, name, explanation, start, end):
         d = cpp_backend.Diagnosis(name, explanation, start, end)
         self.cpp_record.add_diagnosis(d)
+
+    def parse_ecg(self, ecg: dict):
+        channel_names = list(ecg.keys())
+
+        target_names = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
+        target_signal = np.zeros((len(target_names), len(ecg[channel_names[0]])))
+        for i, target in enumerate(target_names):
+            if target in channel_names:
+                target_signal[i] = ecg[target]
+                self._avail_leads.append(target)
+            else:
+                print(f"Warning: target lead {target} not found in ECG channels. Filling with zeros.")
+                target_signal[i] = np.zeros(len(ecg[channel_names[0]]))
+
+        return target_signal
     
     def add_subdiagnosis(self, name, explanation, start, end):
         d = cpp_backend.Diagnosis(name, explanation, start, end)
@@ -60,6 +76,18 @@ class Record():
     @property
     def filtered_ecg(self):
         return self.cpp_record.filtered_ecg
+
+    @property
+    def available_leads(self):
+        r = [True] * 12
+        for i, lead in enumerate(["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]):
+            if lead not in self._avail_leads:
+                r[i] = False
+        return r
+
+    @property
+    def available_lead_names(self):
+        return self._avail_leads
 
     @property
     def ecg_no_qrst(self):

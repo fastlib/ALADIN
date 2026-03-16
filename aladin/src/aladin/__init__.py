@@ -24,7 +24,7 @@ def run_logic_thread(record: Record):
     return record
 
 class ALADIN():
-    def __init__(self, modelpaths=[], debug={}, usecache=False, embed=False):
+    def __init__(self, modelpaths=[], debug={}, usefullcontext=True, usecache=False, embed=False):
 
         self.debug = {
             "preprocessor": False,
@@ -37,7 +37,7 @@ class ALADIN():
 
         self.init_debug(debug)
 
-        self.segmenter = UNetSegmenter(modelpaths, debug = self.debug["segmenter"], cache = usecache, embed=embed)
+        self.segmenter = UNetSegmenter(modelpaths, debug = self.debug["segmenter"], usefullcontext=usefullcontext, cache=usecache, embed=embed)
         self.reflection = Reflection(debug = self.debug["reflection"])
         self.logic = LogicEngine(debug = self.debug["logic"])
         self.embedder = Embedder(debug = self.debug["logic"])
@@ -209,6 +209,93 @@ class ALADIN():
                 f.write(full_explanation)
 
         return record
+
+    def calculate_median(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1):
+        
+        median_beat = np.zeros((len(record.available_lead_names),int(record.fs)))
+        rpeak_before = int(time_before_peak*record.fs)
+        rpeak_after = int(time_after_peak*record.fs)
+        smooth_interval = int(gaussian_time*record.fs)
+
+        cluster_ids = [qrs.cluster_id for qrs in record.qrs]
+        largest_cluster_id = max(set(cluster_ids), key=cluster_ids.count)
+        largest_cluster_size = cluster_ids.count(largest_cluster_id)
+
+        for beat in record.qrs:
+            if beat.cluster_id != largest_cluster_id:
+                continue
+
+            onset = beat.r - rpeak_before
+            offset = beat.r + rpeak_after
+
+            if beat.p is not None:
+                onset = beat.p.onset-smooth_interval
+                #print("P-wave onset", beat.p.onset)
+            if beat.t is not None:
+                offset = beat.t.offset+smooth_interval
+                #print("T-wave offset", beat.t.offset)
+
+            if onset < 0 or offset > len(record.filtered_ecg):
+                continue
+
+            i = 0
+            for lead_idx, available in enumerate(record.available_leads):
+                if not available:
+                    continue
+
+                pqrst = record.normalized_ecg[lead_idx, onset:offset]
+                gaussian_mask = np.zeros_like(pqrst)
+                gaussian_mask[:smooth_interval*2] = sps.windows.gaussian(smooth_interval*2, std=smooth_interval/3)
+                gaussian_mask[-smooth_interval*2:] = sps.windows.gaussian(smooth_interval*2, std=smooth_interval/3)[::-1]
+                gaussian_mask[(smooth_interval):(len(pqrst)-smooth_interval)] = 1
+
+                pqrst = pqrst * gaussian_mask
+
+                before = beat.r - onset
+                after = offset - beat.r
+                preprend = max(0, rpeak_before-before)
+                append = max(0, rpeak_after-after)
+
+                pqrst = np.pad(pqrst, (preprend, append), mode='constant', constant_values=0)
+                pqrst = pqrst[:int(record.fs)]
+
+                median_beat[i,:] += pqrst
+                i+=1
+        
+        for i in range(median_beat.shape[0]):
+            median_beat /= sum([1 for beat in record.qrs if beat.cluster_id == largest_cluster_id])
+
+        record.median_beat = median_beat
+
+    def extract_median_beat(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1):
+        print("Analyse record", record.recordname)
+
+        self.segmenter.segment(record)
+        print("self reflect")
+        self.reflection.reflect(record)
+        print("calculate median")
+        self.calculate_median(record, time_before_peak, time_after_peak, gaussian_time)
+        
+        print("Median beat extracted")
+
+    def extract_median_beat_batch(self, records: list, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1):
+        print("Extract median beat batch", len(records))
+
+        self.segmenter.batch(records)
+        self.reflection.batch(records)
+
+        i=0
+        for record in tqdm(records, desc="Extracting median beats"):
+            print(i)
+            try:
+                self.calculate_median(record, time_before_peak, time_after_peak, gaussian_time)
+            except Exception as e:
+                record.median_beat = np.zeros((len(record.available_lead_names),int(record.fs)))
+                print(f"Error processing record {record.recordname}: {e}")
+            i+=1
+        
+        print("Median beat extracted for batch")
+
 
     def embed(self, record: Record):
         self.segmenter.segment(record)

@@ -563,7 +563,7 @@ class nnUNetPredictor(object):
             steps = compute_steps_for_sliding_window(image_size[2:], self.configuration_manager.patch_size,
                                                      self.tile_step_size)
 
-            if self.verbose: print(f'n_steps {image_size[0] * len(steps[0]) * len(steps[1])}, image size is'
+            if self.verbose: print(f'n_steps {image_size[0] * len(steps[0])}, image size is'
                                    f' {image_size}, tile_size {self.configuration_manager.patch_size}, '
                                    f'tile_step_size {self.tile_step_size}\nsteps:\n{steps}')
 
@@ -1032,6 +1032,115 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
 
         return record_seg_logits, record_cls_logits
 
+    def embed_sliding_window_on_batched_data(self, data: torch.Tensor, obj_data, do_on_device: bool = True):
+
+        results_device = self.device if do_on_device else torch.device('cpu')
+
+        if self.use_gaussian:
+            latent_layer = obj_data[0]['latent_layer']
+            print(self.configuration_manager.patch_size)
+            new_patch_size = list(self.configuration_manager.patch_size)
+            new_patch_size[-1] = int(self.configuration_manager.patch_size[-1]/np.power(2, 4-latent_layer))
+            gaussian = compute_gaussian(tuple(new_patch_size), sigma_scale=1. / 8,
+                                        value_scaling_factor=10,
+                                        device=results_device)
+        else:
+            gaussian = 1
+
+        # empty_cache(self.device)
+            
+        with torch.no_grad():
+
+            empty_cache(self.device)
+
+            assert isinstance(data, torch.Tensor)
+            data_size = torch.cuda.memory_reserved() / (1024**2)
+            self.network = self.network.to(self.device)
+            self.network.eval()
+
+            #print("After model load: ", torch.cuda.memory_reserved() / (1024**2))
+            embedded_batch = torch.empty((len(data), obj_data[0]['latent_dim'],  obj_data[0]['shape'][-1]), dtype=torch.half, device=self.device)
+
+            #print("After results reserved: ", torch.cuda.memory_reserved() / (1024**2))
+
+            reserved = torch.cuda.memory_reserved() / (1024**2)
+
+            working_mem_per_sample = (data.shape[-1] * 64 * 4 * 11) / (1024**2)  # 5mb per sample
+            mem_per_sample = working_mem_per_sample + 0.2 * working_mem_per_sample  # 20% overhead
+            max_batch_size = min(len(data), int(np.floor(((self.vram_available - reserved) / mem_per_sample)/100)*100)) #ong 5mb per sample + 20% overhead
+            #max_batch_size = 1000
+            if max_batch_size <= 0:
+                max_batch_size = len(data)
+            num_batches = int(np.ceil(len(data) / max_batch_size))
+
+            for batch in range(0, num_batches):
+                
+                torch.cuda.reset_peak_memory_stats()
+
+                if self.verbose:
+                    print(f'Processing batch {batch+1}/{num_batches} with {len(data[batch*max_batch_size:(batch+1)*max_batch_size])} images')
+
+                with torch.autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
+                    embedded_batch_b = self.network.embed(data[batch*max_batch_size:(batch+1)*max_batch_size])[obj_data[0]['latent_layer']]
+                
+                embedded_batch[batch*max_batch_size:(batch+1)*max_batch_size] = embedded_batch_b
+                empty_cache(self.device)
+
+                #print("Peak during batch: ", torch.cuda.max_memory_reserved() / (1024**2), "MB")
+
+            record_embeddings = []
+            n_predictions = None
+            embeddings = None
+            embedded_batch = embedded_batch.to(results_device)
+
+            t = time.time()
+            for i in range(len(obj_data)):
+                
+                #define new arrays if we are at the start of a new record
+                if n_predictions is None:
+                    original_shape = obj_data[i]["shape"]
+                    latent_dim = obj_data[i]['latent_dim']
+
+                    n_predictions = torch.zeros(original_shape, dtype=torch.half, device=results_device)
+                    embeddings = torch.zeros((latent_dim, *original_shape), dtype=torch.half, device=results_device)
+
+                
+                #get results from the GPU output
+                # print("Getting results from GPU output")
+                # prediction_seg = predicted_batch_seg_logits[i].to(results_device)
+                # prediction_cls = [r[i].to(results_device) for r in predicted_batch_cls_logits]
+                # print("Done getting results from GPU output")
+
+                #multiply with gaussian if we are using it
+                if self.use_gaussian:
+                    embedded_batch[i] *= gaussian
+
+                #add segmentation and classification outputs to the arrays
+                embeddings[obj_data[i]["slice"]] += embedded_batch[i]
+
+                #add gaussian to the n_predictions array
+                n_predictions[obj_data[i]["slice"][1:]] += gaussian
+
+                #check if we are at the end of a record, if so, we add the arrays to the record list
+                if i == len(obj_data)-1 or obj_data[i+1]["record"] != obj_data[i]["record"]:
+                    embeddings /= n_predictions
+                        
+                    # revert padding
+                    slicer_revert_padding = obj_data[i]["slicer_revert_padding"]
+                    #embeddings = embeddings[(slice(None), *slicer_revert_padding[1:])]
+
+                    #print(predicted_seg_logits.shape, predicted_cls_logits[0].shape)
+                    record_embeddings.append(embeddings)
+
+                    n_predictions = None
+                    embeddings = None
+                
+                #print("After results reserved: ", torch.cuda.memory_reserved() / (1024**2))            
+            
+                empty_cache(self.device)
+            
+        return record_embeddings
+
     def predict_logits_from_batched_data(self, data: torch.Tensor, obj_data, do_on_device: bool = True, average=True):
         n_threads = torch.get_num_threads()
         n = len(np.unique([i["record"] for i in obj_data]))
@@ -1093,6 +1202,56 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
 
         if self.verbose: print('Prediction done')
         return prediction_seg, prediction_cls
+
+    def embed_logits_from_batched_data(self, data: torch.Tensor, obj_data, do_on_device: bool = True, average=True):
+        n_threads = torch.get_num_threads()
+        n = len(np.unique([i["record"] for i in obj_data]))
+        embedding = [[] for _ in range(n)]
+
+        for idx, params in tqdm(enumerate(self.list_of_parameters), total=len(self.list_of_parameters), desc="Folds"):
+        #for idx, params in enumerate(self.list_of_parameters):
+            
+            allocated = torch.cuda.memory_allocated() / (1024**2)
+            reserved = torch.cuda.memory_reserved() / (1024**2)
+            #if self.verbose:
+            #print(f"Currently reserved: {reserved:.2f} MB")
+
+            # messing with state dict names...
+            if not isinstance(self.network, OptimizedModule):
+                self.network.load_state_dict(params)
+            else:
+                self.network._orig_mod.load_state_dict(params)
+
+            t = time.time()
+            # why not leave prediction on device if perform_everything_on_device? Because this may cause the
+            # second iteration to crash due to OOM. Grabbing that with try except cause way more bloated code than
+            # this actually saves computation time
+            if average:
+                res = self.embed_sliding_window_on_batched_data(data, obj_data)
+                if self.verbose: print(f"Prediction done in {time.time() - t:.2f} seconds")
+                if len(embedding[0]) == 0:
+                    for i in range(len(res)):
+                        embedding[i] = (res[i].detach().cpu())
+                else:
+                    for i in range(len(res)):
+                        embedding[i] += (res[i].detach().cpu())
+
+            else:
+                res = self.embed_sliding_window_on_batched_data(data, obj_data)
+                if self.verbose: print(f"Prediction done in {time.time() - t:.2f} seconds")
+
+                for i in range(len(res)):
+                    embedding[i].append(res[i].detach().cpu())
+
+        if len(self.list_of_parameters) > 1 and average:
+            for i in range(len(embedding)):
+                embedding[i] /= len(self.list_of_parameters)
+        else:
+            for i in range(len(embedding)):
+                embedding[i] = torch.stack(embedding[i])
+
+        if self.verbose: print('Prediction done')
+        return embedding
 
 
     def predict_logits_from_preprocessed_data(self, data: torch.Tensor, average=True) -> torch.Tensor:
@@ -1273,8 +1432,9 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
             device = torch.cuda.current_device()
             # Get the total memory available in bytes
             result = subprocess.run(['nvidia-smi', '--query-gpu=memory.total,memory.free,memory.used', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            res = result.stdout.split("\n")[device]
             # Extract memory information
-            _, ram_available, _ = map(int, result.stdout.split(","))
+            _, ram_available, _ = map(int, res.split(","))
             self.vram_available = ram_available
         else:
             self.vram_available = psutil.virtual_memory().available
@@ -1639,6 +1799,141 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
             else:
                 return {"seg":ret, "cls": predicted_cls_logits}
 
+    def embed_from_list_of_npy_arrays(self,
+                                        image_or_list_of_images: Union[np.ndarray, List[np.ndarray]],
+                                        segs_from_prev_stage_or_list_of_segs_from_prev_stage: Union[None,
+                                                                                                    np.ndarray,
+                                                                                                    List[
+                                                                                                        np.ndarray]],
+                                        properties_or_list_of_properties: Union[dict, List[dict]],
+                                        truncated_ofname: Union[str, List[str], None],
+                                        num_processes: int = 3,
+                                        save_or_return_probabilities: bool = False,
+                                        num_processes_segmentation_export: int = default_num_processes,
+                                        latent_layer=0):
+        # iterator = self.get_data_iterator_from_raw_npy_data(image_or_list_of_images,
+        #                                                     segs_from_prev_stage_or_list_of_segs_from_prev_stage,
+        #                                                     properties_or_list_of_properties,
+        #                                                     truncated_ofname,
+        #                                                     num_processes)
+        # return self.predict_from_data_iterator(iterator, save_or_return_probabilities, num_processes_segmentation_export, num_images=len(image_or_list_of_images))
+        
+        #torch.backends.cudnn.benchmark = False
+        #torch.backends.cudnn.deterministic = True
+        import subprocess
+
+        do_on_device = True
+        embeddings = n_predictions = prediction = gaussian = workon = None
+
+        # Check if CUDA is available
+        if torch.cuda.is_available():
+            # Get the current device (GPU)
+            device = torch.cuda.current_device()
+            # Get the total memory available in bytes
+            result = subprocess.run(['nvidia-smi', '--query-gpu=memory.total,memory.free,memory.used', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            res = result.stdout.split("\n")[device]
+            # Extract memory information
+            _, ram_available, _ = map(int, res.split(","))
+            self.vram_available = ram_available
+        else:
+            self.vram_available = psutil.virtual_memory().available
+            
+        #if self.verbose:
+        if self.verbose: print(f"Available RAM: {self.vram_available} GB")
+        
+        objs = []
+        props = []
+        sliced_data = []
+
+        for i in range(len(image_or_list_of_images)):
+            #pad data if it is smaller than tile_size
+            input_image = image_or_list_of_images[i]
+            data, slicer_revert_padding = pad_nd_image(input_image, self.configuration_manager.patch_size, 'constant', {'constant_values': 0}, True, None)
+            slicers = self._internal_get_sliding_window_slicers(data.shape[1:])
+
+            properties = properties_or_list_of_properties[i]
+            data_shape_before_cropping = input_image.shape[1:]
+            seg_shape_before_cropping = input_image.shape[1:]
+            properties['data_shape_before_cropping'] = data_shape_before_cropping
+            properties['seg_shape_before_cropping'] = seg_shape_before_cropping
+            # this command will generate a segmentation. This is important because of the nonzero mask which we may need
+            _, _, bbox = crop_to_nonzero(data)
+            properties['bbox_used_for_cropping'] = bbox
+            properties['data_shape_after_cropping_and_before_resampling'] = input_image.shape[1:]
+            properties['seg_shape_after_cropping_and_before_resampling'] = input_image.shape[1:]
+            props.append(properties)
+            latent_dim = (64*np.pow(2, 4-latent_layer)).astype(int)
+            latent_shape = data.shape[1:]
+            latent_shape = int(latent_shape[0]), int(latent_shape[1]), int(latent_shape[2]/np.power(2, 4-latent_layer))
+            print(latent_shape)
+
+            for slicer in slicers:
+                objs.append({
+                    "record": i,
+                    "shape": latent_shape,
+                    "latent_dim": latent_dim,
+                    "latent_layer": latent_layer,
+                    "data_index": len(sliced_data),
+                    "slice": slicer,
+                    "slicer_revert_padding": slicer_revert_padding
+                })
+                sliced_data.append(data[slicer])
+
+        sliced_data = np.stack(sliced_data, axis=0, dtype=np.float32)
+        maxn = sliced_data.shape[0]
+        sliced_data = sliced_data[:maxn, ...]
+        objs = objs[:maxn]
+        props = props[:maxn]
+
+        # torch.cuda.reset_peak_memory_stats()
+        # torch.cuda.synchronize()  # ensures all ops are done
+
+        # allocated = torch.cuda.memory_allocated() / (1024**2)
+        # print(f"Currently allocated: {allocated:.2f} MB")
+
+        #param = self.network.compute_conv_feature_map_size(sliced_data.shape[2:])
+        #print((param*sliced_data.shape[0]*4)/1024/1024)
+
+        allocated = torch.cuda.memory_allocated() / (1024**2)
+        if self.verbose: print(f"Currently allocated: {allocated:.2f} MB")
+
+        #get maximum vram available
+        
+        st = time.time()
+        if self.verbose: print("sliced_data shape:", sliced_data.shape)
+        data = torch.from_numpy(sliced_data)
+        data = data.to(self.device)
+        if self.verbose: print(f"Data loaded in {time.time() - st:.2f} seconds")
+
+        allocated = torch.cuda.memory_reserved() / (1024**2)
+        #if self.verbose: 
+        if self.verbose: print(f"After data load allocated: {allocated:.2f} MB, still free: {self.vram_available - allocated:.2f} MB")
+
+        st = time.time()
+        embeddings = self.embed_logits_from_batched_data(data, objs, do_on_device=True, average=True)
+        if self.verbose: print(f"Prediction done in {time.time() - st:.2f} seconds")
+        n = len(embeddings)
+        out = []
+
+        if self.verbose: print('resampling to original shape')
+
+        times_aggregated = [0,0,0,0]
+        for i in range(len(embeddings)):
+            out.append({"embedding":embeddings[i]})
+
+        # After inference
+        empty_cache(self.device)
+        allocated = torch.cuda.memory_allocated() / (1024**2)
+        reserved = torch.cuda.memory_reserved() / (1024**2)
+        peak = torch.cuda.max_memory_allocated() / (1024**2)
+
+        if self.verbose:
+            print(f"Currently allocated: {allocated:.2f} MB")
+            print(f"Currently reserved: {reserved:.2f} MB")
+            print(f"Peak allocated during inference: {peak:.2f} MB")
+                
+        return out
+
     def embed_single_npy_array(self, input_image: np.ndarray, image_properties: dict, latent_layer=0):
 
         ppa = PreprocessAdapterFromNpyWithClassification([input_image], [None], [image_properties],
@@ -1689,7 +1984,7 @@ class nnUNetLSTMWithClassificationPredictor(nnUNetWithClassificationPredictor):
             steps = compute_steps_for_sliding_window(image_size[2:], patch_size,
                                                      self.tile_step_size)
 
-            if self.verbose: print(f'n_steps {image_size[0] * len(steps[0]) * len(steps[1])}, image size is'
+            if self.verbose: print(f'n_steps {image_size[0] * len(steps[0])}, image size is'
                                    f' {image_size}, tile_size {patch_size}, '
                                    f'tile_step_size {self.tile_step_size}\nsteps:\n{steps}')
 
@@ -1700,7 +1995,7 @@ class nnUNetLSTMWithClassificationPredictor(nnUNetWithClassificationPredictor):
                         
         # if dim == 1:
 
-        #     if self.verbose: print(f'n_steps {image_size[0] * len(steps[0]) * len(steps[1])}, image size is'
+        #     if self.verbose: print(f'n_steps {image_size[0] * len(steps[0])}, image size is'
         #                            f' {image_size}, tile_size {self.configuration_manager.patch_size}, '
         #                            f'tile_step_size {self.tile_step_size}\nsteps:\n{steps}')
 

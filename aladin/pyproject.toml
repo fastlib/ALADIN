@@ -1,6 +1,6 @@
 [project]
 name = "aladin"
-version = "1.0.0"
+version = "1.1.0"
 requires-python = ">=3.9"
 description = "Aladin is a framework for ambulatory ECG delineation and diagnosis"
 authors = [
@@ -33,7 +33,7 @@ dependencies = [
     "neurokit2==0.2.10",
     "wfdb==4.1.2",
     "tqdm==4.67.0",
-    "scipy==1.14.1",
+    "scipy",
     "numpy==1.26.4",
     "rich==13.9.4",
     "baal==2.0.0",

@@ -75,7 +75,7 @@ void Cluster::calc_p_qrs_ratio() {
 Record::Record(py::array_t<float, py::array::c_style | py::array::forcecast> _ecg, float _fs, std::shared_ptr<Delineations> _delineations) {
     ecg_python = _ecg;
     ecg = _ecg.mutable_data();
-    size = _ecg.shape(0);
+    size = _ecg.shape(_ecg.ndim() - 1);
     fs = _fs;
     delineations = _delineations;
 
@@ -93,7 +93,7 @@ Record::Record(py::array_t<float, py::array::c_style | py::array::forcecast> _ec
 Record::Record(py::array_t<float, py::array::c_style | py::array::forcecast> _ecg, float _fs) {
     ecg_python = _ecg;
     ecg = _ecg.mutable_data();
-    size = _ecg.shape(0);
+    size = _ecg.shape(_ecg.ndim() - 1);
     fs = _fs;
 
     filtered_ecg_python = py::array_t<float>(size);

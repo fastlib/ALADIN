@@ -18,7 +18,9 @@ def load_case(dir, case):
 
     file = os.path.join(dir,case)
     rec = wfdb.rdrecord(file)
-    ecg = rec.p_signal[:,0]
+    ecg = { 
+        "II": rec.p_signal[:,0]
+    }
 
     annpath = dir+"/"+case+'.episodes.json'
     episodes = json.load(open(glob.glob(annpath)[0]))["episodes"]
@@ -31,7 +33,7 @@ def load_case(dir, case):
 
 def analyse_single_case(record):
 
-    aladin = ALADIN(modelpaths=["Dataset200_all_101/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
+    aladin = ALADIN(modelpaths=["ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
                     debug={"segmenter": True, "afibdetector": False, "reflection": False, "total": True})
     aladin.analyse(record)
 

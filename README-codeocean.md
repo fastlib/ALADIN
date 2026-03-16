@@ -4,6 +4,11 @@ This CodeOcean capsule contains all the source code and data necessary to reprod
  
 Reproducing the benchmark on the CardioSTAT dataset (Figure 4) exceeded the capabilities of the CodeOcean environment.
  
+## Changelog:
+
+Version 1.1.0 16/03/2026:
+- Added ability to handle 12-lead ECG
+- Added median beat extraction based on segmentation and QRS clusters
  
 ## System requirements:
 - Linux Ubuntu >= 20.04 or MacOSX 13.6.x or Microsoft Windows >=10

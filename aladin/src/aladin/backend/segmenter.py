@@ -24,7 +24,8 @@ from nnunetv2.paths import nnUNet_results, nnUNet_raw
 from nnunetv2.experiment_planning.plan_and_preprocess_api import plan_experiments, preprocess, extract_fingerprints
 from nnunetv2.run.run_training import run_training
 from nnunetv2.experiment_planning.plans_for_pretraining.move_plans_between_datasets import move_plans_between_datasets
-from batchgenerators.utilities.file_and_folder_operations import join
+from batchgenerators.utilities.file_and_folder_operations import load_json, join, isfile, maybe_mkdir_p, isdir, subdirs, \
+    save_json
 
 from baal.active.heuristics import BALD
 
@@ -100,18 +101,22 @@ class UNetSegmenter(SegmenterBase):
         if torch.cuda.is_available():
             # Get the current device (GPU)
             self.device = torch.device('cuda:0')
+            dev_id = torch.cuda.current_device()
             # Get the total memory available in bytes
             result = subprocess.run(['nvidia-smi', '--query-gpu=memory.total,memory.free,memory.used', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            res = result.stdout.split("\n")[dev_id]
             # Extract memory information
-            _, ram_available, _ = map(int, result.stdout.split(","))
+            _, ram_available, _ = map(int, res.split(","))
             if ram_available < 1024:
                 print("Warning: Available GPU memory is less than 1GB. We switch to CPU device instead.")
                 self.device = torch.device('cpu')
+            print("Using GPU device:", torch.cuda.get_device_name(dev_id), "with", ram_available, "MB free memory")
         else:
             self.device = torch.device('cpu')
 
         self.sliding_models = []
         self.fullcontext_models = []
+        self.n_leads = []
 
         for modelpath in modelpaths:
             model = nnUNetWithClassificationPredictor(
@@ -120,7 +125,7 @@ class UNetSegmenter(SegmenterBase):
                 use_mirroring=False,
                 perform_everything_on_device=True,
                 device=self.device,
-                verbose=False,
+                verbose=True,
                 verbose_preprocessing=False,
                 allow_tqdm=False
             )
@@ -131,6 +136,9 @@ class UNetSegmenter(SegmenterBase):
             )
             self.sliding_models.append(model)
 
+            dataset_json = load_json(join(os.path.join(aladin.configuration.aladin_model_folder, modelpath), 'dataset.json'))
+            self.n_leads.append(len(dataset_json['channel_names']))
+
         if usefullcontext:
             for modelpath in modelpaths:
                 model = nnUNetLSTMWithClassificationPredictor(
@@ -139,7 +147,7 @@ class UNetSegmenter(SegmenterBase):
                     use_mirroring=False,
                     perform_everything_on_device=True,
                     device=self.device,
-                    verbose=False,
+                    verbose=True,
                     verbose_preprocessing=False,
                     allow_tqdm=False
                 )
@@ -151,6 +159,11 @@ class UNetSegmenter(SegmenterBase):
                 self.fullcontext_models.append(model)
 
         self.heuristic = BALD()
+
+        if len(set(self.n_leads)) > 1:
+            print("Warning: The models have different number of input leads. This might lead to suboptimal performance. Make sure all models have the same number of input leads for best performance.")
+        else:
+            self.n_leads = self.n_leads[0]
     
 
     def preprocess(self, record: Record):
@@ -158,58 +171,72 @@ class UNetSegmenter(SegmenterBase):
         fs = record.fs
 
         signal = record.ecg.copy()
-        assert len(signal.shape) == 1
 
-        # filter signal between 5 and 30 Hz
+        channels = 12
+        record.cpp_record.normalized_ecg = np.zeros((channels, len(signal[0])))
 
-        lowcut = 0.2
-        highcut = 30
-        nyquist = 0.5 * fs
-        low = lowcut / nyquist
-        high = highcut / nyquist
-        b, a = butter(4, high, btype='low')
-        sig_band = filtfilt(b, a, signal.copy())
+        for ch in range(channels):
+            
+            #if lead is not available, skip processing for this channel and leave it as zeros in the normalized_ecg and filtered_ecg properties
+            if not record.available_leads[ch]:
+                continue
 
-        ms200 = int(0.2 * fs)
-        ms600 = int(0.6 * fs)
-        ms200 = ms200 if ms200 % 2 == 1 else ms200 + 1
-        ms600 = ms600 if ms600 % 2 == 1 else ms600 + 1
-        baseline = sps.medfilt(sps.medfilt(sig_band, ms200), ms600)
-        sig_band = sig_band - baseline
-        record.cpp_record.ecg_bandpass = sig_band.copy()
+            sig = signal[ch, :]
+            # filter signal between 5 and 30 Hz
 
-        norm_signal = signal.copy()
-        norm_signal -= np.mean(norm_signal)
-        norm_signal /= np.std(norm_signal)
+            lowcut = 0.2
+            highcut = 30
+            nyquist = 0.5 * fs
+            low = lowcut / nyquist
+            high = highcut / nyquist
+            b, a = butter(4, high, btype='low')
+            sig_band = filtfilt(b, a, sig.copy())
 
-        record.cpp_record.normalized_ecg = norm_signal
+            ms200 = int(0.2 * fs)
+            ms600 = int(0.6 * fs)
+            ms200 = ms200 if ms200 % 2 == 1 else ms200 + 1
+            ms600 = ms600 if ms600 % 2 == 1 else ms600 + 1
+            baseline = sps.medfilt(sps.medfilt(sig_band, ms200), ms600)
+            sig_band = sig_band - baseline
+            if ch == 1: #use lead II for symbolic reasoning
+                record.cpp_record.ecg_bandpass = sig_band.copy()
+            
+            # norm_signal = sig.copy()
+            # norm_signal -= np.mean(norm_signal)
+            # norm_signal /= np.std(norm_signal)
+            
+            # record.cpp_record.normalized_ecg[ch,:] = norm_signal
 
-        highcut = 40
-        nyquist = 0.5 * fs
-        high = highcut / nyquist
-        b, a = butter(4, high, btype='low')
-        signal = filtfilt(b, a, signal)
+            highcut = 40
+            nyquist = 0.5 * fs
+            high = highcut / nyquist
+            b, a = butter(4, high, btype='low')
+            sig = filtfilt(b, a, sig)
 
-        ms200 = int(0.2 * fs)
-        ms600 = int(0.6 * fs)
-        ms200 = ms200 if ms200 % 2 == 1 else ms200 + 1
-        ms600 = ms600 if ms600 % 2 == 1 else ms600 + 1
-        baseline = sps.medfilt(sps.medfilt(signal, ms200), ms600)
-        signal = signal - baseline
+            ms200 = int(0.2 * fs)
+            ms600 = int(0.6 * fs)
+            ms200 = ms200 if ms200 % 2 == 1 else ms200 + 1
+            ms600 = ms600 if ms600 % 2 == 1 else ms600 + 1
+            baseline = sps.medfilt(sps.medfilt(sig, ms200), ms600)
+            sig = sig - baseline
 
-        #signal -= np.mean(signal)
-        signal /= np.std(signal)
+            #signal -= np.mean(signal)
+            sig /= np.std(sig)
 
-        record.cpp_record.filtered_ecg = signal.copy()
-        record.cpp_record.ecg_no_qrst = signal.copy()
+            record.cpp_record.normalized_ecg[ch,:] = sig.copy()
 
-        highcut = 10
-        nyquist = 0.5 * fs
-        high = highcut / nyquist
-        b, a = butter(4, high, btype='high')
-        signal = filtfilt(b, a, signal)
-        
-        record.cpp_record.ecg_noise = signal.copy()
+            if ch == 1: #use lead II for symbolic reasoning
+                record.cpp_record.filtered_ecg = sig.copy()
+                record.cpp_record.ecg_no_qrst = sig.copy()
+
+            highcut = 10
+            nyquist = 0.5 * fs
+            high = highcut / nyquist
+            b, a = butter(4, high, btype='high')
+            sig = filtfilt(b, a, sig)
+            
+            if ch == 1: #use lead II for symbolic reasoning
+                record.cpp_record.ecg_noise = sig.copy()
 
         return record
 
@@ -272,22 +299,33 @@ class UNetSegmenter(SegmenterBase):
 
     def prepare_ecg(self, record: Record):
         sig = record.normalized_ecg.copy()
-        record.original_length = len(sig)
-        record.before_padding = len(sig)
+        if self.n_leads == 1:
+            sig = sig[1:2,:] #use lead II for single lead processing
+            print("Warning: The model accepts 1 lead, we will use only lead II for processing.")
+        elif self.n_leads == 3:
+            sig = sig[[1,6,11],:]
+            print("Warning: The model accepts 3 leads, we will use leads II, V1 and V6 for processing.")
+        else:
+            raise ValueError("Currently ALADIN works only on 1-lead and 3-lead data, but the provided model(s) expect a different number of leads. Please provide models that are trained on the same number of leads as your data for best performance.")
+
+        record.original_length = sig.shape[1]
+        record.before_padding = sig.shape[1]
 
         #resize if necessary
         if record.fs != self.targetfs:
-            newlength = int(len(sig) * self.targetfs / record.fs)
+            newlength = int(sig.shape[1] * self.targetfs / record.fs)
             sig = resize_signal(sig, newlength)
-            record.before_padding = len(sig)
+            record.before_padding = sig.shape[1]
 
         if sig.shape[-1] % 256 != 0:
-            sig = np.pad(sig, (0, 256 - len(sig) % 256), 'constant', constant_values=(0, 0))
+            sig = np.pad(sig, ((0,0), (0, 256 - sig.shape[1] % 256)), 'constant', constant_values=(0, 0))
             #print("Padded signal to ", sig.shape[-1], "from ", record.before_padding)
 
         #add channel dimension
         if len(sig.shape) == 1:
             sig = sig[None, None, None, :]
+        elif len(sig.shape) == 2:
+            sig = sig[:, None, None, :]
 
         props = {"spacing": [999,999,1]}
 
@@ -299,17 +337,26 @@ class UNetSegmenter(SegmenterBase):
         maxlen = 0
         for record in records:
             sig = record.normalized_ecg.copy()
-            record.original_length = len(sig)
-            record.before_padding = len(sig)
+            if self.n_leads == 1:
+                sig = sig[1:2,:] #use lead II for single lead processing
+                print("Warning: The model accepts 1 lead, we will use only lead II for processing.")
+            elif self.n_leads == 3:
+                sig = sig[[1,6,11],:]
+                print("Warning: The model accepts 3 leads, we will use leads II, V1 and V6 for processing.")
+            else:
+                raise ValueError("Currently ALADIN works only on 1-lead and 3-lead data, but the provided model(s) expect a different number of leads. Please provide models that are trained on the same number of leads as your data for best performance.")
+                
+            record.original_length = sig.shape[1]
+            record.before_padding = sig.shape[1]
 
             #resize if necessary
             if record.fs != self.targetfs:
-                newlength = int(len(sig) * self.targetfs / record.fs)
+                newlength = int(sig.shape[1] * self.targetfs / record.fs)
                 sig = resize_signal(sig, newlength)
-                record.before_padding = len(sig)
+                record.before_padding = sig.shape[1]
 
             if sig.shape[-1] % 256 != 0:
-                sig = np.pad(sig, (0, 256 - len(sig) % 256), 'constant', constant_values=(0, 0))
+                sig = np.pad(sig, ((0,0), (0, 256 - sig.shape[1] % 256)), 'constant', constant_values=(0, 0))
 
             ecgs.append(sig)
             # if len(sig) > maxlen:
@@ -319,8 +366,8 @@ class UNetSegmenter(SegmenterBase):
         props = []
         for i, s in enumerate(ecgs):
             props.append({"spacing": [999,999,1]})
-            tmp = np.zeros((1, 1, 1, len(s)))
-            tmp[0, 0, 0, :] = s
+            tmp = np.zeros((s.shape[0], 1, 1, s.shape[1]))
+            tmp[:, 0, 0, :] = s
             # if len(s) < maxlen:
             #     tmp[0, 0, 0, len(s):] = 0
             sigs.append(tmp)
@@ -520,6 +567,8 @@ class UNetSegmenter(SegmenterBase):
         record = self.preprocess(record)
         sig, props = self.prepare_ecg(record)
 
+        print(sig.shape)
+
         sliding_rets = []
         for model in self.sliding_models:
             sliding_rets.append(model.predict_single_npy_array(sig, props, None, None, True))
@@ -611,9 +660,31 @@ class UNetSegmenter(SegmenterBase):
 
     def embed(self, record: Record):
 
-        sig, normsig, props = self.prepare_ecg(record)
-        embedding = self.embedder.embed_single_npy_array(sig, props, latent_layer=0)
-        embedding = embedding.detach().cpu().numpy()
-        embedding = self.undo_resampling(embedding, record)
+        record = self.preprocess(record)
+        sig, props = self.prepare_ecg(record)
 
-        return embedding
+        embedding = self.fullcontext_models[0].embed_single_npy_array(sig, props, latent_layer=0)
+
+        embed = embedding["embedding"][:,0,0,:]
+        embed = torch.mean(embed, axis=-1).squeeze()
+        record["embedding"] = embed.detach().cpu().numpy()
+
+        return record
+
+    
+    def embed_batch(self, records: list):
+
+        records = self.preprocess_batch(records)
+        sig, props = self.prepare_batch(records)
+
+        res = []
+        embeddings = self.sliding_models[0].embed_from_list_of_npy_arrays(sig, None, props, None, 32, True, latent_layer=0)
+
+        for i, embedding in enumerate(embeddings):
+            embed = embedding["embedding"][:,0,0,:]
+            print("Embedding shape: ", embed.shape)
+            embed = torch.mean(embed, axis=-1).squeeze()
+            records[i]._embedding = embed.detach().cpu().numpy()
+            res.append(embed.detach().cpu().numpy())
+
+        return np.array(res)
