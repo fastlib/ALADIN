@@ -4,14 +4,14 @@ ALADIN is a neuro-symbolic AI model that preprocesses, segments, and diagnoses s
  
 ## Changelog:
 
-Version 1.1.0 16/03/2026:
+💡Version 1.1.0 16/03/2026:
 - Added ability to handle 12-lead ECG
 - Added median beat extraction based on segmentation and QRS clusters
  
 ## System requirements:
 - Linux Ubuntu >= 20.04 or MacOSX 13.6.x or Microsoft Windows >=10
 - Python 3.10 
-- $>20$Gb free diskspace
+- >20Gb free diskspace
 - Modern GPU with >12Gb VRAM is recommended for training
 - [Git](https://git-scm.com/)
 - [Docker](https://www.docker.com/) for training
@@ -36,7 +36,7 @@ source ALADIN/bin/activate #Linux and MacOSX
 ```
 3. Install ALADIN 
 ```{.bash}
-pip install ./src
+pip install ./aladin
 ```
 4. Install nnUNet 
 ```{.bash}
