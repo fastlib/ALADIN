@@ -50,7 +50,7 @@ class ALADIN():
     def plot(self, record: Record, name="", xlim=None, annotations=None):
 
         if xlim is None:
-            xlim = [0, len(record.ecg) / record.fs]
+            xlim = [0, len(record.filtered_ecg) / record.fs]
         
         dsig = np.diff(record.filtered_ecg)
         #dsig = closingcentered(dsig, np.ones(5))
@@ -205,13 +205,13 @@ class ALADIN():
             self.plot(record)
             full_explanation = self.logic.get_full_explanation(record)
             with open("aladin_explanation.txt", "w") as f:
-                f.write(full_explanation)
+                f.write(full_explanation) 
 
         return record
 
     def calculate_median(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1):
         
-        median_beat = MedianBeat(len(record.available_lead_names), int(record.fs), None)
+        median_beat = MedianBeat(len(record.available_lead_names), int(record.fs))
 
         rpeak_before = int(time_before_peak*record.fs)
         rpeak_after = int(time_after_peak*record.fs)
@@ -232,19 +232,19 @@ class ALADIN():
             if beat.cluster_id != largest_cluster_id:
                 continue
 
-            onset = beat.r - rpeak_before
-            offset = beat.r + rpeak_after
+            onset = int((beat.onset+beat.offset)/2) - rpeak_before
+            offset = int((beat.onset+beat.offset)/2) + rpeak_after
 
             if beat.p is not None:
                 onset = beat.p.onset-smooth_interval
                 p_onsets.append(beat.p.onset - (beat.r - rpeak_before))
                 p_offsets.append(beat.p.offset - (beat.r - rpeak_before))
-                #print("P-wave onset", beat.p.onset)
+                print("P-wave onset", beat.p.onset)
             if beat.t is not None:
                 offset = beat.t.offset+smooth_interval
                 t_onsets.append(beat.t.onset - (beat.r - rpeak_before))
                 t_offsets.append(beat.t.offset - (beat.r - rpeak_before))
-                #print("T-wave offset", beat.t.offset)
+                print("T-wave offset", beat.t.offset)
 
             qrs_onsets.append(beat.onset - (beat.r - rpeak_before))
             qrs_offsets.append(beat.offset - (beat.r - rpeak_before))
@@ -276,12 +276,12 @@ class ALADIN():
                 median_beat.ecg[i,:] += pqrst
                 i+=1
 
-        median_p_onset = np.median(p_onsets) if len(p_onsets) > 0 else 0
-        median_p_offset = np.median(p_offsets) if len(p_offsets) > 0 else 0
-        median_t_onset = np.median(t_onsets) if len(t_onsets) > 0 else 0
-        median_t_offset = np.median(t_offsets) if len(t_offsets) > 0 else 0
-        median_qrs_onset = np.median(qrs_onsets) if len(qrs_onsets) > 0 else 0
-        median_qrs_offset = np.median(qrs_offsets) if len(qrs_offsets) > 0 else 0
+        median_p_onset = np.median(p_onsets) if len(p_onsets) > 0 else None
+        median_p_offset = np.median(p_offsets) if len(p_offsets) > 0 else None
+        median_t_onset = np.median(t_onsets) if len(t_onsets) > 0 else None
+        median_t_offset = np.median(t_offsets) if len(t_offsets) > 0 else None
+        median_qrs_onset = np.median(qrs_onsets) if len(qrs_onsets) > 0 else None
+        median_qrs_offset = np.median(qrs_offsets) if len(qrs_offsets) > 0 else None
 
         p = MedianBeatDelineation(median_p_onset, median_p_offset, int(record.fs))
         qrs = MedianBeatDelineation(median_qrs_onset, median_qrs_offset, int(record.fs))

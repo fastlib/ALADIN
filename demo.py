@@ -32,7 +32,7 @@ def load_case(dir, case):
     return record
 
 def plot_median_beat(record):
-    median_beat = record.median_beat
+    median_beat = record.median_beat.ecg
     p_onset = record.median_beat.delineations.p.onset
     p_offset = record.median_beat.delineations.p.offset
     qrs_onset = record.median_beat.delineations.qrs.onset
@@ -40,14 +40,22 @@ def plot_median_beat(record):
     t_onset = record.median_beat.delineations.t.onset
     t_offset = record.median_beat.delineations.t.offset
 
-    plt.plot(median_beat)
-    plt.title("Median Beat")
-    plt.xlabel("Time (samples)")
-    plt.ylabel("Amplitude")
 
-    plt.rectangle((p_onset, np.min(median_beat)), p_offset-p_onset, np.max(median_beat)-np.min(median_beat), color='green', alpha=0.3, label="P wave")
-    plt.rectangle((qrs_onset, np.min(median_beat)), qrs_offset-qrs_onset, np.max(median_beat)-np.min(median_beat), color='red', alpha=0.3, label="QRS complex")
-    plt.rectangle((t_onset, np.min(median_beat)), t_offset-t_onset, np.max(median_beat)-np.min(median_beat), color='blue', alpha=0.3, label="T wave")
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5), dpi=200)
+    
+    ax.plot(median_beat[0,:], color='black', label="ECG Signal")
+    ax.set_title("Median Beat")
+    ax.set_xlabel("Time (samples)")
+    ax.set_ylabel("Amplitude")
+
+    
+    pcolor = '#e74c3c'
+    tcolor = '#3498DB'
+    qrscolor = '#2ecc71'
+
+    ax.axvspan(p_onset, p_offset, color=pcolor, alpha=0.5, label="P wave")
+    ax.axvspan(qrs_onset, qrs_offset, color=qrscolor, alpha=0.5, label="QRS complex")
+    ax.axvspan(t_onset, t_offset, color=tcolor, alpha=0.5, label="T wave")
 
     plt.savefig("median_beat.png")
 
@@ -57,18 +65,19 @@ def analyse_single_case(record):
                     debug={"segmenter": True, "afibdetector": False, "reflection": False, "total": True})
 
     #segment     
-    #aladin.segment(record)
+    aladin.segment(record)
     #see record.delineations.[p, qrs, t, abnormal_qrs, noise, afib] for binary masks
 
     #extract median beat
     aladin.extract_median_beat(record)
-    median_beat = record.median_beat
-
+    median_beat = record.median_beat.ecg
+    #see record.median_beat.delineations.[p, qrs, t].[onset, offset, mask] for median beat delineations
+    
     plot_median_beat(record)
-
 
     #analyse and diagnose
     aladin.analyse(record)
+    #see record.diagnosis.[name, explanation, onset, offset] for the predicted diagnosis, and record.subdiagnosis.[] for the predicted subdiagnosis
     
     #use aladin without preprocessing, so that you can do your own preprocessing
     #NOTE: Performance may be altered if you use your preprocessing

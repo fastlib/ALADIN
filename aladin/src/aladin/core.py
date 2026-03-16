@@ -152,10 +152,12 @@ class Record():
 
 class MedianBeatDelineation():
     def __init__(self, onset = None, offset = None, length = 0):
-        self._onset = int(onset)
-        self._offset = int(offset)
+        self._onset = np.nan
+        self._offset = np.nan
         self._mask = np.zeros(length)
         if onset is not None and offset is not None:
+            self._onset = int(onset)
+            self._offset = int(offset)
             self._mask[self._onset:self._offset] = 1
 
     @property
@@ -177,15 +179,15 @@ class MedianBeatDelineations():
         self._t = t_delineation
 
     @property
-    def p_delineation(self):
+    def p(self):
         return self._p
 
     @property
-    def qrs_delineation(self):
+    def qrs(self):
         return self._qrs
 
     @property
-    def t_delineation(self):
+    def t(self):
         return self._t
 
 class MedianBeat():
