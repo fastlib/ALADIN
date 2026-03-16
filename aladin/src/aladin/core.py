@@ -33,9 +33,9 @@ class MultiRecord():
         return iter(self.records)
 
 class Record():
-    def __init__(self, ecg_dict: dict, fs: int, db: str, recordname: str, delineation = None):
+    def __init__(self, ecg_dict: dict, fs: int, db: str = "", recordname: str = "", delineation = None):
 
-        self._db = db
+        self._db = db 
         self._recordname = recordname
         self._diagnoses = []
         self._groundtruth = []

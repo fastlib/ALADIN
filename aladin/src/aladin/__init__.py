@@ -211,6 +211,11 @@ class ALADIN():
 
     def calculate_median(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1):
         
+        if record.qrs is None or len(record.qrs) == 0:
+            print("No QRS complexes found, cannot extract median beat.")
+            record.median_beat = MedianBeat(len(record.available_lead_names), int(record.fs))
+            return
+
         median_beat = MedianBeat(len(record.available_lead_names), int(record.fs))
 
         rpeak_before = int(time_before_peak*record.fs)
