@@ -244,12 +244,12 @@ class ALADIN():
                 onset = beat.p.onset-smooth_interval
                 p_onsets.append(beat.p.onset - (beat.r - rpeak_before))
                 p_offsets.append(beat.p.offset - (beat.r - rpeak_before))
-                print("P-wave onset", beat.p.onset)
+                #print("P-wave onset", beat.p.onset)
             if beat.t is not None:
                 offset = beat.t.offset+smooth_interval
                 t_onsets.append(beat.t.onset - (beat.r - rpeak_before))
                 t_offsets.append(beat.t.offset - (beat.r - rpeak_before))
-                print("T-wave offset", beat.t.offset)
+                #print("T-wave offset", beat.t.offset)
 
             qrs_onsets.append(beat.onset - (beat.r - rpeak_before))
             qrs_offsets.append(beat.offset - (beat.r - rpeak_before))
@@ -293,8 +293,9 @@ class ALADIN():
         t = MedianBeatDelineation(median_t_onset, median_t_offset, int(record.fs))
         median_beat.delineations = MedianBeatDelineations(p,qrs,t)
 
+        nbeats = sum([1 for beat in record.qrs if beat.cluster_id == largest_cluster_id])
         for i in range(median_beat.ecg.shape[0]):
-            median_beat.ecg /= sum([1 for beat in record.qrs if beat.cluster_id == largest_cluster_id])
+            median_beat.ecg[i,:] /= nbeats
 
         record.median_beat = median_beat
 
@@ -321,7 +322,7 @@ class ALADIN():
             try:
                 self.calculate_median(record, time_before_peak, time_after_peak, gaussian_time)
             except Exception as e:
-                record.median_beat = MedianBeat(len(record.available_lead_names),int(record.fs), None)
+                record.median_beat = MedianBeat(len(record.available_lead_names),int(record.fs))
                 print(f"Error processing record {record.recordname}: {e}")
             i+=1
         

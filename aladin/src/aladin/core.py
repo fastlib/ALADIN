@@ -57,7 +57,7 @@ class Record():
                 target_signal[i] = ecg[target]
                 self._avail_leads.append(target)
             else:
-                print(f"Warning: target lead {target} not found in ECG channels. Filling with zeros.")
+                #print(f"Warning: target lead {target} not found in ECG channels. Filling with zeros.")
                 target_signal[i] = np.zeros(len(ecg[channel_names[0]]))
 
         return target_signal
