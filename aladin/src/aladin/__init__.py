@@ -233,6 +233,7 @@ class ALADIN():
         qrs_onsets = []
         qrs_offsets = []
 
+        n_beats = 0
         for beat in record.qrs:
             if beat.cluster_id != largest_cluster_id:
                 continue
@@ -258,6 +259,7 @@ class ALADIN():
                 continue
 
             i = 0
+            n_beats += 1
             for lead_idx, available in enumerate(record.available_leads):
                 if not available:
                     continue
@@ -293,9 +295,8 @@ class ALADIN():
         t = MedianBeatDelineation(median_t_onset, median_t_offset, int(record.fs))
         median_beat.delineations = MedianBeatDelineations(p,qrs,t)
 
-        nbeats = sum([1 for beat in record.qrs if beat.cluster_id == largest_cluster_id])
         for i in range(median_beat.ecg.shape[0]):
-            median_beat.ecg[i,:] /= nbeats
+            median_beat.ecg[i,:] /= n_beats
 
         record.median_beat = median_beat
 
