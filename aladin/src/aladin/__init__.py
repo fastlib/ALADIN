@@ -209,7 +209,7 @@ class ALADIN():
 
         return record
 
-    def calculate_median(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1):
+    def calculate_median(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1, normalise=True):
         
         if record.qrs is None or len(record.qrs) == 0:
             print("No QRS complexes found, cannot extract median beat.")
@@ -295,9 +295,6 @@ class ALADIN():
         t = MedianBeatDelineation(median_t_onset, median_t_offset, int(record.fs))
         median_beat.delineations = MedianBeatDelineations(p,qrs,t)
 
-        nbeats_2 = sum([1 for beat in record.qrs if beat.cluster_id == largest_cluster_id])
-
-        print(f'Original beats : {nbeats_2}, Used beats for median: {n_beats}')
         for i in range(median_beat.ecg.shape[0]):
             median_beat.ecg[i,:] /= n_beats
 
