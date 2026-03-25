@@ -264,7 +264,7 @@ class ALADIN():
                 if not available:
                     continue
 
-                pqrst = record.normalized_ecg[lead_idx, onset:offset]
+                pqrst = record.normalized_ecg[lead_idx, onset:offset] if normalise else record.ecg[lead_idx, onset:offset]
                 gaussian_mask = np.zeros_like(pqrst)
                 gaussian_mask[:smooth_interval*2] = sps.windows.gaussian(smooth_interval*2, std=smooth_interval/3)
                 gaussian_mask[-smooth_interval*2:] = sps.windows.gaussian(smooth_interval*2, std=smooth_interval/3)[::-1]
