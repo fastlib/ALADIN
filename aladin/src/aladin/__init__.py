@@ -209,7 +209,7 @@ class ALADIN():
 
         return record
 
-    def calculate_median(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1, normalise=True):
+    def calculate_median(self, record: Record, time_before_peak=0.4, time_after_peak=0.6, gaussian_time=0.1):
         
         if record.qrs is None or len(record.qrs) == 0:
             print("No QRS complexes found, cannot extract median beat.")
@@ -264,7 +264,7 @@ class ALADIN():
                 if not available:
                     continue
 
-                pqrst = record.normalized_ecg[lead_idx, onset:offset] if normalise else record.ecg[lead_idx, onset:offset]
+                pqrst = record.normalized_ecg[lead_idx, onset:offset]
                 gaussian_mask = np.zeros_like(pqrst)
                 gaussian_mask[:smooth_interval*2] = sps.windows.gaussian(smooth_interval*2, std=smooth_interval/3)
                 gaussian_mask[-smooth_interval*2:] = sps.windows.gaussian(smooth_interval*2, std=smooth_interval/3)[::-1]
