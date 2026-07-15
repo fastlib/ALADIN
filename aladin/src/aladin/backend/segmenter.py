@@ -128,7 +128,7 @@ class UNetSegmenter(SegmenterBase):
                 use_mirroring=False,
                 perform_everything_on_device=True,
                 device=self.device,
-                verbose=True,
+                verbose=False,
                 verbose_preprocessing=False,
                 allow_tqdm=False
             )
@@ -150,7 +150,7 @@ class UNetSegmenter(SegmenterBase):
                     use_mirroring=False,
                     perform_everything_on_device=True,
                     device=self.device,
-                    verbose=True,
+                    verbose=False,
                     verbose_preprocessing=False,
                     allow_tqdm=False
                 )

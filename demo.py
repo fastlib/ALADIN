@@ -68,12 +68,12 @@ def analyse_single_case(record):
     aladin.segment(record)
     #see record.delineations.[p, qrs, t, abnormal_qrs, noise, afib] for binary masks
 
-    #extract median beat
-    aladin.extract_median_beat(record)
-    median_beat = record.median_beat.ecg
-    #see record.median_beat.delineations.[p, qrs, t].[onset, offset, mask] for median beat delineations
+    # #extract median beat
+    # aladin.extract_median_beat(record)
+    # median_beat = record.median_beat.ecg
+    # #see record.median_beat.delineations.[p, qrs, t].[onset, offset, mask] for median beat delineations
     
-    plot_median_beat(record)
+    # plot_median_beat(record)
 
     #analyse and diagnose
     aladin.analyse(record)
