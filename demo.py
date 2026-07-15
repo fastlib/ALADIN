@@ -81,7 +81,7 @@ def analyse_single_case(record):
     
     #use aladin without preprocessing, so that you can do your own preprocessing
     #NOTE: Performance may be altered if you use your preprocessing
-    aladin.analyse(record, preprocess=False)
+    #aladin.analyse(record, preprocess=False)
 
 
 if __name__ == "__main__":
