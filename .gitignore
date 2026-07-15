@@ -80,3 +80,6 @@ aladin/build
 
 
 !.gitignore
+!.github/
+!.github/workflows/
+!.github/workflows/**
