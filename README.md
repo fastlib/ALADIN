@@ -22,17 +22,58 @@ When on MacOS, install OpenMP via brew to enable native multithreading:
 ```bash
 brew install libomp
 ```
- 
+
 Next, clone and install ALADIN:
 ```bash
 git clone https://github.com/fastlib/ALADIN.git
 cd ALADIN
 python -m venv VENV #create virtual environment
 source VENV/bin/activate #activate environment
-pip install ./aladin
+pip install scikit-build-core pybind11 ninja cmake #build tooling, see macOS note below
+pip install torch #must be installed before building aladin's C++ extension
 pip install ./nnUNet
+pip install ./aladin --no-build-isolation
 mkdir models
 ```
+
+### macOS build notes
+
+ALADIN's C++ extension (`aladin._main`) uses OpenMP for native multithreading.
+On macOS, Apple Clang doesn't ship OpenMP itself, so the extension is built
+using Homebrew's `libomp` for headers — but it links against **PyTorch's own
+bundled `libomp.dylib`** at runtime rather than Homebrew's copy. This is
+necessary because loading two independent OpenMP runtimes into the same
+Python process (one from Homebrew via this extension, one bundled with
+PyTorch) causes macOS to crash under concurrent load, with segfaults inside
+`libomp`'s `__kmp_suspend_64`. Sharing a single runtime with PyTorch avoids
+that.
+
+This has two consequences for how you install/rebuild ALADIN on macOS:
+
+- **`torch` must already be installed before building `aladin`.** The build
+  step needs to `import torch` to locate its bundled `libomp.dylib`. If torch
+  isn't importable at build time, the build falls back to Homebrew's
+  `libomp` with a `WARNING`, which reintroduces the crash risk above.
+- **Always pass `--no-build-isolation` when installing/rebuilding `aladin`.**
+  By default, `pip install` builds packages inside a temporary, isolated
+  environment that can't see `torch` (or anything else) installed in your
+  venv, even though it reuses the same Python interpreter — which defeats
+  the point above. `--no-build-isolation` builds directly against your venv
+  instead, so make sure `scikit-build-core`, `pybind11`, `ninja`, `cmake`,
+  and `torch` are installed in the venv first (as in the install steps
+  above). This applies every time you rebuild the extension, e.g. after
+  `pip install -e ./aladin` for development.
+
+Even with the extension linked correctly, `scikit-learn` (a direct ALADIN
+dependency) ships its own separate, vendored `libomp.dylib` that's outside
+this project's control. As a safety net against the same class of crash, we
+recommend always running ALADIN on macOS with:
+```bash
+export OMP_NUM_THREADS=1
+export nnUNet_def_n_proc=1
+```
+This pins OpenMP/nnU-Net internals to single-threaded execution, avoiding
+concurrent-thread crashes at some cost to CPU inference speed.
 
 ALADIN will automatically download the model weights from the private Hugging Face repo `AUMC/ALADIN` into
 `~/.cache/aladin/models` the first time they're needed. However, this requires Hugging Face account access 
