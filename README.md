@@ -17,7 +17,13 @@ ALADIN is a neuro-symbolic AI model that preprocesses, segments, and diagnoses s
 Tested on Linux Ubuntu 20.04, MacOSX 13.6.x, and Microsoft Windows 10 and 11 Home. CPU-only support is available, but a modern GPU is required for training and will speed up inference substantially. Tested on NVidia GeForce 3090. 
  
 ## Installation
+
+When on MacOS, install OpenMP via brew to enable native multithreading:
+```bash
+brew install libomp
+```
  
+Next, clone and install ALADIN:
 ```bash
 git clone https://github.com/fastlib/ALADIN.git
 cd ALADIN
