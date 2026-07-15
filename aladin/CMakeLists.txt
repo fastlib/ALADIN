@@ -115,6 +115,8 @@ if(APPLE)
       endif()
     endif()
 
+    set(TORCH_OMP_INSTALL_NAME "")
+
     if(TORCH_OMP_LIBRARY)
       message(STATUS "Linking against PyTorch's bundled libomp: ${TORCH_OMP_LIBRARY}")
 
@@ -124,6 +126,40 @@ if(APPLE)
         CACHE FILEPATH "Path to the OpenMP runtime"
         FORCE
       )
+
+      # Some PyTorch wheels ship a libomp.dylib whose own recorded install
+      # name (LC_ID_DYLIB) is a hardcoded, build-machine-only path (e.g.
+      # /opt/llvm-openmp/lib/libomp.dylib) instead of an @rpath-relative one.
+      # dyld resolves a dependency using THAT self-declared ID, not the path
+      # we used to locate the file while linking -- so if it's broken, _main
+      # will fail to load at runtime with "Library not loaded: <bogus path>"
+      # even though we linked against the correct file. Detect that here so
+      # we can rewrite it after building (see the POST_BUILD step below).
+      execute_process(
+        COMMAND otool -D "${TORCH_OMP_LIBRARY}"
+        RESULT_VARIABLE TORCH_OMP_OTOOL_RESULT
+        OUTPUT_VARIABLE TORCH_OMP_OTOOL_OUTPUT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+      )
+
+      if(TORCH_OMP_OTOOL_RESULT EQUAL 0)
+        # otool -D prints the file path on line 1 and the install name on line 2.
+        string(REPLACE "\n" ";" TORCH_OMP_OTOOL_LINES "${TORCH_OMP_OTOOL_OUTPUT}")
+        list(LENGTH TORCH_OMP_OTOOL_LINES TORCH_OMP_OTOOL_NUM_LINES)
+        if(TORCH_OMP_OTOOL_NUM_LINES GREATER_EQUAL 2)
+          list(GET TORCH_OMP_OTOOL_LINES 1 TORCH_OMP_INSTALL_NAME)
+        endif()
+      endif()
+
+      if(TORCH_OMP_INSTALL_NAME AND NOT TORCH_OMP_INSTALL_NAME STREQUAL "@rpath/libomp.dylib")
+        message(
+          STATUS
+          "PyTorch's libomp.dylib has a non-relocatable install name "
+          "(${TORCH_OMP_INSTALL_NAME}); will rewrite _main's reference to "
+          "@rpath/libomp.dylib after building."
+        )
+      endif()
     else()
       message(
         WARNING
@@ -275,6 +311,19 @@ if(APPLE AND TORCH_OMP_LIB_DIR)
       BUILD_RPATH "${TORCH_OMP_LIB_DIR}"
       INSTALL_RPATH "${TORCH_OMP_LIB_DIR}"
   )
+
+  if(TORCH_OMP_INSTALL_NAME AND NOT TORCH_OMP_INSTALL_NAME STREQUAL "@rpath/libomp.dylib")
+    # torch's libomp.dylib has a broken (non-relocatable) install name; _main
+    # currently references that literal broken path. Rewrite it to
+    # @rpath/libomp.dylib so it resolves via the rpath set above instead.
+    add_custom_command(
+      TARGET _main POST_BUILD
+      COMMAND install_name_tool -change
+              "${TORCH_OMP_INSTALL_NAME}" "@rpath/libomp.dylib" "$<TARGET_FILE:_main>"
+      COMMENT "Rewriting broken libomp.dylib install name in _main"
+      VERBATIM
+    )
+  endif()
 endif()
 
 # The install directory is the output wheel directory.

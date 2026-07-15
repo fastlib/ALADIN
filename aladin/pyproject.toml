@@ -38,6 +38,7 @@ dependencies = [
     "tqdm==4.67.0",
     "scipy",
     "numpy",
+    "scikit-learn",
     "rich==13.9.4",
     "dtw-python==1.5.3",
     "pandas==2.2.3",
