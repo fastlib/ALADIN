@@ -5,8 +5,8 @@ ALADIN is a neuro-symbolic AI model that preprocesses, segments, and diagnoses s
 ## Changelog:
 
 💡Version 1.1.0 16/03/2026:
-- Added ability to handle 12-lead ECG
-- Added median beat extraction based on segmentation and QRS clusters
+- Added ability to handle 1, 3, and 12-lead ECG
+- Added median beat extraction and corresponding beat median segmentations based on segmentation and QRS clusters
  
 ## System requirements:
 - Linux Ubuntu >= 20.04 or MacOSX 13.6.x or Microsoft Windows >=10
@@ -26,18 +26,10 @@ pip install ./nnUNet
 mkdir models
 ```
 
-Download model weights from [FigShare](https://figshare.com/s/550ffac7d873ea677824) (8.1Gb) and unzip in `/models` folder such that you have `/models/Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding/...`
-
-```bash
-export aladin_models=[absolute path to root]/models
-```
-
-**Alternative: skip the manual download.** If `aladin_models` is not set, ALADIN will
-automatically download the model weights from the private Hugging Face repo `AUMC/ALADIN` into
-`~/.cache/aladin/models` the first time they're needed. This requires:
-- `pip install huggingface_hub` (included by default in ALADIN's dependencies)
-- Hugging Face account access to the `AUMC/ALADIN` repo, and being authenticated locally via
-  `huggingface-cli login` or the `HF_TOKEN` environment variable.
+ALADIN will automatically download the model weights from the private Hugging Face repo `AUMC/ALADIN` into
+`~/.cache/aladin/models` the first time they're needed. However, this requires Hugging Face account access 
+to the `AUMC/ALADIN` repo, and being authenticated locally via `huggingface-cli login` or 
+the `HF_TOKEN` environment variable.
 
 ## Example usage
 ```python
