@@ -28,7 +28,7 @@ from nnunetv2.experiment_planning.plans_for_pretraining.move_plans_between_datas
 from batchgenerators.utilities.file_and_folder_operations import load_json, join, isfile, maybe_mkdir_p, isdir, subdirs, \
     save_json
 
-from baal.active.heuristics import BALD
+from aladin.utils.bald import BALD
 
 
 class SegmenterBase():

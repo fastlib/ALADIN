@@ -105,8 +105,8 @@ if(APPLE)
           "import os, torch; print(os.path.join(os.path.dirname(torch.__file__), 'lib'))"
         RESULT_VARIABLE TORCH_LIBDIR_RESULT
         OUTPUT_VARIABLE TORCH_LIBDIR_OUTPUT
+        ERROR_VARIABLE TORCH_LIBDIR_ERROR
         OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
       )
 
       if(TORCH_LIBDIR_RESULT EQUAL 0 AND EXISTS "${TORCH_LIBDIR_OUTPUT}/libomp.dylib")
@@ -133,7 +133,11 @@ if(APPLE)
         "alongside PyTorch's, which is known to crash under concurrent load "
         "on macOS (see __kmp_suspend_64 segfaults). Install torch before "
         "building, or set OMP_NUM_THREADS=1 / nnUNet_def_n_proc=1 as a "
-        "workaround."
+        "workaround.\n"
+        "Python_EXECUTABLE: ${Python_EXECUTABLE}\n"
+        "exit code: ${TORCH_LIBDIR_RESULT}\n"
+        "stdout: ${TORCH_LIBDIR_OUTPUT}\n"
+        "stderr: ${TORCH_LIBDIR_ERROR}"
       )
 
       set(

@@ -7,7 +7,7 @@ import json
 import pickle
 from scipy.signal import hilbert
 
-from baal.active.heuristics import BALD
+from aladin.utils.bald import BALD
 import torch
 
 import aladin.configuration
