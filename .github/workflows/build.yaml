@@ -63,6 +63,8 @@ jobs:
   full-model-test:
     name: Full model integration test
     runs-on: ubuntu-latest
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -81,8 +83,6 @@ jobs:
           python -m pip install ./aladin --no-build-isolation  
           
       - name: Login to Hugging Face
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           pip install huggingface_hub
           hf auth login --token "$HF_TOKEN"
