@@ -21,6 +21,8 @@ Tested on Linux Ubuntu 20.04, MacOSX 13.6.x, and Microsoft Windows 10 and 11 Hom
 ```bash
 git clone https://github.com/fastlib/ALADIN.git
 cd ALADIN
+python -m venv VENV #create virtual environment
+source VENV/bin/activate #activate environment
 pip install ./aladin
 pip install ./nnUNet
 mkdir models
