@@ -20,11 +20,15 @@ import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 
 import aladin.configuration
+import nnunetv2
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor, nnUNetWithClassificationPredictor, nnUNetLSTMWithClassificationPredictor
 from nnunetv2.paths import nnUNet_results, nnUNet_raw
 from nnunetv2.experiment_planning.plan_and_preprocess_api import plan_experiments, preprocess, extract_fingerprints
 from nnunetv2.run.run_training import run_training
 from nnunetv2.experiment_planning.plans_for_pretraining.move_plans_between_datasets import move_plans_between_datasets
+from nnunetv2.utilities.plans_handling.plans_handler import PlansManager
+from nnunetv2.utilities.label_handling.label_handling import determine_num_input_channels
+from nnunetv2.utilities.find_class_by_name import recursive_find_python_class
 from batchgenerators.utilities.file_and_folder_operations import load_json, join, isfile, maybe_mkdir_p, isdir, subdirs, \
     save_json
 
@@ -87,8 +91,25 @@ class SegmenterBase():
         plt.savefig(filename)
 
 class UNetSegmenter(SegmenterBase):
-    def __init__(self, modelpaths=[], usefullcontext=True, debug=False, cache=False, embed=False):
+    def __init__(self, modelpaths=[], usefullcontext=True, debug=False, cache=False, embed=False,
+                 random_weights=False, plans_folder=None, num_input_channels=1):
+        """
+        random_weights: if True, skip downloading/loading trained checkpoints (and thus the
+            Hugging Face download in aladin.configuration.get_model_folder()) and instead build
+            each model's network architecture from a local nnU-Net plans file, initialized with
+            random weights. Useful for smoke-testing that the backbone can be built and run
+            end-to-end (e.g. in CI) without network access or private model credentials.
+        plans_folder: folder that is searched (recursively) for a "<plans_name>.json" file for
+            each modelpath, only used when random_weights is True. Each modelpath is expected to
+            follow the standard nnU-Net naming convention "{trainer_name}__{plans_name}__{configuration_name}".
+        num_input_channels: number of input leads to build the random network for, only used
+            when random_weights is True.
+        """
         super().__init__(debug=debug)
+
+        self.random_weights = random_weights
+        self.plans_folder = plans_folder
+        self.num_input_channels = num_input_channels
 
         print("UNetSegmenter initialized")
         print("Number of processors: ", multiprocessing.cpu_count())
@@ -119,7 +140,7 @@ class UNetSegmenter(SegmenterBase):
         self.fullcontext_models = []
         self.n_leads = []
 
-        model_folder = aladin.configuration.get_model_folder()
+        model_folder = None if random_weights else aladin.configuration.get_model_folder()
 
         for modelpath in modelpaths:
             model = nnUNetWithClassificationPredictor(
@@ -132,14 +153,17 @@ class UNetSegmenter(SegmenterBase):
                 verbose_preprocessing=False,
                 allow_tqdm=False
             )
-            model.initialize_from_trained_model_folder(
-                os.path.join(model_folder, modelpath),
-                use_folds=(0,1,2,3,4),
-                checkpoint_name='checkpoint_best.pth',
-            )
+            if random_weights:
+                dataset_json = self._initialize_random_weights(model, modelpath)
+            else:
+                model.initialize_from_trained_model_folder(
+                    os.path.join(model_folder, modelpath),
+                    use_folds=(0,1,2,3,4),
+                    checkpoint_name='checkpoint_best.pth',
+                )
+                dataset_json = load_json(join(os.path.join(model_folder, modelpath), 'dataset.json'))
             self.sliding_models.append(model)
 
-            dataset_json = load_json(join(os.path.join(model_folder, modelpath), 'dataset.json'))
             self.n_leads.append(len(dataset_json['channel_names']))
 
         if usefullcontext:
@@ -154,11 +178,15 @@ class UNetSegmenter(SegmenterBase):
                     verbose_preprocessing=False,
                     allow_tqdm=False
                 )
-                model.initialize_from_trained_model_folder(
-                    os.path.join(model_folder, modelpath),
-                    use_folds=(0,1,2,3,4),
-                    checkpoint_name='checkpoint_best.pth',
-                )
+                if random_weights:
+                    self._initialize_random_weights(model, modelpath)
+                    model.configuration_manager.patch_size = [6144]  # patch size used by the LSTM model
+                else:
+                    model.initialize_from_trained_model_folder(
+                        os.path.join(model_folder, modelpath),
+                        use_folds=(0,1,2,3,4),
+                        checkpoint_name='checkpoint_best.pth',
+                    )
                 self.fullcontext_models.append(model)
 
         self.heuristic = BALD()
@@ -167,7 +195,61 @@ class UNetSegmenter(SegmenterBase):
             warnings.warn("The provided models have different number of input leads. This might lead to suboptimal performance. Make sure all models have the same number of input leads for best performance.")
         else:
             self.n_leads = self.n_leads[0]
-    
+
+    def _initialize_random_weights(self, model, modelpath):
+        """
+        Build the network architecture for `modelpath` from a local nnU-Net plans file and
+        initialize it with random weights, bypassing checkpoint loading entirely (so no trained
+        weights need to be downloaded from Hugging Face). `modelpath` is expected to follow the
+        standard nnU-Net naming convention "{trainer_name}__{plans_name}__{configuration_name}".
+        Returns the (synthetic) dataset_json used to build the model.
+        """
+        if not self.plans_folder:
+            raise ValueError("plans_folder must be set to use random_weights=True.")
+
+        trainer_name, plans_name, configuration_name = modelpath.split("__")
+
+        plans_path = None
+        for root, _, files in os.walk(self.plans_folder):
+            if f"{plans_name}.json" in files:
+                plans_path = os.path.join(root, f"{plans_name}.json")
+                break
+        if plans_path is None:
+            raise FileNotFoundError(f"Could not find a '{plans_name}.json' plans file under '{self.plans_folder}'.")
+
+        plans_manager = PlansManager(load_json(plans_path))
+        configuration_manager = plans_manager.get_configuration(configuration_name)
+
+        dataset_json = {
+            "channel_names": {str(i): f"lead_{i}" for i in range(self.num_input_channels)},
+            "labels": {"background": 0, "p": 1, "qrs": 2, "t": 3, "noise": 4, "abnormal_qrs": 5},
+            "numTraining": 1,
+            "file_ending": ".npy",
+        }
+
+        num_input_channels = determine_num_input_channels(plans_manager, configuration_manager, dataset_json)
+        trainer_class = recursive_find_python_class(
+            os.path.join(nnunetv2.__path__[0], "training", "nnUNetTrainer"),
+            trainer_name, 'nnunetv2.training.nnUNetTrainer'
+        )
+        if trainer_class is None:
+            raise RuntimeError(f'Unable to locate trainer class {trainer_name} in nnunetv2.training.nnUNetTrainer.')
+
+        network = trainer_class.build_network_architecture(
+            configuration_manager.network_arch_class_name,
+            configuration_manager.network_arch_init_kwargs,
+            configuration_manager.network_arch_init_kwargs_req_import,
+            num_input_channels,
+            plans_manager.get_label_manager(dataset_json).num_segmentation_heads,
+            enable_deep_supervision=False
+        )
+
+        model.manual_initialization(
+            network, plans_manager, configuration_manager, [network.state_dict()],
+            dataset_json, trainer_name, None
+        )
+
+        return dataset_json
 
     def preprocess(self, record: Record, preprocess=True):
 

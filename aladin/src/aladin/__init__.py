@@ -24,7 +24,8 @@ def run_logic_thread(record: Record):
     return record
 
 class ALADIN():
-    def __init__(self, modelpaths=[], debug={}, usefullcontext=True, usecache=False, embed=False):
+    def __init__(self, modelpaths=[], debug={}, usefullcontext=True, usecache=False, embed=False,
+                 random_weights=False, plans_folder=None, num_input_channels=1):
 
         self.debug = {
             "preprocessor": False,
@@ -37,7 +38,9 @@ class ALADIN():
 
         self.init_debug(debug)
 
-        self.segmenter = UNetSegmenter(modelpaths, debug = self.debug["segmenter"], usefullcontext=usefullcontext, cache=usecache, embed=embed)
+        self.segmenter = UNetSegmenter(modelpaths, debug = self.debug["segmenter"], usefullcontext=usefullcontext,
+                                       cache=usecache, embed=embed, random_weights=random_weights,
+                                       plans_folder=plans_folder, num_input_channels=num_input_channels)
         self.reflection = Reflection(debug = self.debug["reflection"])
         self.logic = LogicEngine(debug = self.debug["logic"])
         self.embedder = Embedder(debug = self.debug["logic"])
