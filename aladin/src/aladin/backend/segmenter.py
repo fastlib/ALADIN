@@ -92,7 +92,7 @@ class SegmenterBase():
 
 class UNetSegmenter(SegmenterBase):
     def __init__(self, modelpaths=[], usefullcontext=True, debug=False, cache=False, embed=False,
-                 random_weights=False, plans_folder=None, num_input_channels=1):
+                 random_weights=False, plans_folder=None, num_input_channels=1, use_folds=(0,1,2,3,4)):
         """
         random_weights: if True, skip downloading/loading trained checkpoints (and thus the
             Hugging Face download in aladin.configuration.get_model_folder()) and instead build
@@ -104,12 +104,17 @@ class UNetSegmenter(SegmenterBase):
             follow the standard nnU-Net naming convention "{trainer_name}__{plans_name}__{configuration_name}".
         num_input_channels: number of input leads to build the random network for, only used
             when random_weights is True.
+        use_folds: which cross-validation folds' checkpoints to load and ensemble over (ignored
+            when random_weights is True). Defaults to all 5 folds; pass e.g. (0,) to run with a
+            single fold. The corresponding fold_{i}/checkpoint_best.pth file(s) must already be
+            present under the model folder.
         """
         super().__init__(debug=debug)
 
         self.random_weights = random_weights
         self.plans_folder = plans_folder
         self.num_input_channels = num_input_channels
+        self.use_folds = use_folds
 
         print("UNetSegmenter initialized")
         print("Number of processors: ", multiprocessing.cpu_count())
@@ -140,7 +145,7 @@ class UNetSegmenter(SegmenterBase):
         self.fullcontext_models = []
         self.n_leads = []
 
-        model_folder = None if random_weights else aladin.configuration.get_model_folder()
+        model_folder = None if random_weights else aladin.configuration.get_model_folder(modelpaths, use_folds)
 
         for modelpath in modelpaths:
             model = nnUNetWithClassificationPredictor(
@@ -158,7 +163,7 @@ class UNetSegmenter(SegmenterBase):
             else:
                 model.initialize_from_trained_model_folder(
                     os.path.join(model_folder, modelpath),
-                    use_folds=(0,1,2,3,4),
+                    use_folds=self.use_folds,
                     checkpoint_name='checkpoint_best.pth',
                 )
                 dataset_json = load_json(join(os.path.join(model_folder, modelpath), 'dataset.json'))
@@ -184,7 +189,7 @@ class UNetSegmenter(SegmenterBase):
                 else:
                     model.initialize_from_trained_model_folder(
                         os.path.join(model_folder, modelpath),
-                        use_folds=(0,1,2,3,4),
+                        use_folds=self.use_folds,
                         checkpoint_name='checkpoint_best.pth',
                     )
                 self.fullcontext_models.append(model)
@@ -405,6 +410,9 @@ class UNetSegmenter(SegmenterBase):
             print("Warning: The model accepts 3 leads, we will use leads II, V1 and V6 for processing.")
         else:
             raise ValueError("Currently ALADIN works only on 1-lead and 3-lead data, but the provided model(s) expect a different number of leads. Please provide models that are trained on the same number of leads as your data for best performance.")
+
+        if np.all(sig == 0):
+            raise ValueError("The ECG signal did not contain valid lead data.")
 
         record.original_length = sig.shape[1]
         record.before_padding = sig.shape[1]

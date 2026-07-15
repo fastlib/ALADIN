@@ -50,6 +50,9 @@ class Record():
     def parse_ecg(self, ecg: dict):
         channel_names = list(ecg.keys())
 
+        if len(channel_names) == 0:
+            raise ValueError("ECG dictionary is empty. Please provide at least one lead.")
+
         target_names = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
         target_signal = np.zeros((len(target_names), len(ecg[channel_names[0]])))
         for i, target in enumerate(target_names):

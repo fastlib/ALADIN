@@ -373,8 +373,8 @@ class RecordCollection {
         void preprocess() {
             //omp_set_num_threads(48);
             #pragma omp parallel for
-            for (auto &record : records) {
-                record->preprocess();
+            for (int i = 0; i < static_cast<int>(records.size()); i++) {
+                records[i]->preprocess();
             }
         }
 
