@@ -25,6 +25,7 @@ keywords = [
     'deep learning'
 ]
 dependencies = [
+    "pytest"
     "setuptools<82.0.0",
     "torch",
     "google-cloud-storage",
