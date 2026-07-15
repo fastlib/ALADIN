@@ -79,12 +79,70 @@ if(APPLE)
       FORCE
     )
 
-    set(
-      OpenMP_omp_LIBRARY
-      "${LIBOMP_PREFIX}/lib/libomp.dylib"
-      CACHE FILEPATH "Path to the OpenMP runtime"
-      FORCE
-    )
+    # -------------------------------------------------------------------
+    # Which libomp.dylib do we actually LINK against?
+    #
+    # This extension is always loaded into a Python process alongside
+    # PyTorch, which bundles its own copy of libomp.dylib. If we link
+    # against a second, independent copy (e.g. Homebrew's), both runtimes
+    # end up managing worker threads in the same process, and the two
+    # implementations corrupt each other's internal thread state under
+    # concurrent load (crashes inside __kmp_suspend_64 with a garbage/NULL
+    # thread table pointer). Linking against the exact same libomp.dylib
+    # that PyTorch loads avoids introducing that second runtime.
+    #
+    # We still need Homebrew's headers (omp.h) at compile time since
+    # PyTorch's wheel does not ship them; the two builds are ABI-compatible
+    # (both are upstream LLVM's OpenMP runtime), so mixing header source
+    # and library source here is safe.
+    # -------------------------------------------------------------------
+    set(TORCH_OMP_LIBRARY "")
+    set(TORCH_OMP_LIB_DIR "")
+
+    if(Python_EXECUTABLE)
+      execute_process(
+        COMMAND "${Python_EXECUTABLE}" -c
+          "import os, torch; print(os.path.join(os.path.dirname(torch.__file__), 'lib'))"
+        RESULT_VARIABLE TORCH_LIBDIR_RESULT
+        OUTPUT_VARIABLE TORCH_LIBDIR_OUTPUT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+      )
+
+      if(TORCH_LIBDIR_RESULT EQUAL 0 AND EXISTS "${TORCH_LIBDIR_OUTPUT}/libomp.dylib")
+        set(TORCH_OMP_LIB_DIR "${TORCH_LIBDIR_OUTPUT}")
+        set(TORCH_OMP_LIBRARY "${TORCH_LIBDIR_OUTPUT}/libomp.dylib")
+      endif()
+    endif()
+
+    if(TORCH_OMP_LIBRARY)
+      message(STATUS "Linking against PyTorch's bundled libomp: ${TORCH_OMP_LIBRARY}")
+
+      set(
+        OpenMP_omp_LIBRARY
+        "${TORCH_OMP_LIBRARY}"
+        CACHE FILEPATH "Path to the OpenMP runtime"
+        FORCE
+      )
+    else()
+      message(
+        WARNING
+        "Could not locate a PyTorch-bundled libomp.dylib (is torch installed "
+        "for ${Python_EXECUTABLE}?). Falling back to Homebrew's libomp; this "
+        "extension will then load a *second*, independent OpenMP runtime "
+        "alongside PyTorch's, which is known to crash under concurrent load "
+        "on macOS (see __kmp_suspend_64 segfaults). Install torch before "
+        "building, or set OMP_NUM_THREADS=1 / nnUNet_def_n_proc=1 as a "
+        "workaround."
+      )
+
+      set(
+        OpenMP_omp_LIBRARY
+        "${LIBOMP_PREFIX}/lib/libomp.dylib"
+        CACHE FILEPATH "Path to the OpenMP runtime"
+        FORCE
+      )
+    endif()
 
     # omp.h is located here for Homebrew's keg-only libomp installation.
     include_directories(SYSTEM "${LIBOMP_PREFIX}/include")
@@ -202,6 +260,18 @@ target_link_libraries(
     iir::iir
     OpenMP::OpenMP_CXX
 )
+
+if(APPLE AND TORCH_OMP_LIB_DIR)
+  # Make sure dyld resolves libomp.dylib's @rpath-relative install name
+  # (as used by PyTorch's wheel) to torch's copy, not some other libomp
+  # found earlier on the default search path.
+  set_target_properties(
+    _main
+    PROPERTIES
+      BUILD_RPATH "${TORCH_OMP_LIB_DIR}"
+      INSTALL_RPATH "${TORCH_OMP_LIB_DIR}"
+  )
+endif()
 
 # The install directory is the output wheel directory.
 install(TARGETS _main DESTINATION aladin)
