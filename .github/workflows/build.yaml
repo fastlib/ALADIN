@@ -19,6 +19,8 @@ jobs:
   compatibility:
     name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
     strategy:
       fail-fast: false
@@ -54,11 +56,15 @@ jobs:
         run: python -m pip install ./aladin --no-build-isolation
 
       - name: Run tests
-        run: python -m pytest aladin/tests
+        run: |
+          hf auth login --token "$HF_TOKEN"
+          python -m pytest aladin/tests
 
   macosx:
     name: macOS build
     runs-on: macos-latest
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -78,11 +84,15 @@ jobs:
           python -m pip install ./aladin --no-build-isolation
 
       - name: Run tests
-        run: python -m pytest aladin/tests
+        run: |
+          hf auth login --token "$HF_TOKEN"
+          python -m pytest aladin/tests
 
   windows:
     name: Windows build
     runs-on: windows-latest
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -101,31 +111,6 @@ jobs:
           python -m pip install ./aladin --no-build-isolation
 
       - name: Run tests
-        run: python -m pytest aladin/tests
-
-  full-model-test:
-    name: Full model integration test
-    runs-on: ubuntu-latest
-    env:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-
-      - name: Install package
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install scikit-build-core pybind11 ninja cmake
-          python -m pip install torch
-          python -m pip install ./nnUNet
-          python -m pip install ./aladin --no-build-isolation  
-
-      - name: Run demo.py with model weights
-        run: | 
           hf auth login --token "$HF_TOKEN"
-          python demo.py --case STANFORD1
+          python -m pytest aladin/tests

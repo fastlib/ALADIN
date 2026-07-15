@@ -1256,7 +1256,7 @@ void Reflection::match_p_waves_to_qrs() {
 
         //Check if there are any candidates, otherwise stop
         if (candidates.size() > 0) {
-            if (candidates.size() > 1 and candidates.back()->isdouble) {
+            if (candidates.size() > 1 && candidates.back()->isdouble) {
                 candidates.erase(candidates.end() - 1);
             }
 
@@ -1905,7 +1905,7 @@ void BatchReflection::reflect_on_batch(std::vector<std::shared_ptr<Record>> reco
     };
 
     #pragma omp parallel for
-    for (size_t i = 0; i < records.size(); ++i) {
+    for (int i = 0; i < static_cast<int>(records.size()); ++i) {
         //std::cout << "Reflecting on record " << i << " of " << records.size() << std::endl;
         reflect_on_record(records[i]);
         bar.tick();
