@@ -32,6 +32,13 @@ Download model weights from [FigShare](https://figshare.com/s/550ffac7d873ea6778
 export aladin_models=[absolute path to root]/models
 ```
 
+**Alternative: skip the manual download.** If `aladin_models` is not set, ALADIN will
+automatically download the model weights from the private Hugging Face repo `AUMC/ALADIN` into
+`~/.cache/aladin/models` the first time they're needed. This requires:
+- `pip install huggingface_hub` (included by default in ALADIN's dependencies)
+- Hugging Face account access to the `AUMC/ALADIN` repo, and being authenticated locally via
+  `huggingface-cli login` or the `HF_TOKEN` environment variable.
+
 ## Example usage
 ```python
 import numpy as np

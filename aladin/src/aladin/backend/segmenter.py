@@ -119,6 +119,8 @@ class UNetSegmenter(SegmenterBase):
         self.fullcontext_models = []
         self.n_leads = []
 
+        model_folder = aladin.configuration.get_model_folder()
+
         for modelpath in modelpaths:
             model = nnUNetWithClassificationPredictor(
                 tile_step_size=0.9,
@@ -131,13 +133,13 @@ class UNetSegmenter(SegmenterBase):
                 allow_tqdm=False
             )
             model.initialize_from_trained_model_folder(
-                os.path.join(aladin.configuration.aladin_model_folder, modelpath),
+                os.path.join(model_folder, modelpath),
                 use_folds=(0,1,2,3,4),
                 checkpoint_name='checkpoint_best.pth',
             )
             self.sliding_models.append(model)
 
-            dataset_json = load_json(join(os.path.join(aladin.configuration.aladin_model_folder, modelpath), 'dataset.json'))
+            dataset_json = load_json(join(os.path.join(model_folder, modelpath), 'dataset.json'))
             self.n_leads.append(len(dataset_json['channel_names']))
 
         if usefullcontext:
@@ -153,7 +155,7 @@ class UNetSegmenter(SegmenterBase):
                     allow_tqdm=False
                 )
                 model.initialize_from_trained_model_folder(
-                    os.path.join(aladin.configuration.aladin_model_folder, modelpath),
+                    os.path.join(model_folder, modelpath),
                     use_folds=(0,1,2,3,4),
                     checkpoint_name='checkpoint_best.pth',
                 )
