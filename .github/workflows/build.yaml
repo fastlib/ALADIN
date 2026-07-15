@@ -32,10 +32,6 @@ jobs:
             python-version: "3.12"
           - os: ubuntu-latest
             python-version: "3.13"
-          - os: macos-latest
-            python-version: "3.13"
-          - os: windows-latest
-            python-version: "3.13"
 
     steps:
       - name: Check out repository
@@ -56,6 +52,53 @@ jobs:
 
       - name: Compile Python files
         run: python -m pip install ./aladin --no-build-isolation
+
+      - name: Run tests
+        run: python -m pytest aladin/tests
+
+  macosx:
+    name: macOS build
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install package
+        run: |
+          brew install libomp
+          python -m pip install --upgrade pip
+          python -m pip install scikit-build-core pybind11 ninja cmake
+          python -m pip install torch
+          python -m pip install ./nnUNet
+          python -m pip install ./aladin --no-build-isolation
+
+      - name: Run tests
+        run: python -m pytest aladin/tests
+
+  windows:
+    name: Windows build
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install scikit-build-core pybind11 ninja cmake
+          python -m pip install torch
+          python -m pip install ./nnUNet
+          python -m pip install ./aladin --no-build-isolation
 
       - name: Run tests
         run: python -m pytest aladin/tests
@@ -81,11 +124,8 @@ jobs:
           python -m pip install torch
           python -m pip install ./nnUNet
           python -m pip install ./aladin --no-build-isolation  
-          
-      - name: Login to Hugging Face
-        run: |
-          pip install huggingface_hub
-          hf auth login --token "$HF_TOKEN"
 
       - name: Run demo.py with model weights
-        run: python demo.py --case STANFORD1
+        run: | 
+          hf auth login --token "$HF_TOKEN"
+          python demo.py --case STANFORD1

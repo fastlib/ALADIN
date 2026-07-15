@@ -3,7 +3,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <string>
 #include <vector>
 #include <fstream>
@@ -11,7 +13,6 @@
 #include <deque>
 #include <thread>
 #include <cassert>
-#include <complex.h>
 #include <algorithm> // for std::sort
 #include <numeric>
 #include <stdexcept>

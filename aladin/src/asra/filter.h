@@ -27,6 +27,7 @@ Calculating the mean, standard deviation, the sum and extrema of an array is don
 #include <iostream>
 #include <chrono>
 #include <cmath>
+#include <limits>
 #include <cstdint> // <cstdint> requires c++11 support
 #include <regex>
 #include <time.h>

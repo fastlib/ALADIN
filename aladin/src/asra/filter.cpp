@@ -19,8 +19,8 @@ Filter::~Filter() {
 /// @param input_size Input signal size
 /// @param size Median filter size
 void Filter::median(float *input, int input_size, int size) {
-    float *res = (float *)malloc(sizeof(float[input_size]));
-    float *temp = (float *)malloc(sizeof(float[size]));
+    float *res = (float *)malloc(sizeof(float) * input_size);
+    float *temp = (float *)malloc(sizeof(float) * size);
     
     int halfsize = size/2;
     float *padded = (float *)malloc(sizeof(float)*(input_size+halfsize*2));
@@ -43,8 +43,8 @@ void Filter::median(float *input, int input_size, int size) {
 /// @param input_size Input signal size
 /// @param size Median filter size, should be odd
 void Filter::rollmedian(float *input, int input_size, int size) {
-    float *res = (float *)malloc(sizeof(float[input_size]));
-    float *temp = (float *)malloc(sizeof(float[size]));
+    float *res = (float *)malloc(sizeof(float) * input_size);
+    float *temp = (float *)malloc(sizeof(float) * size);
     
     int halfsize = size/2;
     float *padded = (float *)malloc(sizeof(float)*(input_size+halfsize*2));
@@ -68,7 +68,7 @@ void Filter::rollmedian(float *input, int input_size, int size) {
 /// @param input_size Input signal size
 /// @param size Filter size
 void Filter::rollmean(float *input, int input_size, int size) {
-    float *res = (float *)malloc(sizeof(float[input_size]));
+    float *res = (float *)malloc(sizeof(float) * input_size);
     
     int halfsize = size/2;
     float *padded = (float *)malloc(sizeof(float)*(input_size+halfsize*2));
@@ -86,7 +86,7 @@ void Filter::rollmean(float *input, int input_size, int size) {
 }
 
 void Filter::rollmeanpost(float *input, int input_size, int size) {
-    float *res = (float *)malloc(sizeof(float[input_size]));
+    float *res = (float *)malloc(sizeof(float) * input_size);
     
     float *padded = (float *)malloc(sizeof(float)*(input_size+size));
     
@@ -107,7 +107,7 @@ void Filter::rollmeanpost(float *input, int input_size, int size) {
 /// @param input_size Input signal size
 /// @param size Filter size
 void Filter::rollsum(float *input, int input_size, int size) {
-    float *res = (float *)malloc(sizeof(float[input_size]));
+    float *res = (float *)malloc(sizeof(float) * input_size);
     
     for(int i=0; i<(input_size-size); i++) {
         res[i] = findSum(&input[i], size);
@@ -123,7 +123,7 @@ void Filter::rollsum(float *input, int input_size, int size) {
 /// @param input_size Input signal size
 /// @param size Filter size
 void Filter::rollmax(float *input, int input_size, int size) {
-    float *res = (float *)malloc(sizeof(float[input_size]));
+    float *res = (float *)malloc(sizeof(float) * input_size);
     
     for(int i=0; i<(input_size-size); i++) {
         res[i] = input[i] * (2 / findMaximum(&input[i], size, true));
@@ -138,7 +138,7 @@ void Filter::rollmax(float *input, int input_size, int size) {
 /// @param input_size Input signal size
 /// @param size Filter size
 void Filter::rollmaxmin(float *input, int input_size, int size) {
-    float *res = (float *)malloc(sizeof(float[input_size]));
+    float *res = (float *)malloc(sizeof(float) * input_size);
     
     int halfsize = size/2;
     float *padded = (float *)malloc(sizeof(float)*(input_size+halfsize*2));
@@ -382,7 +382,7 @@ float Filter::findSum(float a[], int n) {
 /// @param absolute If true, it uses | a[i] |
 float Filter::findMaximum(float a[], int size, bool absolute) {
     
-    float max = -MAXFLOAT;
+    float max = -std::numeric_limits<float>::max();
     float aa;
     for (int i = 0; i < size; i++) {
         aa = a[i];
@@ -399,7 +399,7 @@ float Filter::findMaximum(float a[], int size, bool absolute) {
 /// @param absolute If true, it uses | a[i] |
 int Filter::findPosMaximum(float a[], int size, bool absolute) {
     
-    float max = -MAXFLOAT;
+    float max = -std::numeric_limits<float>::max();
     float aa;
     int ind = 0;
     for (int i = 0; i < size; i++) {
@@ -415,7 +415,7 @@ int Filter::findPosMaximum(float a[], int size, bool absolute) {
 /// @param a Input array
 /// @param size Input array size
 float Filter::findMinimum(float a[], int size) {
-    float min = MAXFLOAT;
+    float min = std::numeric_limits<float>::max();
     for (int i = 0; i < size; i++)
         if(a[i] < min) min=a[i];
     
@@ -427,7 +427,7 @@ float Filter::findMinimum(float a[], int size) {
 /// @param size Input array size
 int Filter::findPosMinimum(float a[], int size) {
     
-    float min = MAXFLOAT;
+    float min = std::numeric_limits<float>::max();
     int ind = 0;
     for (int i = 0; i < size; i++) {
         if(a[i] < min) { min=a[i]; ind=i;}
@@ -448,8 +448,8 @@ void Filter::Buttersworth(float *input, int size, int fs, float f0, float f1) {
     const float samplingrate = fs; // Hz
     f.setup (samplingrate, (f0+f1)/2, f1-f0);
     
-    float *temp = (float *)malloc(sizeof(float[size]));
-    float *res = (float *)malloc(sizeof(float[size]));
+    float *temp = (float *)malloc(sizeof(float) * size);
+    float *res = (float *)malloc(sizeof(float) * size);
     for(int i=0; i<size; i++) {
         temp[size-i-1] = f.filter(input[i]);
     }
@@ -467,8 +467,8 @@ void Filter::Notch(float *input, int size, int fs, float f0) {
     const float samplingrate = fs; // Hz
     f.setup (samplingrate, f0, 1);
     
-    float *temp = (float *)malloc(sizeof(float[size]));
-    float *res = (float *)malloc(sizeof(float[size]));
+    float *temp = (float *)malloc(sizeof(float) * size);
+    float *res = (float *)malloc(sizeof(float) * size);
     for(int i=0; i<size; i++) {
         temp[size-i-1] = f.filter(input[i]);
     }
@@ -486,8 +486,8 @@ void Filter::Highpass(float *input, int size, int fs, float f0) {
     const float samplingrate = fs;
     f.setup(samplingrate, f0);
     
-    float *temp = (float *)malloc(sizeof(float[size]));
-    float *res = (float *)malloc(sizeof(float[size]));
+    float *temp = (float *)malloc(sizeof(float) * size);
+    float *res = (float *)malloc(sizeof(float) * size);
     for(int i=0; i<size; i++) {
         temp[size-i-1] = f.filter(input[i]);
     }
@@ -503,8 +503,8 @@ void Filter::Highpass(float *input, int size, int fs, float f0) {
 /// @param input Input signal
 /// @param size Input signal size
 void Filter::ChebyshevII(float *input, int size) {
-    int nzeros = 4;
-    int npoles = 4;
+    const int nzeros = 4;
+    const int npoles = 4;
     float gain = 5355.25;
     float xv[nzeros+1], yv[npoles+1];
     
@@ -512,7 +512,7 @@ void Filter::ChebyshevII(float *input, int size) {
         xv[i] = 0; yv[i] = 0;
     }
     
-    float *res = (float *)malloc(sizeof(float[size]));
+    float *res = (float *)malloc(sizeof(float) * size);
     
     for (int i=0; i<size; i++) {
         

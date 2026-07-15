@@ -7,14 +7,15 @@
 #include <pybind11/iostream.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <string>
 #include <vector>
 #include <fstream>
 #include <iostream>
 #include <thread>
 #include <cassert>
-#include <complex.h>
 #include <cmath>
 #include <deque>
 #include <chrono>
