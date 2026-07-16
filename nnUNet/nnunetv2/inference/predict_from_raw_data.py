@@ -903,7 +903,7 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
             empty_cache(self.device)
 
             assert isinstance(data, torch.Tensor)
-            data_size = torch.cuda.memory_reserved() / (1024**2)
+            data_size = torch.cuda.memory_reserved() / (1024**2) if self.device.type == 'cuda' else 0
             self.network = self.network.to(self.device)
             self.network.eval()
 
@@ -915,7 +915,7 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
 
             #print("After results reserved: ", torch.cuda.memory_reserved() / (1024**2))
 
-            reserved = torch.cuda.memory_reserved() / (1024**2)
+            reserved = torch.cuda.memory_reserved() / (1024**2) if self.device.type == 'cuda' else 0
             #mem_for_results = (len(data) *data.shape[-1] * 10 * 4) / (1024**2)  # 5mb per sample + 20% overhead
             #reserved += mem_for_results
 
@@ -930,8 +930,9 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
             #print("Max batch size: ", max_batch_size)
 
             for batch in range(0, num_batches):
-                
-                torch.cuda.reset_peak_memory_stats()
+
+                if self.device.type == 'cuda':
+                    torch.cuda.reset_peak_memory_stats()
 
                 if self.verbose:
                     print(f'Processing batch {batch+1}/{num_batches} with {len(data[batch*max_batch_size:(batch+1)*max_batch_size])} images')
@@ -1054,7 +1055,7 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
             empty_cache(self.device)
 
             assert isinstance(data, torch.Tensor)
-            data_size = torch.cuda.memory_reserved() / (1024**2)
+            data_size = torch.cuda.memory_reserved() / (1024**2) if self.device.type == 'cuda' else 0
             self.network = self.network.to(self.device)
             self.network.eval()
 
@@ -1063,7 +1064,7 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
 
             #print("After results reserved: ", torch.cuda.memory_reserved() / (1024**2))
 
-            reserved = torch.cuda.memory_reserved() / (1024**2)
+            reserved = torch.cuda.memory_reserved() / (1024**2) if self.device.type == 'cuda' else 0
 
             working_mem_per_sample = (data.shape[-1] * 64 * 4 * 11) / (1024**2)  # 5mb per sample
             mem_per_sample = working_mem_per_sample + 0.2 * working_mem_per_sample  # 20% overhead
@@ -1074,8 +1075,9 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
             num_batches = int(np.ceil(len(data) / max_batch_size))
 
             for batch in range(0, num_batches):
-                
-                torch.cuda.reset_peak_memory_stats()
+
+                if self.device.type == 'cuda':
+                    torch.cuda.reset_peak_memory_stats()
 
                 if self.verbose:
                     print(f'Processing batch {batch+1}/{num_batches} with {len(data[batch*max_batch_size:(batch+1)*max_batch_size])} images')
@@ -1149,9 +1151,10 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
 
         for idx, params in tqdm(enumerate(self.list_of_parameters), total=len(self.list_of_parameters), desc="Folds"):
         #for idx, params in enumerate(self.list_of_parameters):
-            
-            allocated = torch.cuda.memory_allocated() / (1024**2)
-            reserved = torch.cuda.memory_reserved() / (1024**2)
+
+            if self.device.type == 'cuda':
+                allocated = torch.cuda.memory_allocated() / (1024**2)
+                reserved = torch.cuda.memory_reserved() / (1024**2)
             #if self.verbose:
             #print(f"Currently reserved: {reserved:.2f} MB")
 
@@ -1210,9 +1213,10 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
 
         for idx, params in tqdm(enumerate(self.list_of_parameters), total=len(self.list_of_parameters), desc="Folds"):
         #for idx, params in enumerate(self.list_of_parameters):
-            
-            allocated = torch.cuda.memory_allocated() / (1024**2)
-            reserved = torch.cuda.memory_reserved() / (1024**2)
+
+            if self.device.type == 'cuda':
+                allocated = torch.cuda.memory_allocated() / (1024**2)
+                reserved = torch.cuda.memory_reserved() / (1024**2)
             #if self.verbose:
             #print(f"Currently reserved: {reserved:.2f} MB")
 
@@ -1489,20 +1493,21 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
         #param = self.network.compute_conv_feature_map_size(sliced_data.shape[2:])
         #print((param*sliced_data.shape[0]*4)/1024/1024)
 
-        allocated = torch.cuda.memory_allocated() / (1024**2)
-        if self.verbose: print(f"Currently allocated: {allocated:.2f} MB")
+        if self.device.type == 'cuda':
+            allocated = torch.cuda.memory_allocated() / (1024**2)
+            if self.verbose: print(f"Currently allocated: {allocated:.2f} MB")
 
         #get maximum vram available
-        
+
         st = time.time()
         if self.verbose: print("sliced_data shape:", sliced_data.shape)
         data = torch.from_numpy(sliced_data)
         data = data.to(self.device)
         if self.verbose: print(f"Data loaded in {time.time() - st:.2f} seconds")
 
-        allocated = torch.cuda.memory_reserved() / (1024**2)
-        #if self.verbose: 
-        if self.verbose: print(f"After data load allocated: {allocated:.2f} MB, still free: {self.vram_available - allocated:.2f} MB")
+        if self.device.type == 'cuda':
+            allocated = torch.cuda.memory_reserved() / (1024**2)
+            if self.verbose: print(f"After data load allocated: {allocated:.2f} MB, still free: {self.vram_available - allocated:.2f} MB")
 
         st = time.time()
         res = self.predict_logits_from_batched_data(data, objs, do_on_device=True, average=False)
@@ -1552,14 +1557,15 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
 
         # After inference
         empty_cache(self.device)
-        allocated = torch.cuda.memory_allocated() / (1024**2)
-        reserved = torch.cuda.memory_reserved() / (1024**2)
-        peak = torch.cuda.max_memory_allocated() / (1024**2)
+        if self.device.type == 'cuda':
+            allocated = torch.cuda.memory_allocated() / (1024**2)
+            reserved = torch.cuda.memory_reserved() / (1024**2)
+            peak = torch.cuda.max_memory_allocated() / (1024**2)
 
-        if self.verbose:
-            print(f"Currently allocated: {allocated:.2f} MB")
-            print(f"Currently reserved: {reserved:.2f} MB")
-            print(f"Peak allocated during inference: {peak:.2f} MB")
+            if self.verbose:
+                print(f"Currently allocated: {allocated:.2f} MB")
+                print(f"Currently reserved: {reserved:.2f} MB")
+                print(f"Peak allocated during inference: {peak:.2f} MB")
                 
         return out
 
@@ -1894,20 +1900,21 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
         #param = self.network.compute_conv_feature_map_size(sliced_data.shape[2:])
         #print((param*sliced_data.shape[0]*4)/1024/1024)
 
-        allocated = torch.cuda.memory_allocated() / (1024**2)
-        if self.verbose: print(f"Currently allocated: {allocated:.2f} MB")
+        if self.device.type == 'cuda':
+            allocated = torch.cuda.memory_allocated() / (1024**2)
+            if self.verbose: print(f"Currently allocated: {allocated:.2f} MB")
 
         #get maximum vram available
-        
+
         st = time.time()
         if self.verbose: print("sliced_data shape:", sliced_data.shape)
         data = torch.from_numpy(sliced_data)
         data = data.to(self.device)
         if self.verbose: print(f"Data loaded in {time.time() - st:.2f} seconds")
 
-        allocated = torch.cuda.memory_reserved() / (1024**2)
-        #if self.verbose: 
-        if self.verbose: print(f"After data load allocated: {allocated:.2f} MB, still free: {self.vram_available - allocated:.2f} MB")
+        if self.device.type == 'cuda':
+            allocated = torch.cuda.memory_reserved() / (1024**2)
+            if self.verbose: print(f"After data load allocated: {allocated:.2f} MB, still free: {self.vram_available - allocated:.2f} MB")
 
         st = time.time()
         embeddings = self.embed_logits_from_batched_data(data, objs, do_on_device=True, average=True)
@@ -1923,14 +1930,15 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
 
         # After inference
         empty_cache(self.device)
-        allocated = torch.cuda.memory_allocated() / (1024**2)
-        reserved = torch.cuda.memory_reserved() / (1024**2)
-        peak = torch.cuda.max_memory_allocated() / (1024**2)
+        if self.device.type == 'cuda':
+            allocated = torch.cuda.memory_allocated() / (1024**2)
+            reserved = torch.cuda.memory_reserved() / (1024**2)
+            peak = torch.cuda.max_memory_allocated() / (1024**2)
 
-        if self.verbose:
-            print(f"Currently allocated: {allocated:.2f} MB")
-            print(f"Currently reserved: {reserved:.2f} MB")
-            print(f"Peak allocated during inference: {peak:.2f} MB")
+            if self.verbose:
+                print(f"Currently allocated: {allocated:.2f} MB")
+                print(f"Currently reserved: {reserved:.2f} MB")
+                print(f"Peak allocated during inference: {peak:.2f} MB")
                 
         return out
 

@@ -1,7 +1,7 @@
 [project]
 name = "aladin"
 version = "1.1.1"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 description = "Aladin is a framework for ambulatory ECG delineation and diagnosis"
 authors = [
     { name = "anonymous"},
