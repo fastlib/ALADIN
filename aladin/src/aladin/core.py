@@ -69,6 +69,159 @@ class Record():
         d = cpp_backend.Diagnosis(name, explanation, start, end)
         self.cpp_record.add_subdiagnosis(d)
 
+    def to_dict(self):
+        return {
+            "ecg": self.ecg,
+            "ecg_normalized": self.normalized_ecg,
+            "fs": self.fs,
+            "recordname": self.recordname,
+            "available_leads": self.available_leads,
+            "available_lead_names": self.available_lead_names,
+            "delineations": {
+                "p": {
+                    "logits": self.delineations.p.logits,
+                    "uncertainty": self.delineations.p.uncertainty,
+                    "binary_mask": self.delineations.p.binary
+                },
+                "qrs": {
+                    "logits": self.delineations.qrs.logits,
+                    "uncertainty": self.delineations.qrs.uncertainty,
+                    "binary_mask": self.delineations.qrs.binary
+                },
+                "t": {
+                    "logits": self.delineations.t.logits,
+                    "uncertainty": self.delineations.t.uncertainty,
+                    "binary_mask": self.delineations.t.binary
+                },
+                "abnormal_qrs": {
+                    "logits": self.delineations.abnormal_qrs.logits,
+                    "uncertainty": self.delineations.abnormal_qrs.uncertainty,
+                    "binary_mask": self.delineations.abnormal_qrs.binary
+                },
+                "noise": {
+                    "logits": self.delineations.noise.logits,
+                    "uncertainty": self.delineations.noise.uncertainty,
+                    "binary_mask": self.delineations.noise.binary
+                },
+                "afib": {
+                    "logits": self.delineations.afib.logits,
+                    "uncertainty": self.delineations.afib.uncertainty,
+                    "binary_mask": self.delineations.afib.binary
+                }
+            },
+            "qrs": [{
+                "id": qrs.id,
+                "onset": qrs.onset,
+                "offset": qrs.offset,
+                "ecg": qrs.ecg,
+                "support_region_start": qrs.support_region_start,
+                "support_region_end": qrs.support_region_end,
+                "number_of_dominant_points": qrs.number_of_dominant_points,
+                "dominant_points": [],
+                "peak": qrs.peak,
+                "r": qrs.r,
+                "width": qrs.width,
+                "rr": qrs.rr,
+                "rr_raw": qrs.rr_raw,
+                "rr_smooth": qrs.rr_smooth,
+                "abnormal": qrs.abnormal,
+                "junctional": qrs.junctional,
+                "double_p": qrs.double_p,
+                "isearly": qrs.isearly,
+                "snr": qrs.snr,
+                "pr": qrs.pr,
+                "pratio": qrs.pratio,
+                "diagnosis": qrs.diagnosis,
+                "predicted_peak": {
+                    "m": qrs.prediction_m,
+                    "std": qrs.prediction_std
+                },
+                "uncertain": qrs.uncertain,
+                "hr": qrs.hr,
+                "hrv": qrs.hrv,
+                "p": {} if qrs.p is None else {
+                    "id": qrs.p.id,
+                    "onset": qrs.p.onset,
+                    "offset": qrs.p.offset,
+                    "ecg": qrs.p.ecg,
+                    "cluster_id": qrs.p.cluster_id,
+                    "support_region_start": qrs.p.support_region_start,
+                    "support_region_end": qrs.p.support_region_end,
+                    "number_of_dominant_points": qrs.p.number_of_dominant_points,
+                    "dominant_points": [],
+                    "width": qrs.p.width,
+                    "inverted": qrs.p.inverted,
+                    "biphasic": qrs.p.biphasic,
+                    "unclustered": qrs.p.unclustered
+                },
+                "t": {} if qrs.t is None else {
+                    "id": qrs.t.id,
+                    "onset": qrs.t.onset,
+                    "offset": qrs.t.offset,
+                    "ecg": qrs.t.ecg,
+                    "cluster_id": qrs.t.cluster_id,
+                    "support_region_start": qrs.t.support_region_start,
+                    "support_region_end": qrs.t.support_region_end,
+                    "number_of_dominant_points": qrs.t.number_of_dominant_points,
+                    "dominant_points": [],
+                    "width": qrs.t.width
+                }
+            } for qrs in self.qrs],
+            "p": [{
+                "id": p.id,
+                "onset": p.onset,
+                "offset": p.offset,
+                "ecg": p.ecg,
+                "cluster_id": p.cluster_id,
+                "support_region_start": p.support_region_start,
+                "support_region_end": p.support_region_end,
+                "number_of_dominant_points": p.number_of_dominant_points,
+                "dominant_points": [],
+                "width": p.width,
+                "inverted": p.inverted,
+                "biphasic": p.biphasic,
+                "unclustered": p.unclustered
+            } for p in self.p],
+            "t": [{
+                "id": t.id,
+                "onset": t.onset,
+                "offset": t.offset,
+                "ecg": t.ecg,
+                "cluster_id": t.cluster_id,
+                "support_region_start": t.support_region_start,
+                "support_region_end": t.support_region_end,
+                "number_of_dominant_points": t.number_of_dominant_points,
+                "dominant_points": [],
+                "width": t.width
+            } for t in self.t],
+            "qrs_clusters": [{
+                "id": cluster.id,
+                "ecg": cluster.template_ecg,
+                "peak": cluster.peak,
+                "wave_onset": cluster.wave_onset,
+                "wave_offset": cluster.wave_offset,
+            } for cluster in self.qrs_clusters],
+            "p_clusters": [{
+                "id": cluster.id,
+                "ecg": cluster.template_ecg,
+                "peak": cluster.peak,
+                "wave_onset": cluster.wave_onset,
+                "wave_offset": cluster.wave_offset,
+            } for cluster in self.p_clusters],
+            "diagnosis": [{
+                "name": d.name,
+                "explanation": d.explanation,
+                "onset": d.onset,
+                "offset": d.offset
+            } for d in self.diagnosis],
+            "subdiagnosis": [{
+                "name": d.name,
+                "explanation": d.explanation,
+                "onset": d.onset,
+                "offset": d.offset
+            } for d in self.subdiagnosis]
+        }
+
     @property
     def ecg(self):
         return self.cpp_record.ecg
@@ -152,6 +305,8 @@ class Record():
     @property
     def p_clusters(self):
         return self.cpp_record.p_clusters
+
+    
 
 class MedianBeatDelineation():
     def __init__(self, onset = None, offset = None, length = 0):

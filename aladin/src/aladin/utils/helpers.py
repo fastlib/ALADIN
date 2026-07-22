@@ -355,6 +355,7 @@ class Cluster():
             max_support = max(max_support, dp["sup"][1])
 
         return (min_support, max_support)
+        
 
 
 class Record():
