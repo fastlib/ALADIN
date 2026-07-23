@@ -924,27 +924,45 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
             max_batch_size = min(len(data), int(np.floor(((self.vram_available - reserved) / mem_per_sample)/100)*100)) #ong 5mb per sample + 20% overhead
             #max_batch_size = 1000
             if max_batch_size <= 0:
-                max_batch_size = len(data)
-            num_batches = int(np.ceil(len(data) / max_batch_size))
+                # Estimate says VRAM is very tight - start small instead of disabling
+                # batching altogether (the previous fallback to len(data) did the opposite
+                # of what's needed exactly when memory is most constrained).
+                max_batch_size = min(len(data), 8)
 
             #print("Max batch size: ", max_batch_size)
 
-            for batch in range(0, num_batches):
+            start = 0
+            batch_idx = 0
+            while start < len(data):
+                current_batch_size = min(max_batch_size, len(data) - start)
 
-                if self.device.type == 'cuda':
-                    torch.cuda.reset_peak_memory_stats()
+                while True:
+                    if self.device.type == 'cuda':
+                        torch.cuda.reset_peak_memory_stats()
 
-                if self.verbose:
-                    print(f'Processing batch {batch+1}/{num_batches} with {len(data[batch*max_batch_size:(batch+1)*max_batch_size])} images')
+                    if self.verbose:
+                        print(f'Processing batch {batch_idx+1} (size {current_batch_size}, offset {start}/{len(data)})')
 
-                with torch.autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
-                    predicted_batch_seg_logits_b, predicted_batch_cls_logits_b = self.network(data[batch*max_batch_size:(batch+1)*max_batch_size])
-                
-                predicted_batch_seg_logits[batch*max_batch_size:(batch+1)*max_batch_size] = predicted_batch_seg_logits_b
+                    try:
+                        with torch.autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
+                            predicted_batch_seg_logits_b, predicted_batch_cls_logits_b = self.network(data[start:start+current_batch_size])
+                        break
+                    except RuntimeError as e:
+                        if 'out of memory' not in str(e).lower() or current_batch_size <= 1:
+                            raise
+                        empty_cache(self.device)
+                        if self.verbose:
+                            print(f'CUDA OOM at batch size {current_batch_size} - retrying with {max(1, current_batch_size // 2)}')
+                        current_batch_size = max(1, current_batch_size // 2)
+                        max_batch_size = current_batch_size  # avoid repeating the same failure on later batches
+
+                predicted_batch_seg_logits[start:start+current_batch_size] = predicted_batch_seg_logits_b
                 for i in range(len(predicted_batch_cls_logits_b)):
-                    predicted_batch_cls_logits[i][batch*max_batch_size:(batch+1)*max_batch_size] = predicted_batch_cls_logits_b[i]
+                    predicted_batch_cls_logits[i][start:start+current_batch_size] = predicted_batch_cls_logits_b[i]
 
                 empty_cache(self.device)
+                start += current_batch_size
+                batch_idx += 1
 
                 #print("Peak during batch: ", torch.cuda.max_memory_reserved() / (1024**2), "MB")
 
@@ -1071,22 +1089,40 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
             max_batch_size = min(len(data), int(np.floor(((self.vram_available - reserved) / mem_per_sample)/100)*100)) #ong 5mb per sample + 20% overhead
             #max_batch_size = 1000
             if max_batch_size <= 0:
-                max_batch_size = len(data)
-            num_batches = int(np.ceil(len(data) / max_batch_size))
+                # Estimate says VRAM is very tight - start small instead of disabling
+                # batching altogether (the previous fallback to len(data) did the opposite
+                # of what's needed exactly when memory is most constrained).
+                max_batch_size = min(len(data), 8)
 
-            for batch in range(0, num_batches):
+            start = 0
+            batch_idx = 0
+            while start < len(data):
+                current_batch_size = min(max_batch_size, len(data) - start)
 
-                if self.device.type == 'cuda':
-                    torch.cuda.reset_peak_memory_stats()
+                while True:
+                    if self.device.type == 'cuda':
+                        torch.cuda.reset_peak_memory_stats()
 
-                if self.verbose:
-                    print(f'Processing batch {batch+1}/{num_batches} with {len(data[batch*max_batch_size:(batch+1)*max_batch_size])} images')
+                    if self.verbose:
+                        print(f'Processing batch {batch_idx+1} (size {current_batch_size}, offset {start}/{len(data)})')
 
-                with torch.autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
-                    embedded_batch_b = self.network.embed(data[batch*max_batch_size:(batch+1)*max_batch_size])[obj_data[0]['latent_layer']]
-                
-                embedded_batch[batch*max_batch_size:(batch+1)*max_batch_size] = embedded_batch_b
+                    try:
+                        with torch.autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
+                            embedded_batch_b = self.network.embed(data[start:start+current_batch_size])[obj_data[0]['latent_layer']]
+                        break
+                    except RuntimeError as e:
+                        if 'out of memory' not in str(e).lower() or current_batch_size <= 1:
+                            raise
+                        empty_cache(self.device)
+                        if self.verbose:
+                            print(f'CUDA OOM at batch size {current_batch_size} - retrying with {max(1, current_batch_size // 2)}')
+                        current_batch_size = max(1, current_batch_size // 2)
+                        max_batch_size = current_batch_size  # avoid repeating the same failure on later batches
+
+                embedded_batch[start:start+current_batch_size] = embedded_batch_b
                 empty_cache(self.device)
+                start += current_batch_size
+                batch_idx += 1
 
                 #print("Peak during batch: ", torch.cuda.max_memory_reserved() / (1024**2), "MB")
 
@@ -1425,21 +1461,18 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
         
         #torch.backends.cudnn.benchmark = False
         #torch.backends.cudnn.deterministic = True
-        import subprocess
 
         do_on_device = True
         predicted_seg_logits = predicted_cls_logits = n_predictions = prediction = gaussian = workon = None
 
         # Check if CUDA is available
         if torch.cuda.is_available():
-            # Get the current device (GPU)
-            device = torch.cuda.current_device()
-            # Get the total memory available in bytes
-            result = subprocess.run(['nvidia-smi', '--query-gpu=memory.total,memory.free,memory.used', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            res = result.stdout.split("\n")[device]
-            # Extract memory information
-            _, ram_available, _ = map(int, res.split(","))
-            self.vram_available = ram_available
+            # torch.cuda.mem_get_info() reads free memory for the active device directly
+            # from the CUDA driver, so it can't be misaligned the way indexing nvidia-smi's
+            # device list by torch's local device index could be when CUDA_VISIBLE_DEVICES
+            # restricts/reorders visible GPUs.
+            free_bytes, _ = torch.cuda.mem_get_info()
+            self.vram_available = free_bytes / (1024 ** 2)  # MB, matches previous nvidia-smi units
         else:
             self.vram_available = psutil.virtual_memory().available
             
@@ -1826,21 +1859,18 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
         
         #torch.backends.cudnn.benchmark = False
         #torch.backends.cudnn.deterministic = True
-        import subprocess
 
         do_on_device = True
         embeddings = n_predictions = prediction = gaussian = workon = None
 
         # Check if CUDA is available
         if torch.cuda.is_available():
-            # Get the current device (GPU)
-            device = torch.cuda.current_device()
-            # Get the total memory available in bytes
-            result = subprocess.run(['nvidia-smi', '--query-gpu=memory.total,memory.free,memory.used', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            res = result.stdout.split("\n")[device]
-            # Extract memory information
-            _, ram_available, _ = map(int, res.split(","))
-            self.vram_available = ram_available
+            # torch.cuda.mem_get_info() reads free memory for the active device directly
+            # from the CUDA driver, so it can't be misaligned the way indexing nvidia-smi's
+            # device list by torch's local device index could be when CUDA_VISIBLE_DEVICES
+            # restricts/reorders visible GPUs.
+            free_bytes, _ = torch.cuda.mem_get_info()
+            self.vram_available = free_bytes / (1024 ** 2)  # MB, matches previous nvidia-smi units
         else:
             self.vram_available = psutil.virtual_memory().available
             
