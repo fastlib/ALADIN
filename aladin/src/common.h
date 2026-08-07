@@ -147,7 +147,6 @@ class P : public Component {
         bool get_biphasic() const { return biphasic; }
         bool get_unmatched() const { return unmatched; }
         bool get_unclustered() const { return unclustered; }
-        int get_cluster_id() const { return cluster_id; }
         std::vector<float> get_ecg() const { return ecg; }
 
         bool inverted;

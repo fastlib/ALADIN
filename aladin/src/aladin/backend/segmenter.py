@@ -5,6 +5,7 @@ from tqdm import tqdm
 import wfdb
 import time
 import warnings
+import psutil
 
 import aladin._main as cpp_backend
 from aladin.core import Record
@@ -126,6 +127,7 @@ class UNetSegmenter(SegmenterBase):
 
         # Check if CUDA is available
         if torch.cuda.is_available():
+            print("CUDA available")
             # Get the current device (GPU)
             self.device = torch.device('cuda:0')
             dev_id = torch.cuda.current_device()
@@ -144,6 +146,9 @@ class UNetSegmenter(SegmenterBase):
         self.sliding_models = []
         self.fullcontext_models = []
         self.n_leads = []
+
+        process = psutil.Process(os.getpid())
+        ram_before_mb = process.memory_info().rss / (1024 ** 2)
 
         model_folder = None if random_weights else aladin.configuration.get_model_folder(modelpaths, use_folds)
 
@@ -172,7 +177,7 @@ class UNetSegmenter(SegmenterBase):
             self.n_leads.append(len(dataset_json['channel_names']))
 
         if usefullcontext:
-            for modelpath in modelpaths:
+            for i, modelpath in enumerate(modelpaths):
                 model = nnUNetLSTMWithClassificationPredictor(
                     tile_step_size=0.9,
                     use_gaussian=True,
@@ -187,12 +192,20 @@ class UNetSegmenter(SegmenterBase):
                     self._initialize_random_weights(model, modelpath)
                     model.configuration_manager.patch_size = [6144]  # patch size used by the LSTM model
                 else:
+                    # Reuse the fold checkpoints already loaded for the sliding-window model at
+                    # self.sliding_models[i] (same modelpath, same checkpoint files) instead of
+                    # reading the same multi-GB weight files from disk a second time.
                     model.initialize_from_trained_model_folder(
                         os.path.join(model_folder, modelpath),
                         use_folds=self.use_folds,
                         checkpoint_name='checkpoint_best.pth',
+                        shared_from=self.sliding_models[i],
                     )
                 self.fullcontext_models.append(model)
+
+        ram_after_mb = process.memory_info().rss / (1024 ** 2)
+        print(f"Model loading used {ram_after_mb - ram_before_mb:.1f} MB of RAM "
+              f"(RSS: {ram_before_mb:.1f} MB -> {ram_after_mb:.1f} MB)")
 
         self.heuristic = BALD()
 

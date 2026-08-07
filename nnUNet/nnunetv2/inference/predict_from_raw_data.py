@@ -68,32 +68,45 @@ class nnUNetPredictor(object):
 
     def initialize_from_trained_model_folder(self, model_training_output_dir: str,
                                              use_folds: Union[Tuple[Union[int, str]], None],
-                                             checkpoint_name: str = 'checkpoint_final.pth'):
+                                             checkpoint_name: str = 'checkpoint_final.pth',
+                                             shared_from: Optional['nnUNetPredictor'] = None):
         """
         This is used when making predictions with a trained model
-        """
-        if use_folds is None:
-            use_folds = nnUNetPredictor.auto_detect_available_folds(model_training_output_dir, checkpoint_name)
 
+        shared_from: if given, reuse the fold checkpoints already loaded into this other
+        predictor instead of reading them from disk again. Use this when building multiple
+        predictors (e.g. sliding-window and full-context) from the exact same trained
+        checkpoints, to avoid loading the same (potentially multi-GB) weight files into RAM
+        more than once.
+        """
         dataset_json = load_json(join(model_training_output_dir, 'dataset.json'))
         plans = load_json(join(model_training_output_dir, 'plans.json'))
         plans_manager = PlansManager(plans)
 
-        if isinstance(use_folds, str):
-            use_folds = [use_folds]
+        if shared_from is not None:
+            parameters = shared_from.list_of_parameters
+            trainer_name = shared_from.trainer_name
+            configuration_name = shared_from.configuration_name
+            inference_allowed_mirroring_axes = shared_from.allowed_mirroring_axes
+        else:
+            if use_folds is None:
+                use_folds = nnUNetPredictor.auto_detect_available_folds(model_training_output_dir, checkpoint_name)
 
-        parameters = []
-        for i, f in enumerate(use_folds):
-            f = int(f) if f != 'all' else f
-            checkpoint = torch.load(join(model_training_output_dir, f'fold_{f}', checkpoint_name),
-                                    map_location=torch.device('cpu'), weights_only=False)
-            if i == 0:
-                trainer_name = checkpoint['trainer_name']
-                configuration_name = checkpoint['init_args']['configuration']
-                inference_allowed_mirroring_axes = checkpoint['inference_allowed_mirroring_axes'] if \
-                    'inference_allowed_mirroring_axes' in checkpoint.keys() else None
+            if isinstance(use_folds, str):
+                use_folds = [use_folds]
 
-            parameters.append(checkpoint['network_weights'])
+            parameters = []
+            for i, f in enumerate(use_folds):
+                f = int(f) if f != 'all' else f
+                checkpoint = torch.load(join(model_training_output_dir, f'fold_{f}', checkpoint_name),
+                                        map_location=torch.device('cpu'), weights_only=False)
+                if i == 0:
+                    trainer_name = checkpoint['trainer_name']
+                    configuration_name = checkpoint['init_args']['configuration']
+                    inference_allowed_mirroring_axes = checkpoint['inference_allowed_mirroring_axes'] if \
+                        'inference_allowed_mirroring_axes' in checkpoint.keys() else None
+
+                parameters.append(checkpoint['network_weights'])
 
         configuration_manager = plans_manager.get_configuration(configuration_name)
         # restore network
@@ -114,6 +127,7 @@ class nnUNetPredictor(object):
 
         self.plans_manager = plans_manager
         self.configuration_manager = configuration_manager
+        self.configuration_name = configuration_name
         self.list_of_parameters = parameters
         self.network = network
         self.dataset_json = dataset_json
@@ -2005,11 +2019,13 @@ class nnUNetLSTMWithClassificationPredictor(nnUNetWithClassificationPredictor):
 
     def initialize_from_trained_model_folder(self, model_training_output_dir: str,
                                              use_folds: Union[Tuple[Union[int, str]], None],
-                                             checkpoint_name: str = 'checkpoint_final.pth'):
+                                             checkpoint_name: str = 'checkpoint_final.pth',
+                                             shared_from: Optional['nnUNetPredictor'] = None):
         """
         This is used when making predictions with a trained model
         """
-        super().initialize_from_trained_model_folder(model_training_output_dir, use_folds, checkpoint_name)
+        super().initialize_from_trained_model_folder(model_training_output_dir, use_folds, checkpoint_name,
+                                                      shared_from=shared_from)
 
         self.configuration_manager.patch_size = [6144]  # this is the patch size for the LSTM model
 
