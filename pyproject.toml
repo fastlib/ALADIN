@@ -79,7 +79,7 @@ dependencies = [
     "einops>=0.8,<1"
 ]          
 
-[project.optional-dependencies]
+[optional-dependencies]
 dev = [
     "pytest>=8,<9",
 ]          
