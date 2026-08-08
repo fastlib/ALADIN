@@ -54,7 +54,6 @@ nnUNet/build/
 nnUNet/.egg-info
 nnUNet/.github
 nnUNet/.gitignore
-!nnUNet/pyproject.toml
 !nnUNet/LICENSE
 !nnUNet/README.md
 !nnUNet/nnunetv2/
@@ -82,4 +81,4 @@ aladin/build
 !.gitignore
 !.github/
 !.github/workflows/
-!.github/workflows/**
+!.github/ orkflows/**
