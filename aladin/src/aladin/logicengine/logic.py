@@ -2,7 +2,6 @@ import numpy as np
 from aladin.utils.helpers import Record
 import re
 import time
-import ruptures as rpt
 import neurokit2 as nk
 
 import aladin._main as cpp_backend

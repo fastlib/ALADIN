@@ -46,7 +46,6 @@ dependencies = [
     "boto3",
     "openpyxl",
     "neurokit2",
-    "ruptures",
     "neurokit2==0.2.10",
     "wfdb==4.1.2",
     "tqdm==4.67.0",
