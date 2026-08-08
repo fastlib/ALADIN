@@ -1,5 +1,5 @@
 [project]
-name = "aladin"
+name = "aladin-ecg"
 readme = "README.md"
 version = "1.0.0"
 requires-python = ">=3.11,<3.15"
