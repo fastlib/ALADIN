@@ -1,7 +1,7 @@
 [project]
 name = "aladin"
 version = "1.0.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11,<3.15"
 description = "Aladin is a framework for ambulatory and clinical ECG processing, delineation, analysis, and diagnosis"
 authors = [
     { name = "Lukas P.A. Arts"},
@@ -11,6 +11,11 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Healthcare Industry",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: Apache Software License",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
