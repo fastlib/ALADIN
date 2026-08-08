@@ -10,6 +10,8 @@
 !demo.py
 !test.py
 !run.sh
+!CMakeLists.txt
+!pyproject.toml
 !benchmark_delineation.sh
 !benchmark_diagnosis_CINC.sh
 !benchmark_diagnosis_STANFORD.sh
@@ -81,4 +83,8 @@ aladin/build
 !.gitignore
 !.github/
 !.github/workflows/
+<<<<<<< HEAD
 !.github/ orkflows/**
+=======
+!.github/workflows/**
+>>>>>>> dcb1b77f741757db6b6ce30d6a86dba8ca2e35b4

@@ -6,6 +6,8 @@ project(
   LANGUAGES CXX
 )
 
+set(ALADIN_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/aladin/src")
+
 if(NOT (UNIX OR WIN32))
   message(FATAL_ERROR "Unsupported target platform")
 endif()
@@ -213,31 +215,31 @@ link_directories("${PROJECT_SOURCE_DIR}")
 
 set(
   LIBSRC
-  src/iir/Biquad.cpp
-  src/iir/Butterworth.cpp
-  src/iir/Cascade.cpp
-  src/iir/ChebyshevI.cpp
-  src/iir/ChebyshevII.cpp
-  src/iir/Custom.cpp
-  src/iir/PoleFilter.cpp
-  src/iir/RBJ.cpp
+  ${ALADIN_SRC_DIR}/iir/Biquad.cpp
+  ${ALADIN_SRC_DIR}/iir/Butterworth.cpp
+  ${ALADIN_SRC_DIR}/iir/Cascade.cpp
+  ${ALADIN_SRC_DIR}/iir/ChebyshevI.cpp
+  ${ALADIN_SRC_DIR}/iir/ChebyshevII.cpp
+  ${ALADIN_SRC_DIR}/iir/Custom.cpp
+  ${ALADIN_SRC_DIR}/iir/PoleFilter.cpp
+  ${ALADIN_SRC_DIR}/iir/RBJ.cpp
 )
 
 set(
   LIBINCLUDE
-  src/iir/Biquad.h
-  src/iir/Butterworth.h
-  src/iir/Cascade.h
-  src/iir/ChebyshevI.h
-  src/iir/ChebyshevII.h
-  src/iir/Common.h
-  src/iir/Custom.h
-  src/iir/Layout.h
-  src/iir/MathSupplement.h
-  src/iir/PoleFilter.h
-  src/iir/RBJ.h
-  src/iir/State.h
-  src/iir/Types.h
+  ${ALADIN_SRC_DIR}/iir/Biquad.h
+  ${ALADIN_SRC_DIR}/iir/Butterworth.h
+  ${ALADIN_SRC_DIR}/iir/Cascade.h
+  ${ALADIN_SRC_DIR}/iir/ChebyshevI.h
+  ${ALADIN_SRC_DIR}/iir/ChebyshevII.h
+  ${ALADIN_SRC_DIR}/iir/Common.h
+  ${ALADIN_SRC_DIR}/iir/Custom.h
+  ${ALADIN_SRC_DIR}/iir/Layout.h
+  ${ALADIN_SRC_DIR}/iir/MathSupplement.h
+  ${ALADIN_SRC_DIR}/iir/PoleFilter.h
+  ${ALADIN_SRC_DIR}/iir/RBJ.h
+  ${ALADIN_SRC_DIR}/iir/State.h
+  ${ALADIN_SRC_DIR}/iir/Types.h
 )
 
 add_library(iir STATIC ${LIBSRC})
@@ -248,9 +250,9 @@ target_compile_features(iir PUBLIC cxx_std_11)
 target_include_directories(
   iir
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<BUILD_INTERFACE:${ALADIN_SRC_DIR}>
   PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/iir>
+    $<BUILD_INTERFACE:${ALADIN_SRC_DIR}/iir>
 )
 
 set_target_properties(
@@ -258,31 +260,31 @@ set_target_properties(
   PROPERTIES
     POSITION_INDEPENDENT_CODE TRUE
     VERSION "${PROJECT_VERSION}"
-    PUBLIC_HEADER src/iir.h
+    PUBLIC_HEADER ${ALADIN_SRC_DIR}/iir.h
     PRIVATE_HEADER "${LIBINCLUDE}"
 )
 
 set(
   headers
-  src/asra/asra.h
-  src/asra/filter.h
-  src/reflect.h
-  src/cluster.h
-  src/common.h
-  src/pwaveprocessor.h
-  src/helpers.h
+  ${ALADIN_SRC_DIR}/asra/asra.h
+  ${ALADIN_SRC_DIR}/asra/filter.h
+  ${ALADIN_SRC_DIR}/reflect.h
+  ${ALADIN_SRC_DIR}/cluster.h
+  ${ALADIN_SRC_DIR}/common.h
+  ${ALADIN_SRC_DIR}/pwaveprocessor.h
+  ${ALADIN_SRC_DIR}/helpers.h
 )
 
 set(
   sources
-  src/asra/asra.cpp
-  src/asra/filter.cpp
-  src/bindings.cpp
-  src/reflect.cpp
-  src/common.cpp
-  src/pwaveprocessor.cpp
-  src/cluster.cpp
-  src/helpers.cpp
+  ${ALADIN_SRC_DIR}/asra/asra.cpp
+  ${ALADIN_SRC_DIR}/asra/filter.cpp
+  ${ALADIN_SRC_DIR}/bindings.cpp
+  ${ALADIN_SRC_DIR}/reflect.cpp
+  ${ALADIN_SRC_DIR}/common.cpp
+  ${ALADIN_SRC_DIR}/pwaveprocessor.cpp
+  ${ALADIN_SRC_DIR}/cluster.cpp
+  ${ALADIN_SRC_DIR}/helpers.cpp
 )
 
 python_add_library(

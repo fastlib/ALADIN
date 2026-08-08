@@ -695,10 +695,6 @@ void Reflection::reflect_on_p_waves() {
     for(int i=0; i<p_waves.size(); i++) {
         record->p.push_back(p_waves[i]);
     }
-    // record->p_clusters.clear();
-    // for(int i=0; i<clusterer_p->get_number_of_clusters(); i++) {
-    //     record->p_clusters.push_back(clusterer_p->get_cluster(i));
-    // }
 
     // return record
     //delete clusterer_p;

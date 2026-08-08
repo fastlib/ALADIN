@@ -2,11 +2,8 @@ import os
 import warnings
 
 aladin_cache_folder = os.environ.get('aladin_cache')
-if aladin_cache_folder is None:
-    warnings.warn("Environment variable 'aladin_cache' is not set. This is not a breaking error, but please set this path if you want to use ALADIN's caching capabilities.")
-
 _HF_REPO_ID = os.environ.get('aladin_hf_repo', 'AUMC/ALADIN')
-_DEFAULT_MODEL_FOLDER = os.path.join(os.path.expanduser('~'), '.cache', 'aladin', 'models')
+_DEFAULT_MODEL_FOLDER = os.path.join(os.path.expanduser('~'), '.aladin', 'models')
 
 aladin_model_folder = os.environ.get('aladin_models')
 
@@ -68,8 +65,13 @@ def get_model_folder(modelpaths=None, use_folds=None):
 
     allow_patterns = _build_allow_patterns(modelpaths, use_folds)
 
-    print(f"aladin_models is not set. Downloading model weights from "
-          f"Hugging Face repo '{_HF_REPO_ID}' to {_DEFAULT_MODEL_FOLDER} ...")
+    if os.path.isdir(_DEFAULT_MODEL_FOLDER) and os.listdir(_DEFAULT_MODEL_FOLDER):
+        print(f"aladin_models is not set. Found existing model weights in "
+              f"{_DEFAULT_MODEL_FOLDER}, loading from there (missing files, if any, "
+              f"will be fetched from Hugging Face repo '{_HF_REPO_ID}') ...")
+    else:
+        print(f"aladin_models is not set. Downloading model weights from "
+              f"Hugging Face repo '{_HF_REPO_ID}' to {_DEFAULT_MODEL_FOLDER} ...")
     try:
         aladin_model_folder = snapshot_download(
             repo_id=_HF_REPO_ID,
