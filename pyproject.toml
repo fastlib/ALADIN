@@ -1,0 +1,92 @@
+[project]
+name = "aladin"
+version = "1.0.0"
+requires-python = ">=3.10"
+description = "Aladin is a framework for ambulatory and clinical ECG processing, delineation, analysis, and diagnosis"
+authors = [
+    { name = "Lukas P.A. Arts"},
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+keywords = [
+    'ecg',
+    'delineation',
+    'segmentation',
+    'diagnosis',
+    'arrhythmia',
+    'ambulatory',
+    'deep learning'
+]
+dependencies = [
+	"torch>=2.1.2",
+	"acvl-utils>=0.2,<0.3",  # 0.3 may bring breaking changes. Careful!                             │29     "pytest",
+	"dynamic-network-architectures>=0.3.1,<0.4",  # 0.3.1 and lower are supported, 0.4 may have brea│30     "setuptools<82.0.0",
+	"tqdm",
+    "pytest", 
+    "dicom2nifti",
+    "batchgenerators>=0.25",
+    "setuptools<82.0.0",
+    "scikit-image>=0.19.3",
+    "google-cloud-storage",
+    "SimpleITK>=2.2.1",
+    "google-cloud-bigquery",
+    "boto3",
+    "openpyxl",
+    "neurokit2",
+    "ruptures",
+    "neurokit2==0.2.10",
+    "wfdb==4.1.2",
+    "tqdm==4.67.0",
+    "scipy",
+    "psutil",
+    "numpy",
+    "scikit-learn",
+    "rich==13.9.4",
+    "dtw-python==1.5.3",
+    "pandas==2.2.3",
+    "matplotlib>=3.10",
+    "pymongo==4.10.1",
+    "huggingface_hub",
+    "graphviz",                                                                                      
+    "google-cloud-bigquery",
+    "tifffile",                                                                         
+    "boto3",
+    "requests",                                                    
+    "openpyxl",
+    "nibabel",
+    "yacs",                                                                                       
+    "psutil",
+ 	"batchgeneratorsv2>=0.2",
+ 	"numpy",
+ 	"einops"
+]                    
+
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11", "torch"]
+build-backend = "scikit_build_core.build"
+
+[tool.codespell]
+skip = '.git,*.pdf,*.svg'
+#
+# ignore-words-list = ''
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+
+[tool.scikit-build.wheel.packages]
+aladin = "aladin/src/aladin"
+nnunetv2 = "nnUNet/nnunetv2"
+
+[tool.scikit-build.sdist]
+include = [
+    "aladin/**",
+    "nnUNet/**",
+    "CMakeLists.txt",
+]

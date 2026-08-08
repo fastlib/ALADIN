@@ -10,6 +10,8 @@
 !demo.py
 !test.py
 !run.sh
+!CMakeLists.txt
+!pyproject.toml
 !benchmark_delineation.sh
 !benchmark_diagnosis_CINC.sh
 !benchmark_diagnosis_STANFORD.sh
@@ -54,7 +56,6 @@ nnUNet/build/
 nnUNet/.egg-info
 nnUNet/.github
 nnUNet/.gitignore
-!nnUNet/pyproject.toml
 !nnUNet/LICENSE
 !nnUNet/README.md
 !nnUNet/nnunetv2/
