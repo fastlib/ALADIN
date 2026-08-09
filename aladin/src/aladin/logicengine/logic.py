@@ -2,7 +2,6 @@ import numpy as np
 from aladin.utils.helpers import Record
 import re
 import time
-import neurokit2 as nk
 
 import aladin._main as cpp_backend
 from aladin.utils.helpers import Cluster, Beat, Record, resize_signal, get_regions, closingcentered, openingcentered

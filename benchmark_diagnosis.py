@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import neurokit2 as nk 
 import scipy.signal as sps
 import torch
 import pickle

@@ -38,51 +38,46 @@ dependencies = [
 
     "tqdm>=4.67,<5",
     "seaborn>=0.13,<1",
-    "dicom2nifti>=2.6,<3",
-
+    #nnUnet 
     "batchgenerators>=0.25.3,<0.26",
     "batchgeneratorsv2>=0.3.5,<0.4",
 
     "scikit-image>=0.26,<0.27",
     "SimpleITK>=2.5.5,<3",
 
-    "google-cloud-storage>=3,<4",
-    "google-cloud-bigquery>=3,<4",
-    "boto3>=1.40,<2",
-
-    "openpyxl>=3.1,<4",
-
-    "neurokit2>=0.2.12,<0.3",
     "wfdb>=4.3,<5",
 
     "scipy>=1.17.1,<2",
     "numpy>=2.0,<3",
-    "scikit-learn>=1.9,<2",
-
     "psutil>=7,<8",
-
-    "rich>=14,<15",
 
     "dtw-python>=1.7.5,<2",
 
     "pandas>=2.2,<4",
     "matplotlib>=3.10,<4",
 
-    "pymongo>=4.17,<5",
-
     "huggingface-hub>=1,<2",
 
-    "graphviz>=0.20,<1",
     "tifffile>=2025.6",
     "requests>=2.32,<3",
     "nibabel>=5.3,<6",
-    "yacs>=0.1.8,<1",
     "einops>=0.8,<1"
 ]          
 
 [project.optional-dependencies]
 test = [
     "pytest>=8,<9",
+]
+benchmark = [
+    "boto3>=1.40,<2",
+
+    "google-cloud-storage>=3,<4",
+    "google-cloud-bigquery>=3,<4",
+
+    "neurokit2>=0.2.12,<0.3",
+    "rich>=14,<15",
+    "openpyxl>=3.1,<4",
+    "pymongo>=4.17,<5",
 ]          
 
 [build-system]

@@ -76,7 +76,6 @@ def get_model_folder(modelpaths=None, use_folds=None):
         aladin_model_folder = snapshot_download(
             repo_id=_HF_REPO_ID,
             local_dir=_DEFAULT_MODEL_FOLDER,
-            token=True,
             allow_patterns=allow_patterns,
         )
     except (GatedRepoError, RepositoryNotFoundError) as e:
