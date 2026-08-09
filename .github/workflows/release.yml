@@ -68,6 +68,7 @@ jobs:
 
           CIBW_ENVIRONMENT_MACOS: >
             LIBOMP_PREFIX=/opt/homebrew/opt/libomp
+            DYLD_LIBRARY_PATH=/opt/homebrew/opt/libomp/lib
 
           # Smoke-test the installed wheel
           CIBW_TEST_COMMAND: >
