@@ -31,6 +31,24 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Free disk space
+          if: runner.os == 'Linux'
+          run: |
+            df -h
+            sudo rm -rf /usr/local/lib/android
+            sudo rm -rf /usr/share/dotnet
+            sudo rm -rf /opt/ghc
+            sudo rm -rf /usr/local/share/boost
+            sudo apt-get clean
+            docker system prune -af || true
+            df -h
+          if: runner.os == 'macOS'
+          run: |
+            df -h
+            brew cleanup -s || true
+            rm -rf ~/Library/Caches/Homebrew || true
+            df -h
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.2.0
         env:
