@@ -67,7 +67,7 @@ jobs:
             brew install libomp
 
           CIBW_ENVIRONMENT_MACOS: >
-            LIBOMP_PREFIX="$(brew --prefix libomp)"
+            LIBOMP_PREFIX=/opt/homebrew/opt/libomp
 
           # Smoke-test the installed wheel
           CIBW_TEST_COMMAND: >
