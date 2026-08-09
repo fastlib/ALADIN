@@ -42,6 +42,8 @@ jobs:
             sudo apt-get clean
             docker system prune -af || true
             df -h
+
+      - name: Free disk space
           if: runner.os == 'macOS'
           run: |
             df -h
