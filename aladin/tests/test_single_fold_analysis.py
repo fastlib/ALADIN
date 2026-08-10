@@ -4,12 +4,12 @@ end-to-end against real trained weights, using only fold 0 instead of the full 5
 (see UNetSegmenter's use_folds, and aladin.configuration.get_model_folder's allow_patterns
 support, which together mean only fold 0's checkpoint is downloaded from Hugging Face).
 
-This requires network access and a Hugging Face account with access to the private
-AUMC/ALADIN repo (HF_TOKEN / HUGGING_FACE_HUB_TOKEN env var, or a prior `huggingface-cli
-login`). It is skipped automatically when no token is available, since it cannot run in the
-regular offline test job.
+This requires network access to download the weights from the public fastlib/ALADIN Hugging Face
+repo (no account/token needed -- see aladin.configuration.get_model_folder). It is skipped
+automatically when there's no network access, since it cannot run in the regular offline test job.
 """
 import os
+import socket
 
 import pytest
 import wfdb
@@ -19,20 +19,20 @@ from aladin.core import Record
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEMO_DIR = os.path.join(REPO_ROOT, "data", "demo")
-MODELPATH = "ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"
+MODELPATH = "1_lead_model"
 
 
-def _has_hf_token():
+def _has_network_access():
     try:
-        from huggingface_hub.utils import get_token
-    except ImportError:
+        socket.create_connection(("huggingface.co", 443), timeout=3).close()
+        return True
+    except OSError:
         return False
-    return get_token() is not None
 
 
 pytestmark = pytest.mark.skipif(
-    not _has_hf_token(),
-    reason="Requires a Hugging Face token with access to the private AUMC/ALADIN repo.",
+    not _has_network_access(),
+    reason="Requires network access to download weights from the public fastlib/ALADIN Hugging Face repo.",
 )
 
 

@@ -66,7 +66,10 @@ ecg = {"II": np.random.rand(fs*10)}
 record = Record(ecg, fs)
 
 #create ALADIN object
-aladin = ALADIN(modelpaths=["ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"])
+#modelpaths="auto" picks between the pretrained 1-lead and 3-lead models based on which leads
+#the record has available (lead II must always be present; the 3-lead model is only used if
+#leads II, V1 and V6 are all present, otherwise ALADIN falls back to the 1-lead model)
+aladin = ALADIN(modelpaths="auto")
 
 #perform segmentation
 aladin.segment(record)
@@ -117,8 +120,9 @@ This has two consequences for how you install/rebuild ALADIN on macOS:
   above). This applies every time you rebuild the extension, e.g. after
   `pip install -e ./aladin` for development.
 
-ALADIN will automatically download the model weights from the private Hugging Face repo `AUMC/ALADIN` into
-`~/.cache/aladin/models` the first time they're needed. However, this requires Hugging Face account access 
-to the `AUMC/ALADIN` repo, and being authenticated locally via `huggingface-cli login` or 
-the `HF_TOKEN` environment variable.
+ALADIN will automatically download the model weights from the public Hugging Face repo `fastlib/ALADIN`
+into huggingface_hub's default cache (`~/.cache/huggingface/hub`, or wherever `HF_HOME`/`HF_HUB_CACHE`
+point) the first time they're needed. No Hugging Face account or login is required -- the download is
+anonymous. Alternatively, set the `aladin_models` environment variable to a local folder that already
+contains the weights, to skip the Hugging Face download entirely.
 

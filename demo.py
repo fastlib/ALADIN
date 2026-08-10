@@ -61,7 +61,9 @@ def plot_median_beat(record):
 
 def analyse_single_case(record):
 
-    aladin = ALADIN(modelpaths=["ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"],
+    # modelpaths="auto" picks between the pretrained 1-lead and 3-lead models based on which
+    # leads `record` has available (see aladin.configuration.select_model_for_leads).
+    aladin = ALADIN(modelpaths="auto",
                     debug={"segmenter": True, "afibdetector": False, "reflection": False, "total": True})
 
     #segment     

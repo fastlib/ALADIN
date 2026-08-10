@@ -95,6 +95,12 @@ class UNetSegmenter(SegmenterBase):
     def __init__(self, modelpaths=[], usefullcontext=True, debug=False, cache=False, embed=False,
                  random_weights=False, plans_folder=None, num_input_channels=1, use_folds=(0,1,2,3,4)):
         """
+        modelpaths: list of modelpaths to load, or the sentinel aladin.configuration.AUTO_MODELPATHS
+            ("auto"). In "auto" mode, no model is loaded up front; instead, on each call to
+            segment()/batch()/embed()/embed_batch(), the record(s)' available leads are inspected
+            (see aladin.configuration.select_model_for_leads) to lazily pick and load either the
+            1-lead or 3-lead pretrained model. Both are cached in memory once loaded, so
+            alternating between differently-configured records doesn't repeatedly hit disk.
         random_weights: if True, skip downloading/loading trained checkpoints (and thus the
             Hugging Face download in aladin.configuration.get_model_folder()) and instead build
             each model's network architecture from a local nnU-Net plans file, initialized with
@@ -116,6 +122,7 @@ class UNetSegmenter(SegmenterBase):
         self.plans_folder = plans_folder
         self.num_input_channels = num_input_channels
         self.use_folds = use_folds
+        self.usefullcontext = usefullcontext
 
         print("UNetSegmenter initialized")
         print("Number of processors: ", multiprocessing.cpu_count())
@@ -124,33 +131,52 @@ class UNetSegmenter(SegmenterBase):
         self.thresholds = [0.25, 0.25, 0.5, 0.5, 0.1, 0.5]
         self.cache = cache
         self.num_workers = multiprocessing.cpu_count()
+        self.device = self._select_device()
+        self.heuristic = BALD()
 
-        # Check if CUDA is available
-        if torch.cuda.is_available():
-            print("CUDA available")
-            # Get the current device (GPU)
-            self.device = torch.device('cuda:0')
-            dev_id = torch.cuda.current_device()
-            # Get the total memory available in bytes
-            result = subprocess.run(['nvidia-smi', '--query-gpu=memory.total,memory.free,memory.used', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            res = result.stdout.split("\n")[dev_id]
-            # Extract memory information
-            _, ram_available, _ = map(int, res.split(","))
-            if ram_available < 1024:
-                warnings.warn("Available GPU memory is less than 1GB. Switching to CPU device.")
-                self.device = torch.device('cpu')
-            print("Using GPU device:", torch.cuda.get_device_name(dev_id), "with", ram_available, "MB free memory")
-        else:
-            self.device = torch.device('cpu')
+        self.auto = modelpaths == aladin.configuration.AUTO_MODELPATHS
+        self._active_modelname = None  # in "auto" mode: modelname currently loaded into self.sliding_models/fullcontext_models
 
         self.sliding_models = []
         self.fullcontext_models = []
         self.n_leads = []
 
+        if not self.auto:
+            self.sliding_models, self.fullcontext_models, self.n_leads = self._build_model_set(modelpaths)
+
+    def _select_device(self):
+        if not torch.cuda.is_available():
+            return torch.device('cpu')
+
+        print("CUDA available")
+        device = torch.device('cuda:0')
+        dev_id = torch.cuda.current_device()
+        # Get the total memory available in bytes
+        result = subprocess.run(['nvidia-smi', '--query-gpu=memory.total,memory.free,memory.used', '--format=csv,noheader,nounits'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        res = result.stdout.split("\n")[dev_id]
+        # Extract memory information
+        _, ram_available, _ = map(int, res.split(","))
+        if ram_available < 1024:
+            warnings.warn("Available GPU memory is less than 1GB. Switching to CPU device.")
+            return torch.device('cpu')
+
+        print("Using GPU device:", torch.cuda.get_device_name(dev_id), "with", ram_available, "MB free memory")
+        return device
+
+    def _build_model_set(self, modelpaths):
+        """
+        Load one ensemble of sliding-window (and, if self.usefullcontext, full-context) predictors
+        for `modelpaths`. Returns (sliding_models, fullcontext_models, n_leads), where n_leads is
+        an int if all modelpaths agree on the number of input leads, or a list otherwise.
+        """
         process = psutil.Process(os.getpid())
         ram_before_mb = process.memory_info().rss / (1024 ** 2)
 
-        model_folder = None if random_weights else aladin.configuration.get_model_folder(modelpaths, use_folds)
+        model_folder = None if self.random_weights else aladin.configuration.get_model_folder(modelpaths, self.use_folds)
+
+        sliding_models = []
+        fullcontext_models = []
+        n_leads = []
 
         for modelpath in modelpaths:
             model = nnUNetWithClassificationPredictor(
@@ -163,7 +189,7 @@ class UNetSegmenter(SegmenterBase):
                 verbose_preprocessing=False,
                 allow_tqdm=False
             )
-            if random_weights:
+            if self.random_weights:
                 dataset_json = self._initialize_random_weights(model, modelpath)
             else:
                 model.initialize_from_trained_model_folder(
@@ -172,11 +198,11 @@ class UNetSegmenter(SegmenterBase):
                     checkpoint_name='checkpoint_best.pth',
                 )
                 dataset_json = load_json(join(os.path.join(model_folder, modelpath), 'dataset.json'))
-            self.sliding_models.append(model)
+            sliding_models.append(model)
 
-            self.n_leads.append(len(dataset_json['channel_names']))
+            n_leads.append(len(dataset_json['channel_names']))
 
-        if usefullcontext:
+        if self.usefullcontext:
             for i, modelpath in enumerate(modelpaths):
                 model = nnUNetLSTMWithClassificationPredictor(
                     tile_step_size=0.9,
@@ -188,31 +214,75 @@ class UNetSegmenter(SegmenterBase):
                     verbose_preprocessing=False,
                     allow_tqdm=False
                 )
-                if random_weights:
+                if self.random_weights:
                     self._initialize_random_weights(model, modelpath)
                     model.configuration_manager.patch_size = [6144]  # patch size used by the LSTM model
                 else:
                     # Reuse the fold checkpoints already loaded for the sliding-window model at
-                    # self.sliding_models[i] (same modelpath, same checkpoint files) instead of
+                    # sliding_models[i] (same modelpath, same checkpoint files) instead of
                     # reading the same multi-GB weight files from disk a second time.
                     model.initialize_from_trained_model_folder(
                         os.path.join(model_folder, modelpath),
                         use_folds=self.use_folds,
                         checkpoint_name='checkpoint_best.pth',
-                        shared_from=self.sliding_models[i],
+                        shared_from=sliding_models[i],
                     )
-                self.fullcontext_models.append(model)
+                fullcontext_models.append(model)
 
         ram_after_mb = process.memory_info().rss / (1024 ** 2)
         print(f"Model loading used {ram_after_mb - ram_before_mb:.1f} MB of RAM "
               f"(RSS: {ram_before_mb:.1f} MB -> {ram_after_mb:.1f} MB)")
 
-        self.heuristic = BALD()
-
-        if len(set(self.n_leads)) > 1:
+        if len(set(n_leads)) > 1:
             warnings.warn("The provided models have different number of input leads. This might lead to suboptimal performance. Make sure all models have the same number of input leads for best performance.")
         else:
-            self.n_leads = self.n_leads[0]
+            n_leads = n_leads[0]
+
+        return sliding_models, fullcontext_models, n_leads
+
+    def _ensure_model_loaded(self, modelname):
+        """
+        Make sure the model ensemble for `modelname` ("1_lead_model" or "3_lead_model") is loaded
+        and active (self.sliding_models/fullcontext_models/n_leads). Only one model ensemble is
+        kept in memory at a time: switching to a different modelname unloads the previously
+        active one first, so a long-lived ALADIN(modelpaths="auto") instance never holds both the
+        1-lead and 3-lead models in memory simultaneously, even if it processes a mix of
+        differently-configured records over its lifetime. The tradeoff is that alternating
+        between lead-configurations repeatedly reloads from disk each time, instead of being
+        cached across the switch.
+        """
+        if self._active_modelname == modelname:
+            return
+
+        if self._active_modelname is not None:
+            print(f"Switching from model '{self._active_modelname}' to '{modelname}'; unloading the previous model.")
+            del self.sliding_models, self.fullcontext_models
+            self.sliding_models = []
+            self.fullcontext_models = []
+            if self.device.type == 'cuda':
+                torch.cuda.empty_cache()
+
+        print(f"Auto-selected model '{modelname}'")
+        self.sliding_models, self.fullcontext_models, self.n_leads = self._build_model_set([modelname])
+        self._active_modelname = modelname
+
+    def _select_and_load(self, record: Record):
+        """
+        In "auto" mode, pick between the pretrained 1-lead and 3-lead models based on which leads
+        `record` has available (see aladin.configuration.select_model_for_leads), loading the
+        chosen model ensemble on first use and reusing it on subsequent calls.
+        """
+        self._ensure_model_loaded(aladin.configuration.select_model_for_leads(record.available_lead_names))
+
+    def _select_and_load_batch(self, records: list):
+        modelnames = [aladin.configuration.select_model_for_leads(r.available_lead_names) for r in records]
+        if len(set(modelnames)) > 1:
+            raise ValueError(
+                "Records in this batch require different models based on their available leads "
+                f"({sorted(set(modelnames))}). Please process them in separate batches, grouped "
+                "by lead configuration."
+            )
+        self._ensure_model_loaded(modelnames[0])
 
     def _initialize_random_weights(self, model, modelpath):
         """
@@ -682,7 +752,10 @@ class UNetSegmenter(SegmenterBase):
         # return out
 
     def segment(self, record: Record, preprocess=True):
-            
+
+        if self.auto:
+            self._select_and_load(record)
+
         record = self.preprocess(record, preprocess=preprocess)
         sig, props = self.prepare_ecg(record)
 
@@ -715,7 +788,10 @@ class UNetSegmenter(SegmenterBase):
             self.plot(record)
 
     def batch(self, records: list, preprocess=True):
-        
+
+        if self.auto:
+            self._select_and_load_batch(records)
+
         records = self.preprocess_batch(records, preprocess=preprocess)
         sig, props = self.prepare_batch(records)
 
@@ -778,6 +854,9 @@ class UNetSegmenter(SegmenterBase):
 
     def embed(self, record: Record, preprocess=True):
 
+        if self.auto:
+            self._select_and_load(record)
+
         record = self.preprocess(record, preprocess=preprocess)
         sig, props = self.prepare_ecg(record)
 
@@ -790,6 +869,9 @@ class UNetSegmenter(SegmenterBase):
         return record
 
     def embed_batch(self, records: list, preprocess=True):
+
+        if self.auto:
+            self._select_and_load_batch(records)
 
         records = self.preprocess_batch(records, preprocess=preprocess)
         sig, props = self.prepare_batch(records)

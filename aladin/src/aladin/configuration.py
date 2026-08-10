@@ -2,10 +2,75 @@ import os
 import warnings
 
 aladin_cache_folder = os.environ.get('aladin_cache')
-_HF_REPO_ID = os.environ.get('aladin_hf_repo', 'AUMC/ALADIN')
-_DEFAULT_MODEL_FOLDER = os.path.join(os.path.expanduser('~'), '.aladin', 'models')
+_HF_REPO_ID = os.environ.get('aladin_hf_repo', 'fastlib/ALADIN')
 
 aladin_model_folder = os.environ.get('aladin_models')
+
+# Sentinel value for ALADIN(modelpaths=...)/UNetSegmenter(modelpaths=...): instead of an
+# explicit list of modelpaths, automatically pick between the pretrained 1-lead and 3-lead
+# models on a per-record basis (see select_model_for_leads below).
+AUTO_MODELPATHS = "auto"
+
+# The rhythm/logic engine always reasons over lead II specifically (see UNetSegmenter.preprocess,
+# which is hardcoded to feed lead II into the symbolic reasoning path regardless of which model
+# is used for segmentation), so lead II must always be present.
+_RHYTHM_LEAD = "II"
+_THREE_LEAD_MODEL_LEADS = {"II", "V1", "V6"}
+
+
+def select_model_for_leads(available_leads):
+    """
+    Decide which pretrained model to use for a given set of available ECG leads.
+
+    Policy:
+      - Lead II must always be present, since ALADIN's rhythm analysis is always based on it.
+        Raises ValueError if it is missing.
+      - If lead II is the only lead available, the 1-lead model ("1_lead_model") is used.
+      - If more than one lead is available, the 3-lead model ("3_lead_model") is used, but only
+        if leads II, V1 and V6 are all present. Otherwise ALADIN falls back to the 1-lead model
+        (with a warning), since that is the only other model available.
+      - Whenever more than one lead is provided, a warning is always raised to clarify that
+        rhythm analysis itself is still based on lead II alone, regardless of which model ends
+        up being selected.
+
+    Parameters
+    ----------
+    available_leads : Iterable[str]
+        Lead names available in the ECG, e.g. Record.available_lead_names.
+
+    Returns
+    -------
+    str
+        "1_lead_model" or "3_lead_model" -- the modelpath/folder name (relative to the ALADIN
+        model cache) to load.
+    """
+    leads = set(available_leads)
+
+    if _RHYTHM_LEAD not in leads:
+        raise ValueError(
+            "Lead II was not found in the provided ECG. ALADIN requires lead II to be present, "
+            f"since rhythm analysis is always based on it (got leads: {sorted(leads) if leads else 'none'})."
+        )
+
+    if len(leads) == 1:
+        # The only available lead has already been confirmed to be lead II above.
+        return "1_lead_model"
+
+    # More than one lead is available.
+    warnings.warn(
+        "More than one lead was provided. Note that rhythm analysis is always based on lead II "
+        "only, regardless of which other leads are available."
+    )
+
+    if _THREE_LEAD_MODEL_LEADS.issubset(leads):
+        return "3_lead_model"
+
+    warnings.warn(
+        "The 3-lead model requires leads II, V1 and V6 to all be present. Since they are not "
+        "all available, the 1-lead model is still being used; only lead II will be used for "
+        "segmentation and analysis."
+    )
+    return "1_lead_model"
 
 
 def _build_allow_patterns(modelpaths, use_folds):
@@ -39,9 +104,12 @@ def get_model_folder(modelpaths=None, use_folds=None):
 
     If `aladin_models` is set, that folder is used as-is (e.g. for offline
     or cluster setups with a pre-staged copy). Otherwise the weights are
-    downloaded from the private Hugging Face repo `_HF_REPO_ID` into a
-    default cache folder on first use, using the caller's HF credentials
-    (env var HF_TOKEN/HUGGING_FACE_HUB_TOKEN or `huggingface-cli login`).
+    downloaded anonymously (no login/token needed -- `_HF_REPO_ID` is a
+    public repo) into huggingface_hub's own default cache
+    (~/.cache/huggingface/hub, or wherever HF_HOME/HF_HUB_CACHE point) on
+    first use. This is the same cache used by other Hugging Face-based
+    libraries, so `huggingface-cli scan-cache` / `delete-cache` and
+    cross-project deduplication work as expected.
 
     modelpaths/use_folds: when given, only the dataset.json/plans.json and the checkpoint(s)
     for the requested fold(s) of each modelpath are downloaded, instead of the entire repo
@@ -65,36 +133,32 @@ def get_model_folder(modelpaths=None, use_folds=None):
 
     allow_patterns = _build_allow_patterns(modelpaths, use_folds)
 
-    if os.path.isdir(_DEFAULT_MODEL_FOLDER) and os.listdir(_DEFAULT_MODEL_FOLDER):
-        print(f"aladin_models is not set. Found existing model weights in "
-              f"{_DEFAULT_MODEL_FOLDER}, loading from there (missing files, if any, "
-              f"will be fetched from Hugging Face repo '{_HF_REPO_ID}') ...")
-    else:
-        print(f"aladin_models is not set. Downloading model weights from "
-              f"Hugging Face repo '{_HF_REPO_ID}' to {_DEFAULT_MODEL_FOLDER} ...")
+    print(f"aladin_models is not set. Fetching model weights from Hugging Face repo "
+          f"'{_HF_REPO_ID}' (cached under huggingface_hub's default cache; already-cached "
+          f"files are reused, only missing ones are downloaded) ...")
     try:
         aladin_model_folder = snapshot_download(
             repo_id=_HF_REPO_ID,
-            local_dir=_DEFAULT_MODEL_FOLDER,
             allow_patterns=allow_patterns,
             token=False
         )
     except (GatedRepoError, RepositoryNotFoundError) as e:
+        # `_HF_REPO_ID` is downloaded anonymously (token=False above), since it's a public repo.
+        # These errors mean it could not be found/accessed as such -- e.g. the repo id is wrong,
+        # or (if the repo has since been made private/gated) anonymous access no longer works.
         raise PermissionError(
-            f"Could not access the private Hugging Face repo '{_HF_REPO_ID}'. Make sure your "
-            "account has been granted access to it, and that you are authenticated: run "
-            "`huggingface-cli login`, or set the HF_TOKEN environment variable to a token with "
-            "read access. Alternatively, set aladin_models to a local folder with the weights "
-            "already in place."
+            f"Could not access the Hugging Face repo '{_HF_REPO_ID}'. Check that the repo id "
+            "is correct. If it has been made private or gated, anonymous downloads (as used "
+            "here) will no longer work -- set aladin_models to a local folder with the weights "
+            "already in place instead."
         ) from e
     except HfHubHTTPError as e:
         status_code = getattr(getattr(e, "response", None), "status_code", None)
         if status_code == 401:
             raise PermissionError(
-                "Authentication with Hugging Face failed (401 Unauthorized). Run "
-                "`huggingface-cli login`, or set the HF_TOKEN environment variable to a token "
-                f"with read access to '{_HF_REPO_ID}'. Alternatively, set aladin_models to a "
-                "local folder with the weights already in place."
+                f"Hugging Face rejected the anonymous download of '{_HF_REPO_ID}' (401 "
+                "Unauthorized). This usually means the repo has been made private or gated. "
+                "Set aladin_models to a local folder with the weights already in place instead."
             ) from e
         raise
     return aladin_model_folder
