@@ -102,3 +102,12 @@ include = [
     "nnUNet/**",
     "CMakeLists.txt",
 ]
+
+[tool.cibuildwheel.macos]
+repair-wheel-command = """
+delocate-wheel \
+    --require-archs {delocate_archs} \
+    --exclude libomp.dylib \
+    -w {dest_dir} \
+    -v {wheel}
+"""

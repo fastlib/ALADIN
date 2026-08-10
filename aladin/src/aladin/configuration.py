@@ -77,6 +77,7 @@ def get_model_folder(modelpaths=None, use_folds=None):
             repo_id=_HF_REPO_ID,
             local_dir=_DEFAULT_MODEL_FOLDER,
             allow_patterns=allow_patterns,
+            token=False
         )
     except (GatedRepoError, RepositoryNotFoundError) as e:
         raise PermissionError(
