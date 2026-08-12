@@ -929,13 +929,28 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
 
             #print("After results reserved: ", torch.cuda.memory_reserved() / (1024**2))
 
-            reserved = torch.cuda.memory_reserved() / (1024**2) if self.device.type == 'cuda' else 0
+            if self.device.type == 'cuda':
+                reserved = torch.cuda.memory_reserved() / (1024**2)
+                available_now = self.vram_available - reserved
+            else:
+                # self.vram_available is a single RAM snapshot taken once before the fold
+                # ensembling loop started; by the later folds real headroom has shrunk (running
+                # prediction accumulators, allocator fragmentation, other processes on the
+                # machine), so re-measure free RAM on every call instead of trusting that stale
+                # number - this is what let CPU runs OOM on the later folds despite an initial
+                # estimate that looked fine.
+                available_now = psutil.virtual_memory().available / (1024 ** 2)
+                # CPU allocation failures aren't always a catchable RuntimeError - under Linux's
+                # default memory overcommit, malloc can succeed and the kernel OOM-killer just
+                # SIGKILLs the process once the pages are touched. Undershoot the estimate rather
+                # than cut it fine, since there's no guaranteed exception to recover from.
+                available_now *= 0.7
             #mem_for_results = (len(data) *data.shape[-1] * 10 * 4) / (1024**2)  # 5mb per sample + 20% overhead
             #reserved += mem_for_results
 
             working_mem_per_sample = (data.shape[-1] * 64 * 4 * 11) / (1024**2)  # 5mb per sample
             mem_per_sample = working_mem_per_sample + 0.2 * working_mem_per_sample  # 20% overhead
-            max_batch_size = min(len(data), int(np.floor(((self.vram_available - reserved) / mem_per_sample)/100)*100)) #ong 5mb per sample + 20% overhead
+            max_batch_size = min(len(data), int(np.floor((available_now / mem_per_sample)/100)*100)) #ong 5mb per sample + 20% overhead
             #max_batch_size = 1000
             if max_batch_size <= 0:
                 # Estimate says VRAM is very tight - start small instead of disabling
@@ -1096,11 +1111,26 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
 
             #print("After results reserved: ", torch.cuda.memory_reserved() / (1024**2))
 
-            reserved = torch.cuda.memory_reserved() / (1024**2) if self.device.type == 'cuda' else 0
+            if self.device.type == 'cuda':
+                reserved = torch.cuda.memory_reserved() / (1024**2)
+                available_now = self.vram_available - reserved
+            else:
+                # self.vram_available is a single RAM snapshot taken once before the fold
+                # ensembling loop started; by the later folds real headroom has shrunk (running
+                # prediction accumulators, allocator fragmentation, other processes on the
+                # machine), so re-measure free RAM on every call instead of trusting that stale
+                # number - this is what let CPU runs OOM on the later folds despite an initial
+                # estimate that looked fine.
+                available_now = psutil.virtual_memory().available / (1024 ** 2)
+                # CPU allocation failures aren't always a catchable RuntimeError - under Linux's
+                # default memory overcommit, malloc can succeed and the kernel OOM-killer just
+                # SIGKILLs the process once the pages are touched. Undershoot the estimate rather
+                # than cut it fine, since there's no guaranteed exception to recover from.
+                available_now *= 0.7
 
             working_mem_per_sample = (data.shape[-1] * 64 * 4 * 11) / (1024**2)  # 5mb per sample
             mem_per_sample = working_mem_per_sample + 0.2 * working_mem_per_sample  # 20% overhead
-            max_batch_size = min(len(data), int(np.floor(((self.vram_available - reserved) / mem_per_sample)/100)*100)) #ong 5mb per sample + 20% overhead
+            max_batch_size = min(len(data), int(np.floor((available_now / mem_per_sample)/100)*100)) #ong 5mb per sample + 20% overhead
             #max_batch_size = 1000
             if max_batch_size <= 0:
                 # Estimate says VRAM is very tight - start small instead of disabling
