@@ -54,7 +54,7 @@ class ALADINModel(Model):
         #monitor_memory()
         recordname = str(meta["record"]).replace("/", "_")
 
-        record = Record(sig, fs, "bench", recordname)
+        record = Record({"II": sig}, fs, "bench", recordname)
         self.aladin.segmenter.segment(record)
         
         p_hat = record.delineations.p.binary
@@ -77,7 +77,7 @@ class ALADINModel(Model):
             record = data[recordname]
             sig = record["signal"]
             fs = record["fs"]
-            records.append(Record(sig, fs, "bench", recordname))
+            records.append(Record({"II": sig}, fs, "bench", recordname))
 
         recordCollection = RecordCollection(records)
         recordCollection.preprocess()
@@ -165,6 +165,8 @@ class DelineatorSwitchAndCompose(Model):
         self.valid_folds = sak.load_data(os.path.join(self.basedir,'TrainedModels',"v0",'validation_files.csv'),dtype=None)
         self.fold_of_file = {fname: k for k in self.valid_folds for fname in self.valid_folds[k]}
 
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
         #########################################################################
         # Load models
         self.models = {}
@@ -186,8 +188,8 @@ class DelineatorSwitchAndCompose(Model):
         # Compute segmentation for all leads independently
         with torch.no_grad():
             for i in range(0,windowed_signal.shape[0],batch_size):
-                inputs = {"x": torch.tensor(windowed_signal[i:i+batch_size]).cuda().float()}
-                windowed_mask[i:i+batch_size] = model.cuda()(inputs)["sigmoid"].cpu().detach().numpy() > thr_dice
+                inputs = {"x": torch.tensor(windowed_signal[i:i+batch_size]).to(self.device).float()}
+                windowed_mask[i:i+batch_size] = model.to(self.device)(inputs)["sigmoid"].cpu().detach().numpy() > thr_dice
 
         # Retrieve mask as 1D
         counter = np.zeros((signal.shape[0]), dtype=int)
@@ -269,7 +271,7 @@ class DelineatorSwitchAndCompose(Model):
     def load_checkpoint(self, file):
         for i in range(5):
             if os.path.isfile(os.path.join(self.basedir,'TrainedModels',"v0",'fold_{}'.format(i+1),'model_best.model')):
-                self.models['fold_{}'.format(i+1)] = torch.load(os.path.join(self.basedir,'TrainedModels',"v0",'fold_{}'.format(i+1),'model_best.model'),pickle_module=dill).eval().float()
+                self.models['fold_{}'.format(i+1)] = torch.load(os.path.join(self.basedir,'TrainedModels',"v0",'fold_{}'.format(i+1),'model_best.model'),pickle_module=dill,map_location=self.device).eval().float()
             else:
                 print("File for fold {} not found. Continuing...".format(i+1))
 
@@ -289,7 +291,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, help='Dataset used to benchmark (VAL, RDB)', required=True)
     parser.add_argument('--perarrhythmia', action='store_true', help='Run per arrhythmia benchmark')
     #modelpaths is a list of strings
-    parser.add_argument('--modelpaths', nargs='+', help='Paths to the models used in the benchmark', required=False, default=["Dataset201_all_101/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"])
+    parser.add_argument('--modelpaths', nargs='+', help='Paths to the models used in the benchmark', required=False, default="auto")
 
     args = parser.parse_args()
     method = args.method

@@ -30,7 +30,7 @@ from nnunetv2.inference.sliding_window_prediction import compute_gaussian, \
     compute_steps_for_sliding_window
 from nnunetv2.utilities.file_path_utilities import get_output_folder, check_workers_alive_and_busy
 from nnunetv2.utilities.find_class_by_name import recursive_find_python_class
-from nnunetv2.utilities.helpers import empty_cache, dummy_context
+from nnunetv2.utilities.helpers import empty_cache, dummy_context, is_oom_error
 from nnunetv2.utilities.json_export import recursive_fix_for_json_export
 from nnunetv2.utilities.label_handling.label_handling import determine_num_input_channels
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager, ConfigurationManager
@@ -962,11 +962,11 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
                             predicted_batch_seg_logits_b, predicted_batch_cls_logits_b = self.network(data[start:start+current_batch_size])
                         break
                     except RuntimeError as e:
-                        if 'out of memory' not in str(e).lower() or current_batch_size <= 1:
+                        if not is_oom_error(e) or current_batch_size <= 1:
                             raise
                         empty_cache(self.device)
                         if self.verbose:
-                            print(f'CUDA OOM at batch size {current_batch_size} - retrying with {max(1, current_batch_size // 2)}')
+                            print(f'{self.device.type.upper()} OOM at batch size {current_batch_size} - retrying with {max(1, current_batch_size // 2)}')
                         current_batch_size = max(1, current_batch_size // 2)
                         max_batch_size = current_batch_size  # avoid repeating the same failure on later batches
 
@@ -1125,11 +1125,11 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
                             embedded_batch_b = self.network.embed(data[start:start+current_batch_size])[obj_data[0]['latent_layer']]
                         break
                     except RuntimeError as e:
-                        if 'out of memory' not in str(e).lower() or current_batch_size <= 1:
+                        if not is_oom_error(e) or current_batch_size <= 1:
                             raise
                         empty_cache(self.device)
                         if self.verbose:
-                            print(f'CUDA OOM at batch size {current_batch_size} - retrying with {max(1, current_batch_size // 2)}')
+                            print(f'{self.device.type.upper()} OOM at batch size {current_batch_size} - retrying with {max(1, current_batch_size // 2)}')
                         current_batch_size = max(1, current_batch_size // 2)
                         max_batch_size = current_batch_size  # avoid repeating the same failure on later batches
 
@@ -1488,7 +1488,7 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
             free_bytes, _ = torch.cuda.mem_get_info()
             self.vram_available = free_bytes / (1024 ** 2)  # MB, matches previous nvidia-smi units
         else:
-            self.vram_available = psutil.virtual_memory().available
+            self.vram_available = psutil.virtual_memory().available / (1024 ** 2)  # MB, matches CUDA branch's units
             
         #if self.verbose:
         if self.verbose: print(f"Available RAM: {self.vram_available} GB")
@@ -1886,7 +1886,7 @@ class nnUNetWithClassificationPredictor(nnUNetPredictor):
             free_bytes, _ = torch.cuda.mem_get_info()
             self.vram_available = free_bytes / (1024 ** 2)  # MB, matches previous nvidia-smi units
         else:
-            self.vram_available = psutil.virtual_memory().available
+            self.vram_available = psutil.virtual_memory().available / (1024 ** 2)  # MB, matches CUDA branch's units
             
         #if self.verbose:
         if self.verbose: print(f"Available RAM: {self.vram_available} GB")

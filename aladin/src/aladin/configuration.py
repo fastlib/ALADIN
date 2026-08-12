@@ -115,9 +115,13 @@ def get_model_folder(modelpaths=None, use_folds=None):
     for the requested fold(s) of each modelpath are downloaded, instead of the entire repo
     (all folds of all models). Pass use_folds=None (the default) to download all folds for
     the given modelpaths, e.g. when the fold(s) to use will be auto-detected later.
-    """
-    global aladin_model_folder
 
+    Note: snapshot_download is called on every invocation rather than being memoized after the
+    first call, since different (modelpaths, use_folds) combinations need different files
+    present locally (e.g. auto mode loading the 1-lead model first, then the 3-lead model).
+    huggingface_hub already skips re-downloading files that are cached locally, so repeated
+    calls only fetch whatever the current allow_patterns require but weren't fetched before.
+    """
     if aladin_model_folder:
         return aladin_model_folder
 
@@ -137,7 +141,7 @@ def get_model_folder(modelpaths=None, use_folds=None):
           f"'{_HF_REPO_ID}' (cached under huggingface_hub's default cache; already-cached "
           f"files are reused, only missing ones are downloaded) ...")
     try:
-        aladin_model_folder = snapshot_download(
+        downloaded_model_folder = snapshot_download(
             repo_id=_HF_REPO_ID,
             allow_patterns=allow_patterns,
             token=False
@@ -161,4 +165,4 @@ def get_model_folder(modelpaths=None, use_folds=None):
                 "Set aladin_models to a local folder with the weights already in place instead."
             ) from e
         raise
-    return aladin_model_folder
+    return downloaded_model_folder

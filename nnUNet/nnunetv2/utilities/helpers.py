@@ -19,6 +19,17 @@ def empty_cache(device: torch.device):
         pass
 
 
+def is_oom_error(e: RuntimeError) -> bool:
+    """
+    True for both CUDA/MPS OOM ("... out of memory ...") and CPU allocation
+    failures, which PyTorch reports as a RuntimeError from DefaultCPUAllocator
+    (e.g. "can't allocate memory" / "not enough memory") rather than the
+    "out of memory" wording used on GPU.
+    """
+    msg = str(e).lower()
+    return 'out of memory' in msg or ('defaultcpuallocator' in msg and 'allocate memory' in msg)
+
+
 class dummy_context(object):
     def __enter__(self):
         pass

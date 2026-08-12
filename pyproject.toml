@@ -2,7 +2,7 @@
 name = "aladin-ecg"
 readme = "README.md"
 version = "1.0.0"
-requires-python = ">=3.11,<3.15"
+requires-python = ">=3.10,<3.15"
 description = "ALADIN is a framework for ambulatory and clinical ECG processing, delineation, analysis, and diagnosis"
 authors = [
     { name = "Lukas P.A. Arts"},
@@ -42,12 +42,12 @@ dependencies = [
     "batchgenerators>=0.25.3,<0.26",
     "batchgeneratorsv2>=0.3.5,<0.4",
 
-    "scikit-image>=0.26,<0.27",
+    "scikit-image>=0.25.2,<0.26",
     "SimpleITK>=2.5.5,<3",
 
     "wfdb>=4.3,<5",
 
-    "scipy>=1.17.1,<2",
+    "scipy>=1.15,<2",
     "numpy>=2.0,<3",
     "psutil>=7,<8",
 
@@ -58,7 +58,7 @@ dependencies = [
 
     "huggingface-hub>=1,<2",
 
-    "tifffile>=2025.6",
+    "tifffile>=2024.8,<2025.5.21",
     "requests>=2.32,<3",
     "nibabel>=5.3,<6",
     "einops>=0.8,<1"
@@ -78,6 +78,11 @@ benchmark = [
     "rich>=14,<15",
     "openpyxl>=3.1,<4",
     "pymongo>=4.17,<5",
+    "dill==0.3.9",
+
+    "opencv-python==4.11.0.86",
+    "defusedxml",
+    "timm==1.0.11",
 ]          
 
 [build-system]

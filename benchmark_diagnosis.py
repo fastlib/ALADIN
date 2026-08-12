@@ -400,7 +400,7 @@ class ALADINModel(Model):
         self.output_binary = True
         self.name = "ALADIN"
         self.save_output = True
-        self.modelpaths = modelpaths if len(modelpaths) > 0 else ["Dataset301_all_0/ClassificationTrainer__nnUNetWithClassificationPlans__1d_decoding"]
+        self.modelpaths = modelpaths if len(modelpaths) > 0 else "auto"
 
         self.aladin = ALADIN(modelpaths=self.modelpaths)
 
@@ -408,7 +408,7 @@ class ALADINModel(Model):
 
         recordname = str(meta["record"]).replace("/", "_")
 
-        record = Record(sig, fs, "bench", recordname)
+        record = Record({"II": sig}, fs, "bench", recordname)
         self.aladin.analyse(record)
 
         diagnoses = []
@@ -461,7 +461,7 @@ class ALADINModel(Model):
         records = []
         ids = []
         for record in recs:
-            records.append(Record(record["signal"], record["fs"], "bench", record["record"]))
+            records.append(Record({"II": record["signal"]}, record["fs"], "bench", record["record"]))
             ids.append(record["record"])
 
         print("Preprocessing on CPU done: ", batch_index, flush=True)
@@ -534,7 +534,7 @@ class ALADINModelForCinc(ALADINModel):
         recordname = str(meta["record"]).replace("/", "_")
         db = "bench"
         
-        record = Record(sig, None, None, fs, db, recordname)
+        record = Record({"II": sig}, fs, db, recordname)
         record = self.aladin.analyse(record)
 
         totallength = len(record.ecg)
@@ -697,7 +697,7 @@ class ALADINModelForICENTIA(ALADINModel):
         recordname = str(meta["record"]).replace("/", "_")
         db = "bench"
         
-        record = Record(sig, fs, db, recordname)
+        record = Record({"II": sig}, fs, db, recordname)
 
         self.aladin.analyse(record)
 
@@ -946,7 +946,7 @@ if __name__ == "__main__":
     #add overwrite flag
     parser.add_argument('--overwrite', action='store_true', help='Overwrite existing results')
     #modelpaths is a list of strings
-    parser.add_argument('--modelpaths', nargs='+', help='Paths to the models used in the benchmark', required=False, default=[])
+    parser.add_argument('--modelpaths', nargs='+', help='Paths to the models used in the benchmark', required=False, default="auto")
 
     args = parser.parse_args()
     method = args.method
