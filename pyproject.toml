@@ -42,7 +42,7 @@ dependencies = [
     "batchgenerators>=0.25.3,<0.26",
     "batchgeneratorsv2>=0.3.5,<0.4",
 
-    "scikit-image>=0.25.2,<0.26",
+    "scikit-image>=0.25.2",
     "SimpleITK>=2.5.5,<3",
 
     "wfdb>=4.3,<5",
