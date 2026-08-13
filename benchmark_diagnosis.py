@@ -418,7 +418,12 @@ class ALADINModel(Model):
 
     def calculate_batchsizes(self, data):
         ram = psutil.virtual_memory().available
-        vram = torch.cuda.get_device_properties(0).total_memory
+        if torch.cuda.is_available():
+            vram = torch.cuda.get_device_properties(0).total_memory
+        else:
+            # No GPU: the "device" batch runs on the same system RAM as the CPU batch.
+            print("No CUDA device found, running device batch on CPU/RAM instead")
+            vram = ram
 
         length = data[0]["signal"].shape[-1]
         ram_per_record = 6*length*4*5 #6 channels, 4 bytes per float, 5 for preprocessing and storing

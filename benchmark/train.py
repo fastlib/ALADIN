@@ -319,7 +319,7 @@ class Trainer(object):
         # optimizer = torch.optim.SGD(self.network.parameters(), self.initial_lr, weight_decay=self.weight_decay,
         #                             momentum=0.99, nesterov=True)
         #lr_scheduler = PolyLRScheduler(optimizer, self.initial_lr, self.num_epochs)
-        lr_scheduler = ReduceLROnPlateau(optimizer, patience=100, factor=0.1, verbose=True)
+        lr_scheduler = ReduceLROnPlateau(optimizer, patience=100, factor=0.1)
         return optimizer, lr_scheduler
 
 
@@ -697,7 +697,7 @@ class ECGFounderTrainer(Trainer):
         # optimizer = torch.optim.SGD(self.network.parameters(), self.initial_lr, weight_decay=self.weight_decay,
         #                             momentum=0.99, nesterov=True)
         #lr_scheduler = PolyLRScheduler(optimizer, self.initial_lr, self.num_epochs)
-        lr_scheduler = ReduceLROnPlateau(optimizer, patience=10, factor=0.1, verbose=True)
+        lr_scheduler = ReduceLROnPlateau(optimizer, patience=10, factor=0.1)
         return optimizer, lr_scheduler
     
     def get_dataloaders(self):

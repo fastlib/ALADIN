@@ -333,8 +333,6 @@ class StanfordData(BaseDataLoader):
     def __init__(self, folder, asynchronous=False, fraction=1.0):
         super().__init__(folder, asynchronous, fraction)
         self.name = "STANFORD"
-        credentials = service_account.Credentials.from_service_account_file(self.basefolder+'/aladin-466917-e056430d6165.json')
-        self.bucket = storage.Client(credentials=credentials).get_bucket("arts-aladin")
         self.annotation_data = []
         self.get_annotation_data()
         self.init_objects()
@@ -343,10 +341,8 @@ class StanfordData(BaseDataLoader):
     def get_annotation_data(self):
         annfile = self.basefolder+'/'+self.folder+'/stanford2.pkl'
         if not os.path.exists(annfile):
-            print("Downloading annotation data for STANFORD")
-            blob = self.bucket.blob("STANFORD/stanford2.pkl")
-            blob.download_to_filename(annfile)
-            
+            raise FileNotFoundError(f"Annotation data not found at {annfile}. Only local files are supported for STANFORD.")
+
         dat = pickle.load(open(annfile, 'rb'))
         self.annotation_data = {d['record']:d for d in dat if d['db'] == 'STANFORD'}
 
@@ -373,13 +369,8 @@ class StanfordData(BaseDataLoader):
 
         local_file_path = os.path.join(self.basefolder, self.folder, obj["path"])
 
-        if not os.path.exists(local_file_path+".dat"):
-            print("Downloading", recordname)
-            blob = self.bucket.blob("STANFORD/"+obj["path"]+".dat")
-            blob.download_to_filename(local_file_path+".dat")
-        if not os.path.exists(local_file_path+".hea"):
-            blob = self.bucket.blob("STANFORD/"+obj["path"]+".hea")
-            blob.download_to_filename(local_file_path+".hea")
+        if not os.path.exists(local_file_path+".dat") or not os.path.exists(local_file_path+".hea"):
+            raise FileNotFoundError(f"Record files not found at {local_file_path}. Only local files are supported for STANFORD.")
 
         d = self.annotation_data[recordname]
         pwaves = get_regions(d["segmentation"][0,:])
