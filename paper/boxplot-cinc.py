@@ -28,7 +28,7 @@ class HumanCardiologist():
         case = meta["record"]
         predicted_episodes = []
         basefolder = os.environ.get('benchmark_data')
-        annfile = f"{basefolder}/CINC/training/REFERENCE-v0.csv"
+        annfile = f"{basefolder}/CINC/REFERENCE-v3.csv"
         annotations = pd.read_csv(annfile, header=None, names=["record", "ann"])
 
         row = annotations[annotations["record"] == case]
@@ -109,7 +109,7 @@ def get_annotations_per_class(annotations, cls):
 def get_cardiologist_metrics(triage=False):
 
     basefolder = os.environ.get('benchmark_data')
-    annfile = f"{basefolder}/CINC/training/REFERENCE-v3.csv"
+    annfile = f"{basefolder}/CINC/REFERENCE-v3.csv"
     annotations = pd.read_csv(annfile, index_col=0, header=None, names=["record", "class"])
 
 

@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ninja-build \
     git \
     curl \
+    wget \
     unzip \
     libgl1 \
     libglib2.0-0 \
@@ -29,7 +30,6 @@ COPY utils /app/utils
 COPY paper /app/paper 
 COPY data/demo /app/data/demo
 COPY data/nnUNet_plans /app/data/nnUNet_plans 
-COPY data/STANFORD /app/data/STANFORD 
 COPY data/CINC /app/data/CINC 
 COPY benchmark_delineation.py /app
 COPY benchmark_delineation.sh /app

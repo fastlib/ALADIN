@@ -13,11 +13,6 @@ download_and_unzip() {
     local destdir="$2"
     local tmpzip
 
-    if [ -d "${destdir}" ] && [ -n "$(ls -A "${destdir}" 2>/dev/null)" ]; then
-        echo "Skipping ${filename}: ${destdir} already exists and is not empty."
-        return
-    fi
-
     tmpzip="$(mktemp -t "${filename}.XXXXXX")"
     curl -fL -H "Authorization: Bearer ${HF_TOKEN}" -o "${tmpzip}" "${HF_BASE_URL}/${filename}"
     mkdir -p "${destdir}"
@@ -43,12 +38,14 @@ download "stanford2.pkl" "/data/STANFORD"
 #   /app/DelineatorSwitchAndCompose/TrainedModels/...
 download_and_unzip "TrainedModels.zip" "/app/DelineatorSwitchAndCompose/TrainedModels"
 
-download_and_unzip "competitor_diagnostic_models.zip" "/data/benchmark/weights" 
+download_and_unzip "competitor_diagnostic_models.zip" "/data/benchmark" 
 
 download_and_unzip "RDB.zip" "/data/RDB"
 #8. Pretrained weights of the diagnostic models (FigShare, 580Mb) are not part of the
 #   fastlib/ALADIN-benchmarks HF repo download above; provide them separately, e.g. by
 #   bind-mounting them to /app/benchmark/weights.
+
+#./data/CINC/download.sh
 
 #9. Make results folder
 mkdir -p /results
@@ -59,10 +56,10 @@ export benchmark_results=/results
 export HF_HOME=/models
 
 #11. Run delineation benchmark (~ 20 min)
-#./benchmark_delineation.sh
+./benchmark_delineation.sh
 
 #12. Create latex table of delineation performance on validation set
-#python paper/generate_results_tables.py
+python paper/generate_results_tables.py
 
 #13. Run diagnostic benchmark on Stanford (~ 1.5 hour)
 ./benchmark_diagnosis_STANFORD.sh

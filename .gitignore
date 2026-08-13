@@ -51,6 +51,8 @@ benchmark/weights/*.pth
 !data/CINC/RECORDS
 !data/CINC/REFERENCE-v3.csv
 
+!data/RDB/RECORDS
+
 # nnUNet
 !nnUNet/
 nnUNet/build/

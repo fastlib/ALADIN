@@ -46,7 +46,7 @@ class ECGFounderModel(ECGFounderPredictor):
         super().__init__(model_path)
 
         if isinstance(self.model_path, str):
-            checkpoint = torch.load(self.model_path, map_location=self.device)
+            checkpoint = torch.load(self.model_path, map_location=self.device, weights_only=False)
         
         new_state_dict = {}
         if 'network_weights' in checkpoint:
@@ -248,7 +248,7 @@ class HannunModel(Predictor):
         super().__init__(model_path)
 
         if isinstance(self.model_path, str):
-            checkpoint = torch.load(self.model_path, map_location=self.device)
+            checkpoint = torch.load(self.model_path, map_location=self.device, weights_only=False)
         
         new_state_dict = {}
         for k, value in checkpoint['network_weights'].items():
@@ -764,7 +764,7 @@ class ECGFounderWrapper(Model):
         self.name = "ECGFounder"
         self.save_output = True
         self.savelogits = True
-        self.modelpaths = modelpaths if len(modelpaths) > 0 else ["./benchmark/weights/1_lead_ECGFounder.pth"]
+        self.modelpaths = modelpaths if len(modelpaths) > 0 else ["./benchmark/weights/ECGFounderNet_best_checkpoint.pth"]
         self.model = ECGFounderModel(self.modelpaths[0])
         self.output_to_label = {
             3: "NSR",
@@ -798,7 +798,7 @@ class ECGFounderWrapperForCinc(Model):
         self.name = "ECGFounder"
         self.save_output = True
         self.savelogits = True
-        self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/1_lead_ECGFounder.pth']
+        self.modelpaths = modelpaths if len(modelpaths) > 0 else ['./benchmark/weights/ECGFounderNet_checkpoint_best.pth']
         self.model = ECGFounderModel(self.modelpaths[0])
         self.output_to_label = {
             0: "O", #ABNORMAL ECG
