@@ -13,13 +13,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- name: Linux x86_64
-          #  os: ubuntu-latest
-          #  arch: x86_64
+          - name: Linux x86_64
+            os: ubuntu-latest
+            arch: x86_64
 
-          #- name: Windows x86_64
-          #  os: windows-latest
-          #  arch: AMD64
+          - name: Windows x86_64
+            os: windows-latest
+            arch: AMD64
 
           - name: macOS arm64
             os: macos-14
@@ -55,7 +55,7 @@ jobs:
         uses: pypa/cibuildwheel@v4.2.0
         env:
           # Build only Python 3.11–3.14
-          CIBW_BUILD: "cp314-*" #"cp311-* cp312-* cp313-* cp314-*"
+          CIBW_BUILD: "cp311-* cp312-* cp313-* cp314-*"
 
           # Don't build PyPy or musllinux variants
           CIBW_SKIP: "pp* *-musllinux_*"
