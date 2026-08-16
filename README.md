@@ -31,20 +31,27 @@ cd ALADIN
 python -m venv VENV
 source VENV/bin/activate
 
-pip install scikit-build-core pybind11 ninja cmake  # build tooling
-pip install torch                                    # required before building the C++ extension
-pip install ./nnUNet
-pip install ./aladin --no-build-isolation
+pip install .
 ```
 
-## Usage
+## Demo 
+A runnable demo is available via:
+
+```bash
+python demo.py --case=[recording]
+```
+
+where `[recording]` is one of `STANFORD1`, `STANFORD2`, `A01986`, `A08391`.
+
+## Usage 
 
 ```python
 import numpy as np
-from aladin import ALADIN
-from aladin.core import Record
+from aladin import ALADIN #import framework
+from aladin.core import Record #custom record class
 
 # ecg is a dict keyed by lead name
+# 1-12 leads are supported, models are selected based on lead presence, see below
 fs = 250  # Hz
 ecg = {"II": np.random.rand(fs * 10)}
 record = Record(ecg, fs)
@@ -54,29 +61,33 @@ record = Record(ecg, fs)
 # V1 and V6, otherwise ALADIN falls back to the 1-lead model)
 aladin = ALADIN(modelpaths="auto")
 
-aladin.segment(record)              # segmentation
-aladin.analyse(record)              # diagnosis
-aladin.extract_median_beat(record)  # median beat extraction
+# only delineation 
+aladin.segment(record) 
+p_waves = record.delineations.p.[binary|logits|uncertainty]
+qrs = record.delineations.qrs.[binary|logits|uncertainty]
+t = record.delineations.t.[binary|logits|uncertainty]
+abnormal_qrs = record.delineations.abnormal_qrs.[binary|logits|uncertainty] #V beats
+afib = record.delineations.afib.[binary|logits|uncertainty]
+noise = record.delineations.noise.[binary|logits|uncertainty]
 
-median_beat = record.median_beat.ecg
+# delineation and diagnosis 
+alading.analyse(record) 
+results = record.to_dict()
+
+# median beat extraction
+aladin.extract_median_beat(record) 
+median_beat = record.median_beat.ecg 
+median_beat_delineations = record.median_beat.delineations.[p|qrs|t].[onset|offset|mask]
 ```
 
-A runnable demo is available via:
+## Benchmark reproduction
 
-```bash
-python demo.py --case=[recording]
-```
-
-where `[recording]` is one of `STANFORD1`, `STANFORD2`, `A01986`, `A08391`.
-
-## Benchmarks
-
-See [benchmark.md](benchmark.md) for details on reproducing the published benchmarks.
+See [benchmark.md](benchmark.md) for details on reproducing the published delineation and diagnosis benchmarks on the Stanford, RDB, and CinC datasets.
 
 ## Changelog
 
-**1.1.2** (2026-08-08) — Added PyPI support
+**1.1.2** — Added PyPI support
 
-**1.1.1** (2026-07-15) — Cross-platform GitHub Actions, unit tests, automatic model weight downloads from Hugging Face
+**1.1.1** — Cross-platform GitHub Actions, unit tests, automatic model weight downloads from Hugging Face
 
-**1.1.0** (2026-03-16) — Support for 1-, 3-, and 12-lead ECG; median beat extraction and beat-median segmentations
+**1.1.0** — Support for 1-, 3-, and 12-lead ECG; median beat extraction and beat-median segmentations
