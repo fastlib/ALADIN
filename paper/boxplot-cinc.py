@@ -330,8 +330,9 @@ def make_piechart():
     plt.rcParams['svg.fonttype'] = 'none'
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = 'Helvetica Neue'
-    plt.savefig("paper/images/fig3-class_distribution_cinc.svg")
-
+    plt.savefig("/results/fig3-class_distribution_cinc.svg")
+    plt.savefig("/results/fig3-class_distribution_cinc.png", dpi=300)   
+    
 def make_ranking_plot(df):
 
     basefolder = os.environ.get('benchmark_data')
@@ -433,8 +434,8 @@ def make_ranking_plot(df):
     plt.rcParams['svg.fonttype'] = 'none'
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = 'Helvetica Neue'
-    plt.savefig("paper/images/fig3-ranking_cinc.svg")
-    plt.savefig("paper/images/fig3-ranking_cinc.png", dpi=300)
+    plt.savefig("/results/fig3-ranking_cinc.svg")
+    plt.savefig("/results/fig3-ranking_cinc.png", dpi=300)
 
 def make_boxplots(df):
 
@@ -480,8 +481,8 @@ def make_boxplots(df):
     plt.rcParams['svg.fonttype'] = 'none'
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = 'Helvetica Neue'
-    plt.savefig("./paper/images/fig3-boxplot-cinc.svg")
-    plt.savefig("./paper/images/fig3-boxplot-cinc.png", dpi=300)
+    plt.savefig("/results/fig3-boxplot-cinc.svg")
+    plt.savefig("/results/fig3-boxplot-cinc.png", dpi=300)
  
 def horizontal_barplot(ax, data):
     #get 7 colors of the pastel palette
@@ -595,8 +596,8 @@ def make_horizontal_barplots(df):
     plt.rcParams['svg.fonttype'] = 'none'
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = 'Helvetica Neue'
-    plt.savefig("./paper/images/fig3-boxplot-cinc-triage.svg")
-    plt.savefig("./paper/images/fig3-boxplot-cinc-triage.png", dpi=300, facecolor="white", edgecolor="white", transparent=False)
+    plt.savefig("/results/fig3-boxplot-cinc-triage.svg")
+    plt.savefig("/results/fig3-boxplot-cinc-triage.png", dpi=300, facecolor="white", edgecolor="white", transparent=False)
 
 def make_confusion_matrix_aladin(file):
 
@@ -642,8 +643,8 @@ def make_confusion_matrix_aladin(file):
     plt.rcParams['svg.fonttype'] = 'none'
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = 'Helvetica Neue'
-    plt.savefig("./paper/images/fig3-confusion_matrix_aladin.svg")
-    plt.savefig("./paper/images/fig3-confusion_matrix_aladin.png", dpi=300)
+    plt.savefig("/results/fig3-confusion_matrix_aladin.svg")
+    plt.savefig("/results/fig3-confusion_matrix_aladin.png", dpi=300)
 
 def make_confusion_matrix_ecgfounder(file):
 
@@ -689,8 +690,8 @@ def make_confusion_matrix_ecgfounder(file):
     plt.rcParams['svg.fonttype'] = 'none'
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = 'Helvetica Neue'
-    plt.savefig("./paper/images/fig3-confusion_matrix_ecgfounder.svg")
-    plt.savefig("./paper/images/fig3-confusion_matrix_ecgfounder.png", dpi=300)
+    plt.savefig("/results/fig3-confusion_matrix_ecgfounder.svg")
+    plt.savefig("/results/fig3-confusion_matrix_ecgfounder.png", dpi=300)
 
 def get_most_recent_file(folder, prefix):
     files = glob.glob(os.path.join(folder, f"{prefix}*.json"))
@@ -999,9 +1000,18 @@ if __name__ == "__main__":
     aladin_experiment = DiagnosticBenchmark(cinc, aladinvirt)
 
     basefolder = os.environ.get('benchmark_results')
+    if not basefolder:
+        raise ValueError("Environment variable 'benchmark_results' is not set")
+
     aladin_file = get_most_recent_file(basefolder+"/diagnosis", "set_level_diagnosis_ALADIN_CINC")
     resnet_file = get_most_recent_file(basefolder+"/diagnosis", "set_level_diagnosis_Hannun_CINC")
     ecgfounder_file = get_most_recent_file(basefolder+"/diagnosis", "set_level_diagnosis_ECGFounder_CINC")
+
+    for name, path in [("aladin_file", aladin_file), ("resnet_file", resnet_file), ("ecgfounder_file", ecgfounder_file)]:
+        if path is None:
+            raise FileNotFoundError(
+                f"No file found for {name} in '{basefolder}/diagnosis' — check that the benchmark has been run and 'benchmark_results' points to the right directory"
+            )
 
     aladin_metrics, aladin_distributions = aladin_experiment.aggregate(aladin_file, bootstrap=True)
     aladin_metrics_triage, aladin_distributions_triage = aladin_experiment.aggregate(aladin_file, bootstrap=True, triage=True)
