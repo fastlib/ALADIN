@@ -20,7 +20,7 @@ Model weights are downloaded automatically and anonymously from the [Hugging Fac
 
 - Linux Ubuntu ≥20.04, macOS ≥13.6, or Windows ≥10
 - Python 3.11–3.14
-- 20GB free disk space
+- ≥8GB RAM
 - A modern GPU with ≥12GB VRAM is recommended for training and inference; CPU-only inference is supported but slower
 
 ### Installing from source
@@ -63,7 +63,7 @@ aladin = ALADIN(modelpaths="auto")
 
 # only delineation 
 aladin.segment(record) 
-p_waves = record.delineations.p.[binary|logits|uncertainty]
+p = record.delineations.p.[binary|logits|uncertainty]
 qrs = record.delineations.qrs.[binary|logits|uncertainty]
 t = record.delineations.t.[binary|logits|uncertainty]
 abnormal_qrs = record.delineations.abnormal_qrs.[binary|logits|uncertainty] #V beats
