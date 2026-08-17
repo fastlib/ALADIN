@@ -3,7 +3,7 @@
 
 # Un-ignore specific files in root
 !README.md
-!benchmark.md
+!modelcard.md
 !requirements.txt
 !train_aladin.sh
 !benchmark_delineation.py

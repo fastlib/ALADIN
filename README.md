@@ -6,7 +6,9 @@
 [![License](https://img.shields.io/pypi/l/aladin-ecg.svg)](https://pypi.org/project/aladin-ecg/)
 [![Downloads](https://img.shields.io/pypi/dm/aladin-ecg.svg)](https://pypi.org/project/aladin-ecg/)
 
-ALADIN is a neuro-symbolic AI model that preprocesses, segments, and diagnoses single- and multi-lead ECG signals. It has been validated extensively on three diverse patient cohorts with a combined size of 13,000 patients. ALADIN can handle any ECG recording from clinical MUSE recordings to handheld KardiaMobile measurements ranging from 6 seconds to 24 hours.
+ALADIN is a neuro-symbolic AI model that preprocesses, segments, and diagnoses single- and multi-lead ECG signals. It has been validated extensively on three diverse patient cohorts with a combined size of 13,780 patients. ALADIN can handle any ECG recording from clinical MUSE recordings to ambulatory ZioPatch sessions and handheld KardiaMobile measurements ranging from 6 seconds to 24 hours. 
+
+Due to ALADIN's native, memory-level integration of PyTorch and its multithreaded C++ backend, ALADIN can easily process large datasets with up to millions of ECGs, while automatically adapting to hardware configurations that range from consumer laptops to high-performance clusters. 
 
 ## Installation
 
