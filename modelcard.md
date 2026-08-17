@@ -49,6 +49,8 @@ The segmentation model was trained using an active-learning selection process ac
 | PTB-XL | 22,353 | 18,869 | 6–60 sec | 500 | 12 | Clinical | 637 |
 | **Subtotal** | **89,129** | **85,605** | | | | | **3,962** |
 
+## Validation data 
+
 ### Internal delineation validation (𝒱<sub>del,intern</sub>)
 
 Held-out subsets (no overlap with the training set) from CPSC2018 (210 records), CPSC2018 extra (186), ICENTIA (81, 24h ambulatory, 1-lead, 250 Hz), LANCET (72), and NINGBO (248).
@@ -61,7 +63,10 @@ Held-out subsets (no overlap with the training set) from CPSC2018 (210 records),
 
 Combined internal + external delineation validation subtotal: 3,196 patients.
 
-### Diagnosis validation (𝒱<sub>diag</sub>)
+### Internal diagnosis validation 
+Not applicable (no training was involved, all validation is external)
+
+### External diagnosis validation (𝒱<sub>diag</sub>)
 
 | Dataset | Records | Patients | Duration | Frequency | Leads | Type |
 |---|---|---|---|---|---|---|
@@ -71,7 +76,7 @@ Combined internal + external delineation validation subtotal: 3,196 patients.
 
 Diagnosis validation total: **13,780 patients**.
 
-## Evaluation
+## Reproduction
 
 Benchmark reproduction instructions and scripts are in [`benchmark.md`](benchmark.md) and `paper/`. Please request a Huggingface token from the authors to run the benchmark reproduction as the reproduction
 uses datasets that are not openly available anymore. Published comparisons include:
