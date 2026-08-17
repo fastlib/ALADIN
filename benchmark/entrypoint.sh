@@ -28,23 +28,17 @@ download() {
     curl -fL -H "Authorization: Bearer ${HF_TOKEN}" -o "${destdir}/${filename}" "${HF_BASE_URL}/${filename}"
 }
 
-#1. Download VALIDATION.zip and extract to /data such that you have /data/VALIDATION/...
 download_and_unzip "VALIDATION.zip" "/data/VALIDATION"
 
-#2. Download STANFORD.zip and extract to /data such that you have /data/STANFORD/...
 download_and_unzip "STANFORD.zip" "/data"
+
 download "stanford2.pkl" "/data/STANFORD"
 
-#6. Download trained model and unzip in /app/DelineatorSwitchAndCompose such that you have
-#  /app/DelineatorSwitchAndCompose/TrainedModels/...
 download_and_unzip "TrainedModels.zip" "/app/DelineatorSwitchAndCompose/TrainedModels"
 
 download_and_unzip "competitor_diagnostic_models.zip" "/data/benchmark" 
 
 download_and_unzip "RDB.zip" "/data/RDB"
-#8. Pretrained weights of the diagnostic models (FigShare, 580Mb) are not part of the
-#   fastlib/ALADIN-benchmarks HF repo download above; provide them separately, e.g. by
-#   bind-mounting them to /app/benchmark/weights.
 
 ./data/CINC/download.sh
 
@@ -69,7 +63,7 @@ python paper/generate_results_tables.py --dataset RDB
 #14. Create boxplot figures of performance on Stanford
 python paper/boxplot-stanford.py
 
-#15. Run diagnostic benchmark on CinC competition dataset (~ 30 hours)
+#15. Run diagnostic benchmark on CinC competition dataset (~ 3 hours)
 ./benchmark_diagnosis_CINC.sh
 
 #16. Create boxplot figures of performance on CinC competition set
