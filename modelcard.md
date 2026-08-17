@@ -61,7 +61,7 @@ Held-out subsets (no overlap with the training set) from CPSC2018 (210 records),
 |---|---|---|---|---|---|---|
 | RDB | 2,399 | 2,399 | 10 sec | 500 | 12 | Clinical |
 
-Combined internal + external delineation validation subtotal: 3,196 patients.
+Combined internal + external delineation validation total: **3,196 patients**.
 
 ### Internal diagnosis validation 
 Not applicable (no training was involved, all validation is external)
