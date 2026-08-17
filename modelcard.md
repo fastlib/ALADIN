@@ -32,7 +32,7 @@ Diagnoses currently supported by the logic engine: normal sinus rhythm (NSR), at
 
 ## Training data
 
-The segmentation model was trained using an active-learning selection process across nine public ECG datasets, with separate internal and external hold-out sets used for delineation validation, and three additional cohorts used for diagnosis validation. Patient/record counts and demographics (male/female/unknown %, age mean (SD)) below are as reported for the full source datasets and for the subset actually selected by active learning (𝒰), unless noted otherwise.
+The segmentation model was trained using an active-learning selection process across nine public ECG datasets, with separate internal and external hold-out sets used for delineation validation, and three additional cohorts used for diagnosis validation. 
 
 ### Training set (𝒰)
 
