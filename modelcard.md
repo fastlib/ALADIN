@@ -7,7 +7,7 @@ ALADIN is a neuro-symbolic AI model for ECG preprocessing, delineation (segmenta
 - **Developer:** Lukas P.A. Arts
 - **Repository:** [github.com/fastlib/ALADIN](https://github.com/fastlib/ALADIN)
 - **Model weights:** [huggingface.co/fastlib/ALADIN](https://huggingface.co/fastlib/ALADIN)
-- **License:** Apache 2.0 (per `pyproject.toml` classifiers — note: no `LICENSE` file is currently checked into the repository root; add one if this needs to be authoritative)
+- **License:** Apache 2.0
 - **PyPI package:** [`aladin-ecg`](https://pypi.org/project/aladin-ecg/)
 - **Citation:** No published paper or preprint yet (manuscript in preparation)
 
