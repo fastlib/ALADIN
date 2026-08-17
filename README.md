@@ -86,6 +86,10 @@ median_beat_delineations = record.median_beat.delineations.[p|qrs|t].[onset|offs
 
 See [benchmark.md](benchmark.md) for details on reproducing the published delineation and diagnosis benchmarks on the Stanford, RDB, and CinC datasets.
 
+## Model card
+
+For details on training data, intended use, performance, limitations, and responsible use, see the [Model Card](modelcard.md).
+
 ## Changelog
 
 **1.1.2** — Added PyPI support
